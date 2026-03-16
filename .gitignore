@@ -1,0 +1,33 @@
+# Compiled source
+/public/build
+/public/hot
+
+# Dependencies
+/node_modules
+/vendor
+
+# IDEs
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.backup
+.env.example
+
+# Laravel
+/storage/app/public
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+/storage/logs/
+
+# Testing
+.phpunit.result.cache
+
+# Misc
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
