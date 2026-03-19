@@ -10,48 +10,49 @@ This project is configured to run with Docker and connect to a Supabase database
 
 ### Essential Docker Commands
 
-**1. Start the Project:**
-
-Run this command to build and start the `app` and `nginx` containers in the background.
+**1. Start/Stop the Project:**
 ```bash
+# Start
 docker-compose up -d
-```
-- Your website will be available at: [http://localhost:8000](http://localhost:8000)
 
----
-
-**2. Run Database Migrations:**
-
-To create or update your database tables on Supabase.
-```bash
-docker exec -it danangtrip_app php artisan migrate
-```
-
----
-
-**3. Stop the Project:**
-
-To stop all running containers for this project.
-```bash
+# Stop
 docker-compose down
 ```
 
----
-
-**4. Access the Container Shell:**
-
-If you need to run other `php artisan` commands (e.g., `make:model`, `config:clear`).
+**2. Database Management (Crucial for DATN):**
 ```bash
+# Run new migrations
+docker exec -it danangtrip_app php artisan migrate
+
+# RESET EVERYTHING (Delete all data and run migrations from scratch)
+docker exec -it danangtrip_app php artisan migrate:fresh
+
+# RESET EVERYTHING + SEED (Run migrations and populate dummy data)
+docker exec -it danangtrip_app php artisan migrate:fresh --seed
+
+# Check migration status
+docker exec -it danangtrip_app php artisan migrate:status
+```
+
+**3. Useful Development Commands:**
+```bash
+# Clear all Cache (Fix "not receiving updates" issues)
+docker exec -it danangtrip_app php artisan optimize:clear
+
+# List all API Routes
+docker exec -it danangtrip_app php artisan route:list
+
+# Create new Model + Migration + Controller
+docker exec -it danangtrip_app php artisan make:model YourModel -mc
+
+# Access the Container Shell
 docker exec -it danangtrip_app bash
 ```
 
----
-
-**5. Rebuild the Image:**
-
-Only needed if you make changes to the `Dockerfile`.
+**4. Rebuild the Image:**
 ```bash
-docker-compose build
+# Needed if you change Dockerfile or nginx.conf
+docker-compose up -d --build
 ```
 
 ## Project Description
