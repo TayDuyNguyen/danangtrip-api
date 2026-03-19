@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\UserService;
 use App\Http\Validations\UserValidation;
-use Illuminate\Http\Request;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Class UserController
@@ -23,8 +23,6 @@ class UserController extends Controller
     /**
      * UserController constructor.
      * (Khởi tạo UserController)
-     *
-     * @param UserService $userService
      */
     public function __construct(UserService $userService)
     {
@@ -34,24 +32,25 @@ class UserController extends Controller
     /**
      * Display a listing of all users.
      * (Hiển thị danh sách tất cả người dùng)
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
         $result = $this->userService->getAllUsers();
+
         return $this->success(['users' => $result['data']]);
     }
 
     /**
      * Display the specified user.
      * (Hiển thị thông tin người dùng cụ thể)
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
+        $validate = UserValidation::validateShow($id);
+
+        if ($validate->fails()) {
+            return $this->validation_error($validate->errors());
+        }
         $result = $this->userService->getUserById($id);
 
         if ($result['status'] == 200) {
@@ -64,9 +63,6 @@ class UserController extends Controller
     /**
      * Store a newly created user in storage.
      * (Lưu trữ người dùng mới tạo vào bộ nhớ)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -88,10 +84,6 @@ class UserController extends Controller
     /**
      * Update the specified user in storage.
      * (Cập nhật thông tin người dùng cụ thể trong bộ nhớ)
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -113,12 +105,15 @@ class UserController extends Controller
     /**
      * Remove the specified user from storage.
      * (Xóa người dùng cụ thể khỏi bộ nhớ)
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
+        $validator = UserValidation::validateDelete($id);
+
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
         $result = $this->userService->deleteUser($id);
 
         if ($result['status'] == 200) {

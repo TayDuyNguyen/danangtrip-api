@@ -17,10 +17,8 @@ class RoleMiddleware
      * Handle an incoming request.
      * (Xử lý một yêu cầu đến)
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @param  string[] ...$roles
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @param  Closure(Request): (Response)  $next
+     * @param  string[]  ...$roles
      */
     public function handle(Request $request, Closure $next, ...$roles): Response
     {
@@ -30,10 +28,10 @@ class RoleMiddleware
 
         // Check if user exists and has a role that matches any of the required roles
         // (Kiểm tra xem người dùng có tồn tại và có vai trò khớp với bất kỳ vai trò yêu cầu nào không)
-        if (!$user || !in_array($user->role, $roles)) {
+        if (! $user || ! in_array($user->role, $roles)) {
             return response()->json([
                 'code' => 403,
-                'message' => 'Access denied. Your role (' . ($user->role ?? 'none') . ') does not have permission to access this resource.',
+                'message' => 'Access denied. Your role ('.($user->role ?? 'none').') does not have permission to access this resource.',
             ], 403);
         }
 

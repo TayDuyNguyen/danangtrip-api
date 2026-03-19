@@ -3,10 +3,10 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Exception;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Tymon\JWTAuth\Facades\JWTAuth;
-use Exception;
 
 /**
  * Class JwtAuthMiddleware
@@ -19,15 +19,13 @@ class JwtAuthMiddleware
      * Handle an incoming request.
      * (Xử lý một yêu cầu đến)
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     * @return \Symfony\Component\HttpFoundation\Response
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             return response()->json([
                 'code' => 401,
                 'message' => 'Token not provided',
@@ -40,7 +38,7 @@ class JwtAuthMiddleware
             $user = null;
         }
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'code' => 401,
                 'message' => 'Invalid token',
@@ -48,7 +46,7 @@ class JwtAuthMiddleware
         }
 
         $request->merge(['auth_user' => $user]);
-        $request->setUserResolver(fn() => $user);
+        $request->setUserResolver(fn () => $user);
 
         return $next($request);
     }

@@ -14,11 +14,36 @@ use Illuminate\Validation\Validator as ValidatorInstance;
 final class UserValidation
 {
     /**
+     * Validate show user request
+     * (Xác thực yêu cầu hiển thị thông tin người dùng)
+     */
+    public static function validateShow(int $id): ValidatorInstance
+    {
+        return Validator::make(
+            ['id' => $id],
+            ['id' => 'required|integer|exists:users,id'],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate delete user request.
+     * (Xác thực yêu cầu xóa người dùng)
+     */
+    public static function validateDelete(int $id): ValidatorInstance
+    {
+        return Validator::make(
+            ['id' => $id],
+            [
+                'id' => 'required|integer|exists:users,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Validate store user request.
      * (Xác thực yêu cầu tạo người dùng mới)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateStore(Request $request): ValidatorInstance
     {
@@ -42,18 +67,15 @@ final class UserValidation
     /**
      * Validate update user request.
      * (Xác thực yêu cầu cập nhật người dùng)
-     *
-     * @param Request $request
-     * @param int $id
-     * @return ValidatorInstance
      */
     public static function validateUpdate(Request $request, int $id): ValidatorInstance
     {
         return Validator::make(
-            $request->all(),
+            array_merge($request->all(), ['id' => $id]),
             [
-                'username' => 'sometimes|string|max:50|unique:users,username,' . $id,
-                'email' => 'sometimes|string|email|max:100|unique:users,email,' . $id,
+                'id' => 'required|integer|exists:users,id',
+                'username' => 'sometimes|string|max:50|unique:users,username,'.$id,
+                'email' => 'sometimes|string|email|max:100|unique:users,email,'.$id,
                 'password' => 'sometimes|string|min:8',
                 'full_name' => 'sometimes|string|max:100',
                 'phone' => 'nullable|string|max:20',
@@ -69,12 +91,13 @@ final class UserValidation
     /**
      * Get custom validation messages.
      * (Lấy thông báo xác thực tùy chỉnh)
-     *
-     * @return array
      */
     private static function messages(): array
     {
         return [
+            'id.required' => 'The user ID is required.',
+            'id.integer' => 'The user ID must be an integer.',
+            'id.exists' => 'The user ID does not exist.',
             'username.required' => 'The username is required.',
             'username.unique' => 'This username is already taken.',
             'username.max' => 'The username must not exceed 50 characters.',

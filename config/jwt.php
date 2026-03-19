@@ -1,5 +1,8 @@
 <?php
 
+use Tymon\JWTAuth\Providers\Auth\Illuminate;
+use Tymon\JWTAuth\Providers\JWT\Lcobucci;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -98,8 +101,8 @@ return [
     |--------------------------------------------------------------------------
     */
     'providers' => [
-        'jwt' => Tymon\JWTAuth\Providers\JWT\Lcobucci::class,
-        'auth' => Tymon\JWTAuth\Providers\Auth\Illuminate::class,
+        'jwt' => Lcobucci::class,
+        'auth' => Illuminate::class,
         'storage' => Tymon\JWTAuth\Providers\Storage\Illuminate::class,
     ],
 ];
