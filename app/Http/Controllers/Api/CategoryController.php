@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Validations\CategoryValidation;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class CategoryController
@@ -54,69 +53,6 @@ final class CategoryController extends Controller
 
         if ($result['status'] === 200) {
             return $this->success(['category' => $result['data']]);
-        }
-
-        return $this->error($result['message'], $result['status']);
-    }
-
-    /**
-     * Create a new category (admin).
-     * (Tạo danh mục mới - admin)
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $validator = CategoryValidation::validateStore($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->createCategory($validator->validated());
-
-        if ($result['status'] === 201) {
-            return $this->created(['category' => $result['data']], 'Category created successfully');
-        }
-
-        return $this->error($result['message'], $result['status']);
-    }
-
-    /**
-     * Update a category (admin).
-     * (Cập nhật danh mục - admin)
-     */
-    public function update(Request $request, int $id): JsonResponse
-    {
-        $validator = CategoryValidation::validateUpdate($request, $id);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->updateCategory($id, $validator->validated());
-
-        if ($result['status'] === 200) {
-            return $this->success(['category' => $result['data']], 'Category updated successfully');
-        }
-
-        return $this->error($result['message'], $result['status']);
-    }
-
-    /**
-     * Delete a category (admin).
-     * (Xóa danh mục - admin)
-     */
-    public function destroy(int $id): JsonResponse
-    {
-        $validator = CategoryValidation::validateDelete($id);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->deleteCategory($id);
-
-        if ($result['status'] === 200) {
-            return $this->success(null, $result['message']);
         }
 
         return $this->error($result['message'], $result['status']);

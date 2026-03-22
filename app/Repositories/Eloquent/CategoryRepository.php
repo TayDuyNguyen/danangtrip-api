@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Collection;
 
 final class CategoryRepository extends BaseRepository implements CategoryRepositoryInterface
 {
+    /**
+     * Get the associated model class name.
+     * (Lấy tên lớp Model liên kết)
+     *
+     * @return string
+     */
     public function getModel()
     {
         return Category::class;
