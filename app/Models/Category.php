@@ -31,4 +31,9 @@ final class Category extends Model
     {
         return $this->hasMany(Subcategory::class);
     }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(Location::class);
+    }
 }
