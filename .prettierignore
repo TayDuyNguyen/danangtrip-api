@@ -1,0 +1,13 @@
+.agent
+.agent/**
+node_modules
+vendor
+storage
+bootstrap/cache
+public/build
+public/hot
+public/apidoc
+*.min.js
+*.min.css
+composer.lock
+package-lock.json

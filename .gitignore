@@ -1,6 +1,7 @@
 # Compiled source
 /public/build
 /public/hot
+/public/apidoc
 
 # Dependencies
 /node_modules
@@ -22,6 +23,7 @@
 /storage/framework/testing/
 /storage/framework/views/
 /storage/logs/
+/storage/phpstan/
 
 # Testing
 .phpunit.result.cache

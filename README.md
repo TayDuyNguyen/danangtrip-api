@@ -5,12 +5,14 @@
 This project is configured to run with Docker and connect to a Supabase database.
 
 ### Prerequisites
+
 - Docker & Docker Compose installed on your machine.
 - A `.env` file configured with your Supabase credentials.
 
 ### Essential Docker Commands
 
 **1. Start/Stop the Project:**
+
 ```bash
 # Start
 docker-compose up -d
@@ -20,6 +22,7 @@ docker-compose down
 ```
 
 **2. Database Management (Crucial for DATN):**
+
 ```bash
 # Run new migrations
 docker exec -it danangtrip_app php artisan migrate
@@ -35,6 +38,7 @@ docker exec -it danangtrip_app php artisan migrate:status
 ```
 
 **3. Useful Development Commands:**
+
 ```bash
 # Clear all Cache (Fix "not receiving updates" issues)
 docker exec -it danangtrip_app php artisan optimize:clear
@@ -50,12 +54,14 @@ docker exec -it danangtrip_app bash
 ```
 
 **4. Rebuild the Image:**
+
 ```bash
 # Needed if you change Dockerfile or nginx.conf
 docker-compose up -d --build
 ```
 
 ## Project Description
+
 **Topic**: BUILDING DA NANG TRAVEL WEBSITE "DA NANG TRIP" - INTEGRATING RATING AND CONTENT MANAGEMENT SYSTEM USING POINT.
 
 - **Backend**: Laravel 12
