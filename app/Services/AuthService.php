@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * Class AuthService
@@ -22,8 +21,6 @@ class AuthService
     /**
      * AuthService constructor.
      * (Khởi tạo AuthService)
-     *
-     * @param UserRepositoryInterface $userRepository
      */
     public function __construct(UserRepositoryInterface $userRepository)
     {
@@ -34,7 +31,6 @@ class AuthService
      * Register a new user.
      * (Đăng ký người dùng mới)
      *
-     * @param array $data
      * @return array|null
      */
     public function register(array $data): array
@@ -71,26 +67,23 @@ class AuthService
     /**
      * Authenticate a user and return token.
      * (Xác thực người dùng và trả về token)
-     *
-     * @param string $email
-     * @param string $password
-     * @return array|null
      */
     public function login(string $email, string $password): ?array
     {
         try {
-            if (!$token = Auth::guard('api')->attempt(['email' => $email, 'password' => $password])) {
+            if (! $token = Auth::guard('api')->attempt(['email' => $email, 'password' => $password])) {
                 return [
                     'status' => 401,
                     'message' => 'Invalid credentials',
                 ];
             }
+
             return [
                 'status' => 200,
                 'data' => [
                     'token' => $token,
                     'user' => Auth::guard('api')->user(),
-                ]
+                ],
             ];
         } catch (\Exception $_) {
             return [
@@ -103,8 +96,6 @@ class AuthService
     /**
      * Invalidate user token (Logout).
      * (Vô hiệu hóa token người dùng - Đăng xuất)
-     *
-     * @return array
      */
     public function logout(): array
     {

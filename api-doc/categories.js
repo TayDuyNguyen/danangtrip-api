@@ -1,0 +1,180 @@
+/**
+ * @api {get} /api/v1/categories Get Categories
+ * @apiName GetCategories
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns active categories with active subcategories.
+ *
+ * @apiSampleRequest /api/v1/categories
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "categories": [
+ *       {
+ *         "id": 1,
+ *         "name": "Ăn uống",
+ *         "slug": "an-uong",
+ *         "icon": "fa-utensils",
+ *         "description": "Mô tả",
+ *         "image": null,
+ *         "sort_order": 1,
+ *         "status": "active",
+ *         "subcategories": [
+ *           {
+ *             "id": 10,
+ *             "category_id": 1,
+ *             "name": "Hải sản",
+ *             "slug": "hai-san",
+ *             "description": null,
+ *             "sort_order": 1,
+ *             "status": "active"
+ *           }
+ *         ]
+ *       }
+ *     ]
+ *   }
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/categories/:id Get Category Detail
+ * @apiName GetCategoryDetail
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiParam {Number} id Category id
+ *
+ * @apiDescription Public endpoint. Returns active category detail with active subcategories.
+ *
+ * @apiSampleRequest /api/v1/categories/1
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "category": {
+ *       "id": 1,
+ *       "name": "Ăn uống",
+ *       "slug": "an-uong",
+ *       "icon": "fa-utensils",
+ *       "description": "Mô tả",
+ *       "image": null,
+ *       "sort_order": 1,
+ *       "status": "active",
+ *       "subcategories": []
+ *     }
+ *   }
+ * }
+ *
+ * @apiErrorExample {json} Not-Found:
+ * HTTP/1.1 404 Not Found
+ * {
+ *   "code": 404,
+ *   "message": "Category not found",
+ *   "data": null
+ * }
+ */
+
+/**
+ * @api {post} /api/v1/admin/categories Create Category
+ * @apiName CreateCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Protected endpoint - Requires authentication and role=admin
+ *
+ * @apiBody {String} name Category name
+ * @apiBody {String} [slug] Category slug (unique). If omitted, slug will be generated from name.
+ * @apiBody {String} [icon] Icon name
+ * @apiBody {String} [description] Description
+ * @apiBody {String} [image] Image URL
+ * @apiBody {Number} [sort_order] Sort order
+ * @apiBody {String="active","inactive"} [status] Status
+ *
+ * @apiSampleRequest /api/v1/admin/categories
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 201 Created
+ * {
+ *   "code": 201,
+ *   "message": "Category created successfully",
+ *   "data": {
+ *     "category": {
+ *       "id": 1,
+ *       "name": "Ăn uống",
+ *       "slug": "an-uong"
+ *     }
+ *   }
+ * }
+ */
+
+/**
+ * @api {put} /api/v1/admin/categories/:id Update Category
+ * @apiName UpdateCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Protected endpoint - Requires authentication and role=admin
+ *
+ * @apiParam {Number} id Category id
+ * @apiBody {String} [name] Category name
+ * @apiBody {String} [slug] Category slug (unique). If omitted and name is provided, slug will be updated from name.
+ * @apiBody {String} [icon] Icon name
+ * @apiBody {String} [description] Description
+ * @apiBody {String} [image] Image URL
+ * @apiBody {Number} [sort_order] Sort order
+ * @apiBody {String="active","inactive"} [status] Status
+ *
+ * @apiSampleRequest /api/v1/admin/categories/1
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Category updated successfully",
+ *   "data": {
+ *     "category": {
+ *       "id": 1,
+ *       "name": "Khách sạn",
+ *       "slug": "khach-san"
+ *     }
+ *   }
+ * }
+ */
+
+/**
+ * @api {delete} /api/v1/admin/categories/:id Delete Category
+ * @apiName DeleteCategory
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Protected endpoint - Requires authentication and role=admin
+ *
+ * @apiParam {Number} id Category id
+ *
+ * @apiSampleRequest /api/v1/admin/categories/1
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Category deleted successfully",
+ *   "data": null
+ * }
+ */

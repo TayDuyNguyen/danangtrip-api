@@ -16,9 +16,6 @@ class AuthValidation
     /**
      * Validate login request.
      * (Xác thực yêu cầu đăng nhập)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateLogin(Request $request): ValidatorInstance
     {
@@ -26,7 +23,7 @@ class AuthValidation
             $request->all(),
             [
                 'email' => 'required|email|max:255',
-                'password' => 'required|string|min:8'
+                'password' => 'required|string|min:8',
             ],
             [
                 'email.required' => 'The email address is required.',
@@ -41,9 +38,6 @@ class AuthValidation
     /**
      * Validate registration/create user request.
      * (Xác thực yêu cầu đăng ký/tạo người dùng)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateRegister(Request $request): ValidatorInstance
     {
@@ -78,9 +72,6 @@ class AuthValidation
     /**
      * Validate reset password request.
      * (Xác thực yêu cầu đặt lại mật khẩu)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateResetPassword(Request $request): ValidatorInstance
     {

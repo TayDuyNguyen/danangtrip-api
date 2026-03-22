@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\AuthService;
 use App\Http\Validations\AuthValidation;
-use Illuminate\Http\Request;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Class AuthController
@@ -23,8 +23,6 @@ class AuthController extends Controller
     /**
      * AuthController constructor.
      * (Khởi tạo AuthController)
-     *
-     * @param AuthService $authService
      */
     public function __construct(AuthService $authService)
     {
@@ -34,9 +32,6 @@ class AuthController extends Controller
     /**
      * Register a new user.
      * (Đăng ký người dùng mới)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function register(Request $request): JsonResponse
     {
@@ -57,9 +52,6 @@ class AuthController extends Controller
     /**
      * Authenticate a user and return token.
      * (Xác thực người dùng và trả về token)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function login(Request $request): JsonResponse
     {
@@ -83,8 +75,6 @@ class AuthController extends Controller
     /**
      * Invalidate user token (Logout).
      * (Vô hiệu hóa token người dùng - Đăng xuất)
-     *
-     * @return JsonResponse
      */
     public function logout(): JsonResponse
     {
@@ -100,9 +90,6 @@ class AuthController extends Controller
     /**
      * Get authenticated user.
      * (Lấy thông tin người dùng đã xác thực)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function me(Request $request): JsonResponse
     {

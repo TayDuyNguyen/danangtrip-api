@@ -4,10 +4,12 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "apidoc": "apidoc -i api-doc -o public/apidoc"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
+        "apidoc": "^1.2.0",
         "axios": "^1.11.0",
         "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",

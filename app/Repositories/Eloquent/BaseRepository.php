@@ -3,9 +3,11 @@
 namespace App\Repositories\Eloquent;
 
 use App\Repositories\Interfaces\RepositoryInterface;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Class BaseRepository
@@ -33,7 +35,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Get the associated model class name.
      * (Lấy tên lớp Model liên kết)
-     * 
+     *
      * @return string
      */
     abstract public function getModel();
@@ -41,8 +43,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Set the associated model.
      * (Thiết lập Model liên kết)
-     *
-     * @return void
      */
     public function setModel(): void
     {
@@ -52,7 +52,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Get all instances of model.
      * (Lấy tất cả các bản ghi của model)
-     * 
+     *
      * @return Collection
      */
     public function all()
@@ -63,8 +63,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Create a new record in the database.
      * (Tạo một bản ghi mới trong cơ sở dữ liệu)
-     * 
-     * @param array $attributes
+     *
      * @return Model
      */
     public function create(array $attributes = [])
@@ -75,8 +74,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Insert multiple records.
      * (Chèn nhiều bản ghi cùng lúc)
-     * 
-     * @param array $attributes
+     *
      * @return bool
      */
     public function insert(array $attributes)
@@ -87,25 +85,25 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Update record in the database.
      * (Cập nhật bản ghi trong cơ sở dữ liệu)
-     * 
-     * @param mixed $id
-     * @param array $attributes
+     *
+     * @param  mixed  $id
      * @return bool
      */
     public function update($id, array $attributes = [])
     {
         $record = $this->find($id);
-        if (!$record) {
+        if (! $record) {
             return false;
         }
+
         return $record->update($attributes);
     }
 
     /**
      * Remove record from the database.
      * (Xóa bản ghi khỏi cơ sở dữ liệu)
-     * 
-     * @param mixed $id
+     *
+     * @param  mixed  $id
      * @return int
      */
     public function delete($id)
@@ -116,8 +114,8 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Show the record with the given id or throw exception.
      * (Hiển thị bản ghi với ID cho trước hoặc ném ra ngoại lệ)
-     * 
-     * @param mixed $id
+     *
+     * @param  mixed  $id
      * @return Model
      */
     public function show($id)
@@ -128,8 +126,8 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Find the record with the given id.
      * (Tìm bản ghi với ID cho trước)
-     * 
-     * @param mixed $id
+     *
+     * @param  mixed  $id
      * @return Model|null
      */
     public function find($id)
@@ -140,9 +138,8 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Find the record with specific columns.
      * (Tìm bản ghi với các cột cụ thể)
-     * 
-     * @param mixed $id
-     * @param array $columns
+     *
+     * @param  mixed  $id
      * @return Model|null
      */
     public function findOnlyColumn($id, array $columns = ['*'])
@@ -153,7 +150,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Get the first record.
      * (Lấy bản ghi đầu tiên)
-     * 
+     *
      * @return Model|null
      */
     public function first()
@@ -164,47 +161,47 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Eager load database relationships.
      * (Tải trước các mối quan hệ cơ sở dữ liệu)
-     * 
-     * @param mixed $relations
+     *
+     * @param  mixed  $relations
      * @return $this
      */
     public function with($relations)
     {
         $this->query->with($relations);
+
         return $this;
     }
 
     /**
      * Sort results by column.
      * (Sắp xếp kết quả theo cột)
-     * 
-     * @param string $column
-     * @param string $direction
+     *
      * @return $this
      */
     public function orderBy(string $column, string $direction = 'asc')
     {
         $this->query->orderBy($column, $direction);
+
         return $this;
     }
 
     /**
      * Limit the number of results.
      * (Giới hạn số lượng kết quả)
-     * 
-     * @param int $limit
+     *
      * @return $this
      */
     public function limit(int $limit)
     {
         $this->query->limit($limit);
+
         return $this;
     }
 
     /**
      * Get the underlying query builder.
      * (Lấy trình xây dựng truy vấn bên dưới)
-     * 
+     *
      * @return Builder
      */
     public function getQuery()
@@ -215,21 +212,20 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Reset the query builder.
      * (Đặt lại trình xây dựng truy vấn)
-     * 
+     *
      * @return Builder
      */
     public function clearQuery()
     {
         $this->query = $this->model->newQuery();
+
         return $this->query;
     }
 
     /**
      * Find records by filters.
      * (Tìm các bản ghi theo bộ lọc)
-     * 
-     * @param array $filter
-     * @param bool $toArray
+     *
      * @return mixed
      */
     public function findBy(array $filter, bool $toArray = true)
@@ -240,18 +236,17 @@ abstract class BaseRepository implements RepositoryInterface
         }
         $find = $builder->get();
 
-        if (!$toArray) {
+        if (! $toArray) {
             return $find;
         }
+
         return $find ? $find->toArray() : null;
     }
 
     /**
      * Find one record by filters.
      * (Tìm một bản ghi theo bộ lọc)
-     * 
-     * @param array $filter
-     * @param bool $toArray
+     *
      * @return mixed
      */
     public function findOneBy(array $filter, bool $toArray = true)
@@ -262,18 +257,19 @@ abstract class BaseRepository implements RepositoryInterface
         }
         $data = $builder->first();
 
-        if (!$toArray) {
+        if (! $toArray) {
             return $data;
         }
+
         return $data ? $data->toArray() : [];
     }
 
     /**
      * Paginate results.
      * (Phân trang kết quả)
-     * 
-     * @param int $page
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     *
+     * @param  int  $page
+     * @return LengthAwarePaginator
      */
     public function paginate($page)
     {
@@ -283,10 +279,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Update records matching filters.
      * (Cập nhật các bản ghi khớp với bộ lọc)
-     * 
-     * @param array $attributes
-     * @param array $params
-     * @return void
      */
     public function updateWhere(array $attributes = [], array $params = []): void
     {
@@ -296,9 +288,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Delete records matching filters.
      * (Xóa các bản ghi khớp với bộ lọc)
-     * 
-     * @param array $filter
-     * @return void
      */
     public function deleteBy(array $filter): void
     {
@@ -308,27 +297,23 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Find records where column is in array of values.
      * (Tìm các bản ghi có cột nằm trong mảng các giá trị)
-     * 
-     * @param array $filter
-     * @param bool $toArray
+     *
      * @return mixed
      */
     public function findWhereIn(array $filter, bool $toArray = true)
     {
         $data = $this->model->whereIn($filter['column'], $filter['values'])->get();
 
-        if (!$toArray) {
+        if (! $toArray) {
             return $data;
         }
+
         return $data ? $data->toArray() : [];
     }
 
     /**
      * Delete records where column is in array of values.
      * (Xóa các bản ghi có cột nằm trong mảng các giá trị)
-     * 
-     * @param array $filter
-     * @return void
      */
     public function deleteWhereIn(array $filter): void
     {
@@ -338,10 +323,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Update or create a record.
      * (Cập nhật hoặc tạo mới một bản ghi)
-     * 
-     * @param array $attributes
-     * @param array $params
-     * @return void
      */
     public function updateOrCreate(array $attributes = [], array $params = []): void
     {
@@ -351,9 +332,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Count records matching filters.
      * (Đếm số lượng bản ghi khớp với bộ lọc)
-     * 
-     * @param array $filter
-     * @return int
      */
     public function countRecord(array $filter = []): int
     {
@@ -373,11 +351,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Find records by array of IDs with chunking support.
      * (Tìm các bản ghi theo mảng ID với hỗ trợ chia nhỏ dữ liệu)
-     * 
-     * @param array $ids
-     * @param array $filter
-     * @param bool $returnOnlyIds
-     * @return array
      */
     public function findByIds(array $ids, array $filter = [], bool $returnOnlyIds = false): array
     {
@@ -391,6 +364,7 @@ abstract class BaseRepository implements RepositoryInterface
             foreach ($filter as $key => $value) {
                 $query->where($key, $value);
             }
+
             return $query;
         };
 
@@ -401,6 +375,7 @@ abstract class BaseRepository implements RepositoryInterface
                 ->chunk($chunkSize)
                 ->flatMap(function ($chunk) use ($applyFilter) {
                     $query = $applyFilter($this->model->newQuery()->whereIn('id', $chunk));
+
                     return $query->get();
                 });
         } else {
@@ -416,17 +391,11 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Update where in.
      * (Cập nhật các bản ghi có cột nằm trong mảng giá trị)
-     * 
-     * @param string $column
-     * @param array $values
-     * @param array $attributes
-     * @param array $whereConditions
-     * @return void
      */
     public function updateWhereIn(string $column, array $values, array $attributes, array $whereConditions = []): void
     {
         $query = $this->model->whereIn($column, $values);
-        if (!empty($whereConditions)) {
+        if (! empty($whereConditions)) {
             $query->where($whereConditions);
         }
         $query->update($attributes);
@@ -435,17 +404,11 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Update where not in.
      * (Cập nhật các bản ghi có cột KHÔNG nằm trong mảng giá trị)
-     * 
-     * @param string $column
-     * @param array $values
-     * @param array $attributes
-     * @param array $whereConditions
-     * @return void
      */
     public function updateWhereNotIn(string $column, array $values, array $attributes, array $whereConditions = []): void
     {
         $query = $this->model->whereNotIn($column, $values);
-        if (!empty($whereConditions)) {
+        if (! empty($whereConditions)) {
             $query->where($whereConditions);
         }
         $query->update($attributes);
@@ -454,12 +417,6 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Delete records not in IDs.
      * (Xóa các bản ghi KHÔNG nằm trong mảng ID)
-     * 
-     * @param string $columnName
-     * @param int $value
-     * @param array $ids
-     * @param string $primaryKey
-     * @return void
      */
     public function deleteNotInIds(string $columnName, int $value, array $ids, string $primaryKey = 'id'): void
     {
@@ -471,11 +428,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Sync relationship data.
      * (Đồng bộ dữ liệu mối quan hệ)
-     * 
-     * @param Model $model
-     * @param string $relation
-     * @param array $attributes
-     * @param bool $detaching
+     *
      * @return mixed
      */
     public function sync(Model $model, string $relation, array $attributes, bool $detaching = true)
@@ -486,10 +439,7 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Attach relationship data.
      * (Gắn dữ liệu mối quan hệ)
-     * 
-     * @param Model $model
-     * @param string $relation
-     * @param array $attributes
+     *
      * @return mixed
      */
     public function attach(Model $model, string $relation, array $attributes)
@@ -500,14 +450,37 @@ abstract class BaseRepository implements RepositoryInterface
     /**
      * Detach relationship data.
      * (Gỡ dữ liệu mối quan hệ)
-     * 
-     * @param Model $model
-     * @param string $relation
-     * @param array $attributes
+     *
      * @return mixed
      */
     public function detach(Model $model, string $relation, array $attributes = [])
     {
         return $model->{$relation}()->detach($attributes);
+    }
+
+    /**
+     * Generate a unique slug for the model.
+     * (Tạo slug duy nhất cho model)
+     */
+    public function generateUniqueSlug(string $value, string $column = 'slug', ?int $ignoreId = null): string
+    {
+        $base = Str::slug($value);
+        $slug = $base;
+        $i = 2;
+
+        while (true) {
+            $query = $this->model->newQuery()->where($column, $slug);
+
+            if ($ignoreId !== null) {
+                $query->where($this->model->getKeyName(), '!=', $ignoreId);
+            }
+
+            if (! $query->exists()) {
+                return $slug;
+            }
+
+            $slug = $base.'-'.$i;
+            $i++;
+        }
     }
 }
