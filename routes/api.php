@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +67,13 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+
+        // Ratings: Create / Update / Delete / Helpful
+        // (Đánh giá: Tạo / Sửa / Xóa / Đánh dấu hữu ích)
+        Route::post('/ratings', [RatingController::class, 'store']);
+        Route::put('/ratings/{id}', [RatingController::class, 'update'])->whereNumber('id');
+        Route::delete('/ratings/{id}', [RatingController::class, 'destroy'])->whereNumber('id');
+        Route::post('/ratings/{id}/helpful', [RatingController::class, 'helpful'])->whereNumber('id');
     });
 
     // =========================================================================
@@ -101,6 +110,12 @@ Route::prefix('v1')->group(function () {
         Route::post('/users', [AdminUserController::class, 'store']);
         Route::put('/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');
+
+        // Ratings Management
+        // (Quản lý Đánh giá)
+        Route::get('/ratings', [AdminRatingController::class, 'index']);
+        Route::patch('/ratings/{id}/approve', [AdminRatingController::class, 'approve'])->whereNumber('id');
+        Route::patch('/ratings/{id}/reject', [AdminRatingController::class, 'reject'])->whereNumber('id');
     });
 
 });

@@ -116,6 +116,11 @@ Service responsibilities:
 - Compose repository calls and manage transactions when needed (use `DB::transaction` / `DB` when appropriate).
 - Return a consistent result structure to controllers.
 
+Repository-first rule:
+- Services MUST NOT call Eloquent models directly for database access (no `Model::query()`, no `Model::create()`, no `Model::where(...)`, no `Model::lockForUpdate()`, etc.).
+- Services MAY work with model instances returned by repositories (e.g. updating an already-loaded instance), but cross-table reads/writes MUST go through repositories.
+- If a service needs to touch another table/model, create a dedicated repository for that model and inject it (interface + implementation + binding).
+
 Expected return structure (convention in this repo):
 - On success:
   - `['status' => 200|201, 'data' => <payload>, 'message' => <optional>]`
@@ -143,6 +148,9 @@ Rules:
 - Services must depend on repository interfaces, not Eloquent models directly.
 - Repositories must encapsulate query building and Eloquent access.
 - Reuse BaseRepository methods (`find`, `findOneBy`, `create`, `update`, `delete`, etc.) unless there is domain-specific querying.
+- Any non-trivial query (filters, joins, eager loading, locks, aggregates like AVG/COUNT) MUST be implemented as a repository method.
+- Locking (`lockForUpdate`) belongs in repository methods (e.g. `findForUpdate(...)`), not in services.
+- Batch writes (e.g. insert many) should be repository methods to avoid `Model::create()` loops in services.
 
 ## 8) Model & Database Rules
 
@@ -241,7 +249,11 @@ Rules for `@return`:
 2. Create/extend a controller method in the correct namespace.
 3. Add a validation method in the appropriate `*Validation.php`.
 4. Add or update a service method to implement business logic.
-5. Use repositories for DB access; add repository methods only when needed.
+5. Use repositories for ALL DB access; add repository methods whenever a query/write is needed.
+6. If you need a new table/model, also create:
+   - `App\Repositories\Interfaces\XRepositoryInterface`
+   - `App\Repositories\Eloquent\XRepository`
+   - binding in `app/Providers/RepositoryServiceProvider.php`
 6. Return JSON via ApiResponser helpers with correct HTTP status codes.
 7. Update `api-doc/*.js` documentation.
 8. Ensure migrations/models/validation align for any new fields.
