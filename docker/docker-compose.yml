@@ -1,0 +1,33 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: danangtrip_app
+    volumes:
+      - ../:/var/www
+    working_dir: /var/www
+    dns:
+      - 8.8.8.8
+    networks:
+      - danangtrip
+
+  nginx:
+    image: nginx:latest
+    container_name: danangtrip_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ../:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - danangtrip
+
+volumes:
+  db_data: {}
+
+networks:
+  danangtrip:
+    driver: bridge

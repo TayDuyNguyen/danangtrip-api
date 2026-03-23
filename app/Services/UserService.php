@@ -20,6 +20,8 @@ class UserService
     /**
      * UserService constructor.
      * (Khởi tạo UserService)
+     *
+     * @return void
      */
     public function __construct(UserRepositoryInterface $userRepository)
     {

@@ -22,6 +22,8 @@ final class CategoryController extends Controller
     /**
      * Create a new category.
      * (Tạo danh mục mới)
+     *
+     * @param Request request
      */
     public function store(Request $request): JsonResponse
     {

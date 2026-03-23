@@ -14,6 +14,8 @@ final class CategoryService
     /**
      * CategoryService constructor.
      * (Khởi tạo CategoryService)
+     *
+     * @return void
      */
     public function __construct(
         protected CategoryRepositoryInterface $categoryRepository
