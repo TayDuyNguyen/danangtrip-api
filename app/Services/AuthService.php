@@ -30,8 +30,6 @@ class AuthService
     /**
      * Register a new user.
      * (Đăng ký người dùng mới)
-     *
-     * @return array|null
      */
     public function register(array $data): array
     {

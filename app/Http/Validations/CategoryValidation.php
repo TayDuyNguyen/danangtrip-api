@@ -14,8 +14,8 @@ use Illuminate\Validation\Validator as ValidatorInstance;
 final class CategoryValidation
 {
     /**
-     * Validate show category request
-     * (Xác thực yêu cầu hiển thị)
+     * Validate show category request.
+     * (Xác thực yêu cầu chi tiết danh mục)
      */
     public static function validateShow(int $id): ValidatorInstance
     {
@@ -90,19 +90,24 @@ final class CategoryValidation
      * Get custom validation messages.
      * (Lấy thông báo xác thực tùy chỉnh)
      */
-    private static function messages(): array
+    protected static function messages(): array
     {
         return [
-            'id.required' => 'The category ID is required.',
-            'id.integer' => 'The category ID must be an integer.',
-            'id.exists' => 'The category ID does not exist.',
-            'name.required' => 'The category name is required.',
-            'name.max' => 'The category name must not exceed 50 characters.',
-            'slug.unique' => 'This slug is already taken.',
-            'slug.max' => 'The slug must not exceed 60 characters.',
-            'icon.max' => 'The icon name must not exceed 50 characters.',
-            'image.max' => 'The image URL must not exceed 255 characters.',
-            'status.in' => 'The selected status is invalid.',
+            'id.required' => 'The category ID is required. (Mã danh mục là bắt buộc.)',
+            'id.integer' => 'The category ID must be an integer. (Mã danh mục phải là số nguyên.)',
+            'id.exists' => 'The category ID does not exist. (Mã danh mục không tồn tại.)',
+            'name.required' => 'The category name is required. (Tên danh mục là bắt buộc.)',
+            'name.max' => 'The category name must not exceed 50 characters. (Tên danh mục không được vượt quá 50 ký tự.)',
+            'name.string' => 'The category name must be a string. (Tên danh mục phải là chuỗi ký tự.)',
+            'slug.unique' => 'This slug is already taken. (Slug này đã tồn tại.)',
+            'slug.max' => 'The slug must not exceed 60 characters. (Slug không được vượt quá 60 ký tự.)',
+            'icon.max' => 'The icon name must not exceed 50 characters. (Tên icon không được vượt quá 50 ký tự.)',
+            'icon.string' => 'The icon name must be a string. (Tên icon phải là chuỗi ký tự.)',
+            'description.string' => 'The description must be a string. (Mô tả phải là chuỗi ký tự.)',
+            'image.max' => 'The image URL must not exceed 255 characters. (URL hình ảnh không được vượt quá 255 ký tự.)',
+            'image.string' => 'The image must be a string URL. (Hình ảnh phải là chuỗi ký tự URL.)',
+            'sort_order.integer' => 'The sort order must be an integer. (Thứ tự sắp xếp phải là số nguyên.)',
+            'status.in' => 'The selected status is invalid. (Trạng thái được chọn không hợp lệ.)',
         ];
     }
 }
