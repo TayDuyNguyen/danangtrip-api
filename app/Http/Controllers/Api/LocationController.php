@@ -17,6 +17,8 @@ final class LocationController extends Controller
     /**
      * Display a listing of the resource.
      * (Danh sách địa điểm (filter, sort, paginate))
+     *
+     * @return JsonResponses
      */
     public function index(Request $request): JsonResponse
     {

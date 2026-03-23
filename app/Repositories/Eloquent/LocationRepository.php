@@ -28,10 +28,19 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     /**
      * Get locations with filters and pagination.
      * (Lấy danh sách địa điểm với bộ lọc và phân trang)
+     *
+     * @param  array  $filters  Query filters.
+     * @return LengthAwarePaginator Paginated locations list.
      */
     public function getLocations(array $filters = []): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->where('status', 'active');
+        $query = $this->model->newQuery()
+            ->where('status', 'active')
+            ->with(['category', 'subcategory', 'tags']);
+
+        if (isset($filters['q']) && ! isset($filters['search'])) {
+            $filters['search'] = $filters['q'];
+        }
 
         if (isset($filters['category_id'])) {
             $query->where('category_id', $filters['category_id']);
@@ -49,16 +58,54 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             $query->where('price_level', $filters['price_level']);
         }
 
+        if (isset($filters['price_min'])) {
+            $query->where('price_min', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_max', '<=', $filters['price_max']);
+        }
+
         if (isset($filters['is_featured'])) {
             $query->where('is_featured', $filters['is_featured']);
         }
 
+        if (isset($filters['rating_min'])) {
+            $query->where('avg_rating', '>=', $filters['rating_min']);
+        }
+
+        if (isset($filters['tag'])) {
+            $tags = is_array($filters['tag'])
+                ? $filters['tag']
+                : array_filter(array_map('trim', explode(',', (string) $filters['tag'])));
+
+            if (count($tags) > 0) {
+                $query->whereHas('tags', function ($q) use ($tags) {
+                    $q->whereIn('slug', $tags)->orWhereIn('name', $tags);
+                });
+            }
+        }
+
         if (isset($filters['search'])) {
             $searchTerm = $filters['search'];
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('name', 'like', "%{$searchTerm}%")
-                    ->orWhere('address', 'like', "%{$searchTerm}%");
-            });
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+            } else {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%")
+                        ->orWhere('address', 'like', "%{$searchTerm}%");
+                });
+            }
+        }
+
+        if (isset($filters['sort']) && ! isset($filters['sort_by'])) {
+            $filters['sort_by'] = $filters['sort'];
+        }
+
+        if (isset($filters['order']) && ! isset($filters['sort_order'])) {
+            $filters['sort_order'] = $filters['order'];
         }
 
         $sortBy = $filters['sort_by'] ?? 'created_at';
@@ -69,6 +116,31 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Get location name suggestions by prefix.
+     * (Lấy gợi ý tên địa điểm theo tiền tố)
+     *
+     * @param  string  $q  Name prefix.
+     * @param  int  $limit  Max items to return.
+     * @return string[] Suggested location names.
+     */
+    public function getNameSuggestions(string $q, int $limit = 5): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
+
+        return $this->model->newQuery()
+            ->where('status', 'active')
+            ->where('name', 'like', $q.'%')
+            ->orderBy('view_count', 'desc')
+            ->limit($limit)
+            ->pluck('name')
+            ->values()
+            ->all();
     }
 
     /**

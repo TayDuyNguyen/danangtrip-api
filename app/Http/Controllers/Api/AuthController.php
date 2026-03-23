@@ -75,6 +75,8 @@ class AuthController extends Controller
     /**
      * Invalidate user token (Logout).
      * (Vô hiệu hóa token người dùng - Đăng xuất)
+     *
+     * @param  Request  $request
      */
     public function logout(): JsonResponse
     {

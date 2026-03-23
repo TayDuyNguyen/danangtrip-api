@@ -14,6 +14,8 @@ final class SubcategoryService
     /**
      * SubcategoryService constructor.
      * (Khởi tạo SubcategoryService)
+     *
+     * @return void
      */
     public function __construct(
         protected SubcategoryRepositoryInterface $subcategoryRepository

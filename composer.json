@@ -53,10 +53,10 @@
         ],
         "format": [
             "npm run prettier",
-            "./vendor/bin/pint"
+            "@php vendor/bin/pint"
         ],
         "analyze": [
-            "./vendor/bin/phpstan analyse"
+            "@php vendor/bin/phpstan analyse"
         ],
         "test": [
             "@php artisan config:clear --ansi",

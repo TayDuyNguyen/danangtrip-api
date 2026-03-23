@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -46,6 +47,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+');
     Route::get('/locations/{id}/ratings', [LocationController::class, 'ratings'])->whereNumber('id');
     Route::post('/locations/{id}/view', [LocationController::class, 'recordView'])->whereNumber('id');
+
+    // Search: Locations Search & Suggestions & Popular Queries
+    // (Tìm kiếm: Tìm kiếm địa điểm & Gợi ý & Từ khóa phổ biến)
+    Route::get('/search', [SearchController::class, 'search']);
+    Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
+    Route::get('/search/popular', [SearchController::class, 'popular']);
 
     // =========================================================================
     // 2. PROTECTED ROUTES

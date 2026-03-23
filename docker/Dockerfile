@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -22,3 +22,9 @@ COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
 WORKDIR /var/www
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+
+ENTRYPOINT ["entrypoint"]
+CMD ["php-fpm"]

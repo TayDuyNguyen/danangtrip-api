@@ -1,69 +1,80 @@
 # DA NANG TRIP - Graduation Project
 
-## 1. How to Run with Docker
+## 1. Getting Started with Docker
 
-This project is configured to run with Docker and connect to a Supabase database.
+This project is containerized using Docker and connects to a Supabase (PostgreSQL) database.
 
 ### Prerequisites
 
-- Docker & Docker Compose installed on your machine.
+- Docker & Docker Compose installed on your system.
 - A `.env` file configured with your Supabase credentials.
 
 ### Essential Docker Commands
 
-**1. Start/Stop the Project:**
+**1. Managing Containers:**
 
 ```bash
-# Start
+# Start the project in the background
 docker-compose up -d
 
-# Stop
+# Stop and remove containers
 docker-compose down
 ```
 
-**2. Database Management (Crucial for DATN):**
+**2. Database Management (Crucial for Development):**
 
 ```bash
-# Run new migrations
+# Run pending migrations
 docker exec -it danangtrip_app php artisan migrate
 
-# RESET EVERYTHING (Delete all data and run migrations from scratch)
+# RESET DATABASE (Wipe all data and re-run all migrations)
 docker exec -it danangtrip_app php artisan migrate:fresh
 
-# RESET EVERYTHING + SEED (Run migrations and populate dummy data)
+# RESET DATABASE + SEED (Wipe all data and populate with dummy records)
 docker exec -it danangtrip_app php artisan migrate:fresh --seed
 
-# Check migration status
+# Check migration history and status
 docker exec -it danangtrip_app php artisan migrate:status
 ```
 
-**3. Useful Development Commands:**
+**3. Useful Development Tools:**
 
 ```bash
-# Clear all Cache (Fix "not receiving updates" issues)
+# Clear all application cache (Use if changes aren't reflecting)
 docker exec -it danangtrip_app php artisan optimize:clear
 
-# List all API Routes
+# Display all registered API routes
 docker exec -it danangtrip_app php artisan route:list
 
-# Create new Model + Migration + Controller
+# Generate a new Model, Migration, and Controller (Scaffold)
 docker exec -it danangtrip_app php artisan make:model YourModel -mc
 
-# Access the Container Shell
+# Access the application container's terminal
 docker exec -it danangtrip_app bash
 ```
 
-**4. Rebuild the Image:**
+**4. Rebuilding the Environment:**
 
 ```bash
-# Needed if you change Dockerfile or nginx.conf
+# Force a rebuild of images (Necessary after modifying Dockerfile or Nginx config)
 docker-compose up -d --build
 ```
 
-## Project Description
+### 📦 Docker & Package Management (Composer/NPM)
 
-**Topic**: BUILDING DA NANG TRAVEL WEBSITE "DA NANG TRIP" - INTEGRATING RATING AND CONTENT MANAGEMENT SYSTEM USING POINT.
+The project uses **Docker Volumes** (`- ../:/var/www`), meaning your local source code and the code inside the container are automatically synchronized.
 
-- **Backend**: Laravel 12
+- **Installing packages locally (Host Machine):** Packages will appear inside the container. However, this may cause issues if your local PHP version differs from the Docker environment.
+- **Installing via Docker (Recommended):** Use `docker exec -it danangtrip_app composer require <package-name>`. This ensures 100% compatibility with the project's environment.
+- **Troubleshooting:** If you experience errors after pulling code from Git or installing packages locally, run:
+    ```bash
+    docker exec -it danangtrip_app composer install
+    ```
+
+## Project Overview
+
+**Topic**: BUILDING "DA NANG TRIP" TRAVEL WEBSITE - INTEGRATING A RATING AND CONTENT MANAGEMENT SYSTEM POWERED BY REWARD POINTS.
+
+- **Backend Framework**: Laravel 12
 - **Database**: Supabase (PostgreSQL)
 - **Environment**: Docker

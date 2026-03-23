@@ -21,6 +21,8 @@ class AuthService
     /**
      * AuthService constructor.
      * (Khởi tạo AuthService)
+     *
+     * @return void
      */
     public function __construct(UserRepositoryInterface $userRepository)
     {

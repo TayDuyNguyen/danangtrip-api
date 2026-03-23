@@ -9,9 +9,16 @@ use Illuminate\Support\Facades\DB;
 /**
  * Class LocationService
  * Handles business logic related to locations.
+ * (Xử lý logic nghiệp vụ liên quan đến địa điểm)
  */
 final class LocationService
 {
+    /**
+     * LocationService constructor.
+     * (Khởi tạo LocationService)
+     *
+     * @return void
+     */
     public function __construct(
         protected LocationRepositoryInterface $locationRepository
     ) {}
