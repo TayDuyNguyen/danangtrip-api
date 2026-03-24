@@ -234,4 +234,44 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->where('favorite_count', '>', 0)
             ->decrement('favorite_count');
     }
+
+    /**
+     * Get total location count.
+     * (Lấy tổng số địa điểm)
+     */
+    public function getTotalCount(): int
+    {
+        return $this->model->count();
+    }
+
+    /**
+     * Get total view count across all locations.
+     * (Lấy tổng lượt xem của tất cả địa điểm)
+     */
+    public function getTotalViewCount(): int
+    {
+        return (int) $this->model->sum('view_count');
+    }
+
+    /**
+     * Get location stats grouped by category and district.
+     * (Lấy thống kê địa điểm theo danh mục và quận)
+     */
+    public function getStatsByCategoryAndDistrict(?string $fromDate = null, ?string $toDate = null): array
+    {
+        $query = $this->model->newQuery()
+            ->selectRaw('category_id, district, COUNT(*) as count')
+            ->with('category:id,name');
+
+        if ($fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
+        }
+
+        return $query->groupBy('category_id', 'district')
+            ->get()
+            ->toArray();
+    }
 }

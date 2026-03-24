@@ -21,4 +21,10 @@ interface PointTransactionRepositoryInterface extends RepositoryInterface
      * (Tạo mã giao dịch duy nhất)
      */
     public function generateTransactionCode(): string;
+
+    /**
+     * Get point transaction stats grouped by type and date.
+     * (Lấy thống kê giao dịch điểm theo loại và ngày)
+     */
+    public function getStatsByTypeAndDate(?string $fromDate = null, ?string $toDate = null, ?string $type = null): array;
 }

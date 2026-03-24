@@ -102,4 +102,28 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->withCount(['ratings', 'pointTransactions'])
             ->find($id);
     }
+
+    /**
+     * Get total user count.
+     * (Lấy tổng số người dùng)
+     */
+    public function getTotalCount(): int
+    {
+        return $this->model->count();
+    }
+
+    /**
+     * Get new users count grouped by month for a specific year.
+     * (Lấy số lượng người dùng mới theo tháng trong một năm)
+     */
+    public function getNewUsersByMonth(int $year): array
+    {
+        return $this->model->newQuery()
+            ->selectRaw('EXTRACT(MONTH FROM created_at) as month, COUNT(*) as count')
+            ->whereYear('created_at', $year)
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->toArray();
+    }
 }

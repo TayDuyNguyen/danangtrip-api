@@ -59,4 +59,29 @@ final class PointTransactionRepository extends BaseRepository implements PointTr
 
         return $code;
     }
+
+    /**
+     * Get point transaction stats grouped by type and date.
+     * (Lấy thống kê giao dịch điểm theo loại và ngày)
+     */
+    public function getStatsByTypeAndDate(?string $fromDate = null, ?string $toDate = null, ?string $type = null): array
+    {
+        $query = $this->model->newQuery()
+            ->selectRaw('CAST(created_at AS DATE) as date, type, COUNT(*) as count, SUM(amount) as total_amount');
+
+        if ($fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
+        }
+        if ($type) {
+            $query->where('type', $type);
+        }
+
+        return $query->groupBy('date', 'type')
+            ->orderBy('date')
+            ->get()
+            ->toArray();
+    }
 }

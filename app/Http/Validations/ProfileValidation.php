@@ -30,7 +30,7 @@ final class ProfileValidation
                     'max:20',
                     'regex:/^\+?[0-9\s\-\.]{10,15}$/',
                 ],
-                'birthdate' => 'sometimes|nullable|date',
+                'birthdate' => 'sometimes|nullable|date_format:Y-m-d',
                 'gender' => 'sometimes|nullable|in:male,female,other',
                 'city' => 'sometimes|nullable|string|max:50',
             ],

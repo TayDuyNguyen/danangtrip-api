@@ -47,4 +47,16 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Lấy chi tiết người dùng kèm thống kê)
      */
     public function getUserWithStats(int $id): ?User;
+
+    /**
+     * Get total user count.
+     * (Lấy tổng số người dùng)
+     */
+    public function getTotalCount(): int;
+
+    /**
+     * Get new users count grouped by month for a specific year.
+     * (Lấy số lượng người dùng mới theo tháng trong một năm)
+     */
+    public function getNewUsersByMonth(int $year): array;
 }
