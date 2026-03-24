@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\UserValidation;
 use App\Services\UserService;
@@ -43,7 +44,7 @@ final class UserController extends Controller
 
         $result = $this->userService->getUserById($id);
 
-        return $result['status'] == 200
+        return $result['status'] == HttpStatusCode::SUCCESS->value
             ? $this->success(['user' => $result['data']])
             : $this->error($result['message'], $result['status']);
     }
@@ -61,7 +62,7 @@ final class UserController extends Controller
 
         $result = $this->userService->createUser($validator->validated());
 
-        return $result['status'] == 201
+        return $result['status'] == HttpStatusCode::CREATED->value
             ? $this->created(['user' => $result['data']], 'User created successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -79,7 +80,7 @@ final class UserController extends Controller
 
         $result = $this->userService->updateUser($id, $validator->validated());
 
-        return $result['status'] == 200
+        return $result['status'] == HttpStatusCode::SUCCESS->value
             ? $this->success(['user' => $result['data']], 'User updated successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -97,7 +98,7 @@ final class UserController extends Controller
 
         $result = $this->userService->deleteUser($id);
 
-        return $result['status'] == 200
+        return $result['status'] == HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }

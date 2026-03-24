@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\SearchValidation;
 use App\Services\SearchService;
@@ -32,7 +33,7 @@ final class SearchController extends Controller
 
         $result = $this->searchService->search($validator->validated(), $request);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
@@ -50,7 +51,7 @@ final class SearchController extends Controller
 
         $result = $this->searchService->suggestions($validator->validated());
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
@@ -68,7 +69,7 @@ final class SearchController extends Controller
 
         $result = $this->searchService->popular($validator->validated());
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\CategoryValidation;
 use App\Services\CategoryService;
@@ -30,7 +31,7 @@ final class CategoryController extends Controller
     {
         $result = $this->categoryService->getPublicCategories();
 
-        if ($result['status'] === 200) {
+        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success(['categories' => $result['data']]);
         }
 
@@ -51,7 +52,7 @@ final class CategoryController extends Controller
 
         $result = $this->categoryService->getPublicCategoryById($id);
 
-        if ($result['status'] === 200) {
+        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success(['category' => $result['data']]);
         }
 

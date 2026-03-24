@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -53,12 +54,12 @@ class AuthService
             // $token = Auth::guard('api')->login($user);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Register failed',
             ];
         }
@@ -73,13 +74,13 @@ class AuthService
         try {
             if (! $token = Auth::guard('api')->attempt(['email' => $email, 'password' => $password])) {
                 return [
-                    'status' => 401,
+                    'status' => HttpStatusCode::UNAUTHORIZED->value,
                     'message' => 'Invalid credentials',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'token' => $token,
                     'user' => Auth::guard('api')->user(),
@@ -87,7 +88,7 @@ class AuthService
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Login failed',
             ];
         }
@@ -105,12 +106,12 @@ class AuthService
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Logout successfully',
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Logout failed',
             ];
         }

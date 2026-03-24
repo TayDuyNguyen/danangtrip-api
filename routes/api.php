@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryCont
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
@@ -74,6 +75,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/ratings/{id}', [RatingController::class, 'update'])->whereNumber('id');
         Route::delete('/ratings/{id}', [RatingController::class, 'destroy'])->whereNumber('id');
         Route::post('/ratings/{id}/helpful', [RatingController::class, 'helpful'])->whereNumber('id');
+
+        // Favorites: List / Add / Remove
+        // (Yêu thích: Danh sách / Thêm / Xóa)
+        Route::get('/user/favorites', [FavoriteController::class, 'index']);
+        Route::post('/user/favorites', [FavoriteController::class, 'store']);
+        Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
     });
 
     // =========================================================================

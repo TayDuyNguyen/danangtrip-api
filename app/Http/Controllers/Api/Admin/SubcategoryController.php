@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\SubcategoryValidation;
 use App\Services\SubcategoryService;
@@ -32,7 +33,7 @@ final class SubcategoryController extends Controller
 
         $result = $this->subcategoryService->createSubcategory($validator->validated());
 
-        return $result['status'] === 201
+        return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created(['subcategory' => $result['data']], 'Subcategory created successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -50,7 +51,7 @@ final class SubcategoryController extends Controller
 
         $result = $this->subcategoryService->updateSubcategory($id, $validator->validated());
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(['subcategory' => $result['data']], 'Subcategory updated successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -68,7 +69,7 @@ final class SubcategoryController extends Controller
 
         $result = $this->subcategoryService->deleteSubcategory($id);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }

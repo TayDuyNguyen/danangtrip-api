@@ -68,4 +68,16 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * @return string[] Suggested location names.
      */
     public function getNameSuggestions(string $q, int $limit = 5): array;
+
+    /**
+     * Increment favorite count of a location.
+     * (Tăng số lượng yêu thích của một địa điểm)
+     */
+    public function incrementFavoriteCount(int $id): bool;
+
+    /**
+     * Decrement favorite count of a location.
+     * (Giảm số lượng yêu thích của một địa điểm)
+     */
+    public function decrementFavoriteCount(int $id): bool;
 }

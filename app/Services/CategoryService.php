@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
 
 /**
@@ -32,18 +33,18 @@ final class CategoryService
 
             if ($categories->isEmpty()) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Categories not found',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $categories,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get categories',
             ];
         }
@@ -60,18 +61,18 @@ final class CategoryService
 
             if (! $category) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Category not found',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $category,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get category',
             ];
         }
@@ -97,18 +98,18 @@ final class CategoryService
 
             if (! $category) {
                 return [
-                    'status' => 500,
+                    'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                     'message' => 'Failed to create category',
                 ];
             }
 
             return [
-                'status' => 201,
+                'status' => HttpStatusCode::CREATED->value,
                 'data' => $category,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create category',
             ];
         }
@@ -124,7 +125,7 @@ final class CategoryService
             $category = $this->categoryRepository->find($id);
             if (! $category) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Category not found',
                 ];
             }
@@ -138,7 +139,7 @@ final class CategoryService
             $updated = $this->categoryRepository->update($id, $data);
             if (! $updated) {
                 return [
-                    'status' => 500,
+                    'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                     'message' => 'Failed to update category',
                 ];
             }
@@ -146,12 +147,12 @@ final class CategoryService
             $category = $this->categoryRepository->find($id);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $category,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update category',
             ];
         }
@@ -167,14 +168,14 @@ final class CategoryService
             $category = $this->categoryRepository->find($id);
             if (! $category) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Category not found',
                 ];
             }
 
             if ($category->subcategories()->exists()) {
                 return [
-                    'status' => 409,
+                    'status' => HttpStatusCode::CONFLICT->value,
                     'message' => 'Cannot delete category because it has subcategories',
                 ];
             }
@@ -182,18 +183,18 @@ final class CategoryService
             $deleted = $this->categoryRepository->delete($id);
             if (! $deleted) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Category not found',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Category deleted successfully',
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete category',
             ];
         }
