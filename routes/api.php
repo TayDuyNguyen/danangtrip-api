@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PointController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
@@ -96,7 +97,14 @@ Route::prefix('v1')->group(function () {
         // (Quản lý Điểm thưởng)
         Route::get('/user/points', [PointController::class, 'balance']);
         Route::get('/user/points/transactions', [PointController::class, 'transactions']);
-        Route::post('/user/points/purchase', [PointController::class, 'purchase']); // Cần fix
+        Route::post('/user/points/purchase', [PointController::class, 'purchase']);
+
+        // Notifications
+        // (Thông báo)
+        Route::get('/user/notifications', [NotificationController::class, 'index']);
+        Route::patch('/user/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->whereNumber('id');
+        Route::patch('/user/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/user/notifications/{id}', [NotificationController::class, 'destroy'])->whereNumber('id');
     });
 
     // =========================================================================
