@@ -146,9 +146,11 @@ Route::prefix('v1')->group(function () {
         // (Quản lý Người dùng)
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->whereNumber('id');
+        Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus'])->whereNumber('id');
+        Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole'])->whereNumber('id');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');
         Route::post('/users', [AdminUserController::class, 'store']);
         Route::put('/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
-        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');
 
         // Ratings Management
         // (Quản lý Đánh giá)

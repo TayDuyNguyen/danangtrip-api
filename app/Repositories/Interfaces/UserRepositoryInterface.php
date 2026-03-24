@@ -3,6 +3,7 @@
 namespace App\Repositories\Interfaces;
 
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Interface UserRepositoryInterface
@@ -34,4 +35,16 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Giảm số dư điểm của người dùng)
      */
     public function decrementPointBalance(int $userId, int $amount): bool;
+
+    /**
+     * Get paginated users with filters.
+     * (Lấy danh sách người dùng có phân trang và bộ lọc)
+     */
+    public function getUsersPaginated(array $filters): LengthAwarePaginator;
+
+    /**
+     * Get user detail with stats.
+     * (Lấy chi tiết người dùng kèm thống kê)
+     */
+    public function getUserWithStats(int $id): ?User;
 }
