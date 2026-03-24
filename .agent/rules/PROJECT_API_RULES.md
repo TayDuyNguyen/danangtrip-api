@@ -81,6 +81,10 @@ Standard response shapes:
 - Error:
   - `{ "code": <status>, "message": "…", "errors": <optional> }`
 
+### Hard rules for Response Messages
+- All API response messages (the `message` field) MUST be in English.
+- Avoid using Vietnamese in API responses to ensure consistency and professionalism.
+
 Use these helpers consistently:
 - `success($data, $message?, $code?)`
 - `created($data, $message?)`
@@ -100,6 +104,11 @@ Pattern:
   - `$validator = XValidation::validateSomething($request, ...)`
   - `if ($validator->fails()) return $this->validation_error($validator->errors());`
   - `$validated = $validator->validated();`
+
+### Hard rules for Validation Messages
+- Every validation class MUST have a `protected static function messages(): array` method to centralize all validation error messages.
+- All messages in this method MUST be in English.
+- Use these messages in the `Validator::make` call: `Validator::make($data, $rules, self::messages())`.
 
 Rules:
 - Validation constraints MUST match database constraints from migrations:
@@ -123,13 +132,15 @@ Repository-first rule:
 
 Expected return structure (convention in this repo):
 - On success:
-  - `['status' => 200|201, 'data' => <payload>, 'message' => <optional>]`
+  - `['status' => HttpStatusCode::SUCCESS->value, 'data' => <payload>, 'message' => <optional>]`
 - On failure:
-  - `['status' => 4xx|5xx, 'message' => '…']`
+  - `['status' => HttpStatusCode::BAD_REQUEST->value, 'message' => '…']`
 
 Rules:
+- Services MUST import and use `App\Enums\HttpStatusCode` for the `status` field.
 - Do not return raw `JsonResponse` from services (controllers own HTTP).
 - Keep try/catch in services for consistent error handling (avoid leaking exceptions to controllers).
+- Do not use `Log::error` in services or controllers for general error handling. It should only be used temporarily for debugging and must be removed before commit.
 - If an operation depends on the authenticated user, controllers/middleware should provide it via:
   - `$request->user()` (after `jwt.auth`)
   - `auth('api')->id()` (only if the project guard is configured and used consistently)
@@ -264,3 +275,7 @@ Rules for `@return`:
 - Do not introduce new response shapes; always use ApiResponser format.
 - Do not bypass middleware for protected/admin endpoints.
 - Prefer existing patterns (services return `status/data/message`) over ad-hoc responses.
+- **Magic Numbers & Enums**: Avoid using "magic numbers" (like `10`, `20`, `404`) directly in the code. Instead, use defined constants in the `App\Enums` namespace (e.g., `Pagination::PER_PAGE->value`, `HttpStatusCode::OK->value`).
+- **Logging**: Do not use `Log::error` in services or controllers for general error handling. It should only be used temporarily for debugging and must be removed before commit.
+- **Response Language**: All API response messages (the `message` field) MUST be in English. Vietnamese is allowed only in PHPDoc translations.
+- **Validation Messages**: Every validation class MUST have a `protected static function messages(): array` method to centralize all validation error messages. All messages in this method MUST be in English. Use these messages in the `Validator::make` call: `Validator::make($data, $rules, self::messages())`.

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Models\View;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -33,12 +34,12 @@ final class LocationService
             $locations = $this->locationRepository->getLocations($filters);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $locations,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get locations',
             ];
         }
@@ -53,12 +54,12 @@ final class LocationService
         try {
             $location = $this->locationRepository->findBySlug($slug);
             if (! $location) {
-                return ['status' => 404, 'message' => 'Location not found'];
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Location not found'];
             }
 
-            return ['status' => 200, 'data' => $location];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $location];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to get location'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location'];
         }
     }
 
@@ -71,9 +72,9 @@ final class LocationService
         try {
             $locations = $this->locationRepository->getFeaturedLocations($limit);
 
-            return ['status' => 200, 'data' => $locations];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to get featured locations'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get featured locations'];
         }
     }
 
@@ -86,9 +87,9 @@ final class LocationService
         try {
             $locations = $this->locationRepository->getNearbyLocations($data);
 
-            return ['status' => 200, 'data' => $locations];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to get nearby locations'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get nearby locations'];
         }
     }
 
@@ -110,9 +111,9 @@ final class LocationService
                 $this->locationRepository->getQuery()->where('id', $id)->increment('view_count');
             });
 
-            return ['status' => 200, 'message' => 'View recorded'];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'View recorded'];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to record view'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to record view'];
         }
     }
 
@@ -130,12 +131,12 @@ final class LocationService
             $location = $this->locationRepository->create($data);
 
             return [
-                'status' => 201,
+                'status' => HttpStatusCode::CREATED->value,
                 'data' => $location,
             ];
         } catch (\Throwable $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create location',
             ];
         }
@@ -150,7 +151,7 @@ final class LocationService
         try {
             $location = $this->locationRepository->find($id);
             if (! $location) {
-                return ['status' => 404, 'message' => 'Location not found'];
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Location not found'];
             }
 
             if (isset($data['name']) && empty($data['slug'])) {
@@ -159,9 +160,9 @@ final class LocationService
 
             $this->locationRepository->update($id, $data);
 
-            return ['status' => 200, 'data' => $this->locationRepository->find($id)];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $this->locationRepository->find($id)];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to update location'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to update location'];
         }
     }
 
@@ -174,9 +175,9 @@ final class LocationService
         try {
             $deleted = $this->locationRepository->delete($id);
 
-            return $deleted ? ['status' => 200, 'message' => 'Deleted'] : ['status' => 404, 'message' => 'Not found'];
+            return $deleted ? ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Deleted'] : ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Not found'];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to delete location'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to delete location'];
         }
     }
 
@@ -189,9 +190,9 @@ final class LocationService
         try {
             $ratings = $this->locationRepository->getApprovedRatings($id, $request);
 
-            return ['status' => 200, 'data' => $ratings];
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $ratings];
         } catch (\Exception $_) {
-            return ['status' => 500, 'message' => 'Failed to get location ratings'];
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location ratings'];
         }
     }
 }

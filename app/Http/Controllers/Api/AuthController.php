@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\AuthValidation;
 use App\Services\AuthService;
@@ -42,7 +43,7 @@ class AuthController extends Controller
         }
 
         $result = $this->authService->register($validator->validated());
-        if ($result['status'] == 200) {
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->created($result['data'], 'User registered successfully');
         } else {
             return $this->error('User registered failed', $result['status']);
@@ -65,7 +66,7 @@ class AuthController extends Controller
 
         $result = $this->authService->login($validated['email'], $validated['password']);
 
-        if ($result['status'] == 200) {
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'], 'Login successful');
         } else {
             return $this->unauthorized($result['message']);
@@ -82,7 +83,7 @@ class AuthController extends Controller
     {
         $result = $this->authService->logout();
 
-        if ($result['status'] == 200) {
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, 'Logged out successfully');
         } else {
             return $this->unauthorized($result['message']);

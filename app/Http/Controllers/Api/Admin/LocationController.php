@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\LocationValidation;
 use App\Services\LocationService;
@@ -30,8 +31,8 @@ final class LocationController extends Controller
 
         $result = $this->locationService->createLocation($data);
 
-        return $result['status'] === 201
-            ? $this->created($result['data'], 'Location created successfully')
+        return $result['status'] === HttpStatusCode::CREATED->value
+            ? $this->created(['location' => $result['data']], 'Location created successfully')
             : $this->error($result['message'], $result['status']);
     }
 
@@ -48,8 +49,8 @@ final class LocationController extends Controller
 
         $result = $this->locationService->updateLocation($id, $validator->validated());
 
-        return $result['status'] === 200
-            ? $this->success($result['data'], 'Location updated successfully')
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(['location' => $result['data']], 'Location updated successfully')
             : $this->error($result['message'], $result['status']);
     }
 
@@ -66,8 +67,8 @@ final class LocationController extends Controller
 
         $result = $this->locationService->deleteLocation($id);
 
-        return $result['status'] === 200
-            ? $this->success(null, 'Location deleted successfully')
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 
@@ -84,7 +85,7 @@ final class LocationController extends Controller
 
         $result = $this->locationService->updateLocation($id, ['status' => $request->status]);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Status updated successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -102,7 +103,7 @@ final class LocationController extends Controller
 
         $result = $this->locationService->updateLocation($id, ['is_featured' => $request->is_featured]);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Featured status toggled successfully')
             : $this->error($result['message'], $result['status']);
     }

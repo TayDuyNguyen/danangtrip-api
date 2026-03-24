@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Repositories\Eloquent\CategoryRepository;
+use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
 use App\Repositories\Eloquent\NotificationRepository;
 use App\Repositories\Eloquent\RatingImageRepository;
@@ -11,6 +12,7 @@ use App\Repositories\Eloquent\SearchLogRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
+use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
@@ -41,6 +43,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(RatingRepositoryInterface::class, RatingRepository::class);
         $this->app->bind(RatingImageRepositoryInterface::class, RatingImageRepository::class);
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
+        $this->app->bind(FavoriteRepositoryInterface::class, FavoriteRepository::class);
     }
 
     /**

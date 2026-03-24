@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
 
@@ -38,12 +39,12 @@ class UserService
             $users = $this->userRepository->all();
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $users,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get all users',
             ];
         }
@@ -59,18 +60,18 @@ class UserService
             $user = $this->userRepository->find($id);
             if (! $user) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'User not found',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get user by ID',
             ];
         }
@@ -90,12 +91,12 @@ class UserService
             $user = $this->userRepository->create($data);
 
             return [
-                'status' => 201,
+                'status' => HttpStatusCode::CREATED->value,
                 'data' => $user,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create user',
             ];
         }
@@ -117,7 +118,7 @@ class UserService
             $updated = $this->userRepository->update($id, $data);
             if (! $updated) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'User not found',
                 ];
             }
@@ -125,12 +126,12 @@ class UserService
             $user = $this->userRepository->find($id);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update user',
             ];
         }
@@ -146,18 +147,18 @@ class UserService
             $deleted = $this->userRepository->delete($id);
             if (! $deleted) {
                 return [
-                    'status' => 404,
+                    'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'User not found',
                 ];
             }
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'User deleted successfully',
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete user',
             ];
         }

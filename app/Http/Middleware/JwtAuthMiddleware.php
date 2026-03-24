@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\HttpStatusCode;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
@@ -27,9 +28,9 @@ class JwtAuthMiddleware
 
         if (! $token) {
             return response()->json([
-                'code' => 401,
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
                 'message' => 'Token not provided',
-            ], 401);
+            ], HttpStatusCode::UNAUTHORIZED->value);
         }
 
         try {
@@ -40,9 +41,9 @@ class JwtAuthMiddleware
 
         if (! $user) {
             return response()->json([
-                'code' => 401,
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
                 'message' => 'Invalid token',
-            ], 401);
+            ], HttpStatusCode::UNAUTHORIZED->value);
         }
 
         $request->merge(['auth_user' => $user]);

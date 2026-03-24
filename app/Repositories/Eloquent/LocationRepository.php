@@ -214,4 +214,24 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
                 $request['page'] ?? Pagination::PAGE->value
             );
     }
+
+    /**
+     * Increment favorite count of a location.
+     * (Tăng số lượng yêu thích của một địa điểm)
+     */
+    public function incrementFavoriteCount(int $id): bool
+    {
+        return (bool) $this->model->where('id', $id)->increment('favorite_count');
+    }
+
+    /**
+     * Decrement favorite count of a location.
+     * (Giảm số lượng yêu thích của một địa điểm)
+     */
+    public function decrementFavoriteCount(int $id): bool
+    {
+        return (bool) $this->model->where('id', $id)
+            ->where('favorite_count', '>', 0)
+            ->decrement('favorite_count');
+    }
 }

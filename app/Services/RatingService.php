@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
@@ -64,13 +65,13 @@ final class RatingService
             });
 
             return [
-                'status' => 201,
+                'status' => HttpStatusCode::CREATED->value,
                 'data' => $rating,
                 'message' => 'Rating created successfully',
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create rating',
             ];
         }
@@ -86,11 +87,11 @@ final class RatingService
             $result = DB::transaction(function () use ($userId, $ratingId, $data, $request) {
                 $rating = $this->ratingRepository->find($ratingId);
                 if (! $rating) {
-                    return ['status' => 404, 'message' => 'Rating not found'];
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
 
                 if ((int) $rating->user_id !== (int) $userId) {
-                    return ['status' => 403, 'message' => 'Forbidden'];
+                    return ['status' => HttpStatusCode::FORBIDDEN->value, 'message' => 'Forbidden'];
                 }
 
                 $wasApproved = $rating->status === 'approved';
@@ -127,7 +128,7 @@ final class RatingService
                 }
 
                 return [
-                    'status' => 200,
+                    'status' => HttpStatusCode::SUCCESS->value,
                     'data' => $this->ratingRepository->findWithRelations($rating->id, ['images', 'location', 'user']),
                 ];
             });
@@ -135,7 +136,7 @@ final class RatingService
             return $result;
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update rating',
             ];
         }
@@ -151,11 +152,11 @@ final class RatingService
             $result = DB::transaction(function () use ($userId, $ratingId) {
                 $rating = $this->ratingRepository->find($ratingId);
                 if (! $rating) {
-                    return ['status' => 404, 'message' => 'Rating not found'];
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
 
                 if ((int) $rating->user_id !== (int) $userId) {
-                    return ['status' => 403, 'message' => 'Forbidden'];
+                    return ['status' => HttpStatusCode::FORBIDDEN->value, 'message' => 'Forbidden'];
                 }
 
                 $locationId = (int) $rating->location_id;
@@ -168,7 +169,7 @@ final class RatingService
                 }
 
                 return [
-                    'status' => 200,
+                    'status' => HttpStatusCode::SUCCESS->value,
                     'message' => 'Rating deleted successfully',
                 ];
             });
@@ -176,7 +177,7 @@ final class RatingService
             return $result;
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete rating',
             ];
         }
@@ -193,7 +194,7 @@ final class RatingService
 
             if (! $updated) {
                 return [
-                    'status' => 409,
+                    'status' => HttpStatusCode::CONFLICT->value,
                     'message' => 'Rating is not approved',
                 ];
             }
@@ -201,13 +202,13 @@ final class RatingService
             $rating = $this->ratingRepository->findWithRelations($ratingId, ['user', 'location', 'images']);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $rating,
                 'message' => 'Marked as helpful',
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to mark helpful',
             ];
         }
@@ -221,12 +222,12 @@ final class RatingService
     {
         try {
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $this->ratingRepository->paginateForAdmin($filters),
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get ratings',
             ];
         }
@@ -242,11 +243,11 @@ final class RatingService
             $result = DB::transaction(function () use ($adminId, $ratingId) {
                 $rating = $this->ratingRepository->findForUpdate($ratingId);
                 if (! $rating) {
-                    return ['status' => 404, 'message' => 'Rating not found'];
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
 
                 if ($rating->status !== 'pending') {
-                    return ['status' => 409, 'message' => 'Rating is not pending'];
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending'];
                 }
 
                 $rating->update([

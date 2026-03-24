@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\RatingValidation;
 use App\Services\RatingService;
@@ -32,7 +33,7 @@ final class RatingController extends Controller
 
         $result = $this->ratingService->adminList($validator->validated());
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
@@ -51,7 +52,7 @@ final class RatingController extends Controller
         $adminId = auth('api')->id();
         $result = $this->ratingService->approve($adminId, $id);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Rating approved')
             : $this->error($result['message'], $result['status']);
     }
@@ -59,6 +60,8 @@ final class RatingController extends Controller
     /**
      * Reject a rating with reason.
      * (Từ chối đánh giá kèm lý do)
+     *
+     * @param Request request
      */
     public function reject(Request $request, int $id): JsonResponse
     {
@@ -70,7 +73,7 @@ final class RatingController extends Controller
         $adminId = auth('api')->id();
         $result = $this->ratingService->reject($adminId, $id, $validator->validated());
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Rating rejected')
             : $this->error($result['message'], $result['status']);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\RatingValidation;
 use App\Services\RatingService;
@@ -37,7 +38,7 @@ final class RatingController extends Controller
 
         $result = $this->ratingService->createRating($data, $request);
 
-        return $result['status'] === 201
+        return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'] ?? 'Rating created successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -58,7 +59,7 @@ final class RatingController extends Controller
 
         $result = $this->ratingService->updateRating($userId, $id, $data, $request);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Rating updated successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -78,7 +79,7 @@ final class RatingController extends Controller
 
         $result = $this->ratingService->deleteRating($userId, $id);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'] ?? 'Rating deleted successfully')
             : $this->error($result['message'], $result['status']);
     }
@@ -96,7 +97,7 @@ final class RatingController extends Controller
 
         $result = $this->ratingService->markHelpful($id);
 
-        return $result['status'] === 200
+        return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Marked as helpful')
             : $this->error($result['message'], $result['status']);
     }

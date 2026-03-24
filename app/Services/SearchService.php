@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -48,7 +49,7 @@ final class SearchService
             ]);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'query' => $q,
                     'results' => $paginator,
@@ -56,7 +57,7 @@ final class SearchService
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to search locations',
             ];
         }
@@ -75,7 +76,7 @@ final class SearchService
             $fromLocations = $this->locationRepository->getNameSuggestions($q, $limit);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'query' => $q,
                     'suggestions' => $fromLocations,
@@ -83,7 +84,7 @@ final class SearchService
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get suggestions',
             ];
         }
@@ -100,14 +101,14 @@ final class SearchService
             $days = (int) ($data['days'] ?? 30);
 
             return [
-                'status' => 200,
+                'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'popular' => $this->searchLogRepository->getPopularQueries($limit, $days),
                 ],
             ];
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get popular queries',
             ];
         }
