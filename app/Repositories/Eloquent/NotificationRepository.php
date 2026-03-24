@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\Notification;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Class NotificationRepository
@@ -19,5 +20,75 @@ final class NotificationRepository extends BaseRepository implements Notificatio
     public function getModel(): string
     {
         return Notification::class;
+    }
+
+    /**
+     * Get paginated notifications for a user.
+     * (Lấy danh sách thông báo có phân trang cho người dùng)
+     */
+    public function getByUserPaginated(int $userId, array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at');
+
+        if (isset($filters['is_read'])) {
+            $query->where('is_read', (bool) $filters['is_read']);
+        }
+
+        $perPage = $filters['per_page'] ?? 15;
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * Mark a notification as read.
+     * (Đánh dấu một thông báo là đã đọc)
+     */
+    public function markAsRead(int $userId, int $notificationId): ?Notification
+    {
+        $notification = $this->model
+            ->newQuery()
+            ->where('user_id', $userId)
+            ->where('id', $notificationId)
+            ->first();
+
+        if (! $notification || $notification->is_read) {
+            return $notification;
+        }
+
+        $notification->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+
+        return $notification;
+    }
+
+    /**
+     * Mark all unread notifications as read for a user.
+     * (Đánh dấu tất cả thông báo chưa đọc là đã đọc cho người dùng)
+     */
+    public function markAllAsRead(int $userId): int
+    {
+        return $this->model->where('user_id', $userId)
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+    }
+
+    /**
+     * Delete a notification for a user.
+     * (Xóa một thông báo cho người dùng)
+     */
+    public function deleteForUser(int $userId, int $notificationId): bool
+    {
+        return $this->model
+            ->newQuery()
+            ->where('user_id', $userId)
+            ->where('id', $notificationId)
+            ->delete() > 0;
     }
 }
