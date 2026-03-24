@@ -48,7 +48,7 @@ class AuthValidation
                     'max:20',
                     'regex:/^\+?[0-9\s\-\.]{10,15}$/',
                 ],
-                'birthdate' => 'nullable|date',
+                'birthdate' => 'nullable|date_format:Y-m-d',
                 'gender' => 'nullable|string|max:20',
                 'city' => 'nullable|string|max:100',
                 'role' => 'sometimes|in:admin,partner,user',

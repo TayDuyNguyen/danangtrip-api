@@ -49,4 +49,16 @@ interface RatingRepositoryInterface extends RepositoryInterface
      * (Lấy danh sách đánh giá của người dùng với bộ lọc và phân trang)
      */
     public function getByUserPaginated(int $userId, array $filters): LengthAwarePaginator;
+
+    /**
+     * Get total rating count.
+     * (Lấy tổng số đánh giá)
+     */
+    public function getTotalCount(): int;
+
+    /**
+     * Get rating stats grouped by date and status.
+     * (Lấy thống kê đánh giá theo ngày và trạng thái)
+     */
+    public function getStatsByDateAndStatus(?string $fromDate = null, ?string $toDate = null, ?string $status = null): array;
 }

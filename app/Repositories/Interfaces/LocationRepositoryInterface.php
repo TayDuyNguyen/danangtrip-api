@@ -80,4 +80,22 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * (Giảm số lượng yêu thích của một địa điểm)
      */
     public function decrementFavoriteCount(int $id): bool;
+
+    /**
+     * Get total location count.
+     * (Lấy tổng số địa điểm)
+     */
+    public function getTotalCount(): int;
+
+    /**
+     * Get total view count across all locations.
+     * (Lấy tổng lượt xem của tất cả địa điểm)
+     */
+    public function getTotalViewCount(): int;
+
+    /**
+     * Get location stats grouped by category and district.
+     * (Lấy thống kê địa điểm theo danh mục và quận)
+     */
+    public function getStatsByCategoryAndDistrict(?string $fromDate = null, ?string $toDate = null): array;
 }

@@ -45,7 +45,7 @@ final class BlogValidation
                 'category_ids' => 'required|array',
                 'category_ids.*' => 'integer|exists:blog_categories,id',
                 'status' => 'sometimes|in:draft,published',
-                'published_at' => 'sometimes|nullable|date',
+                'published_at' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
             ],
             self::messages()
         );
@@ -67,7 +67,7 @@ final class BlogValidation
                 'category_ids' => 'sometimes|array',
                 'category_ids.*' => 'integer|exists:blog_categories,id',
                 'status' => 'sometimes|in:draft,published',
-                'published_at' => 'sometimes|nullable|date',
+                'published_at' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
             ],
             self::messages()
         );

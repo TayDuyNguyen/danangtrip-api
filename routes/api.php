@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
@@ -122,7 +123,15 @@ Route::prefix('v1')->group(function () {
 
     Route::middleware(['jwt.auth', 'role:admin'])->prefix('admin')->group(function () {
 
-        // Category Management
+        // Dashboard & Reports
+        // (Bảng điều khiển & Báo cáo)
+        Route::get('/dashboard', [AdminDashboardController::class, 'overview']);
+        Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports']);
+        Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports']);
+        Route::get('/reports/users', [AdminDashboardController::class, 'userReports']);
+        Route::get('/reports/points', [AdminDashboardController::class, 'pointReports']);
+
+        // Categories Management
         // (Quản lý Danh mục)
         Route::post('/categories', [AdminCategoryController::class, 'store']);
         Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->whereNumber('id');

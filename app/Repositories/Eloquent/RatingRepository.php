@@ -127,4 +127,38 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
 
         return $query->paginate($perPage, ['*'], 'page', $page);
     }
+
+    /**
+     * Get total rating count.
+     * (Lấy tổng số đánh giá)
+     */
+    public function getTotalCount(): int
+    {
+        return $this->model->count();
+    }
+
+    /**
+     * Get rating stats grouped by date and status.
+     * (Lấy thống kê đánh giá theo ngày và trạng thái)
+     */
+    public function getStatsByDateAndStatus(?string $fromDate = null, ?string $toDate = null, ?string $status = null): array
+    {
+        $query = $this->model->newQuery()
+            ->selectRaw('CAST(created_at AS DATE) as date, status, COUNT(*) as count');
+
+        if ($fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
+        }
+        if ($toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
+        }
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        return $query->groupBy('date', 'status')
+            ->orderBy('date')
+            ->get()
+            ->toArray();
+    }
 }
