@@ -40,4 +40,22 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     {
         return $this->model->where('username', $username)->first();
     }
+
+    /**
+     * Increment user point balance.
+     * (Tăng số dư điểm của người dùng)
+     */
+    public function incrementPointBalance(int $userId, int $amount): bool
+    {
+        return (bool) $this->model->where('id', $userId)->increment('point_balance', $amount);
+    }
+
+    /**
+     * Decrement user point balance.
+     * (Giảm số dư điểm của người dùng)
+     */
+    public function decrementPointBalance(int $userId, int $amount): bool
+    {
+        return (bool) $this->model->where('id', $userId)->decrement('point_balance', $amount);
+    }
 }
