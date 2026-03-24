@@ -2,6 +2,8 @@
 
 namespace App\Repositories\Interfaces;
 
+use App\Models\User;
+
 /**
  * Interface UserRepositoryInterface
  * Define standard operations for User repository.
@@ -9,5 +11,15 @@ namespace App\Repositories\Interfaces;
  */
 interface UserRepositoryInterface extends RepositoryInterface
 {
-    // You can add specific User methods here
+    /**
+     * Find user by email.
+     * (Tìm người dùng theo email)
+     */
+    public function findByEmail(string $email): ?User;
+
+    /**
+     * Find user by username.
+     * (Tìm người dùng theo tên đăng nhập)
+     */
+    public function findByUsername(string $username): ?User;
 }

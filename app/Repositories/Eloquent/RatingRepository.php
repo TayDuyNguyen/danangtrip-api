@@ -102,7 +102,28 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
 
         return [
             'review_count' => (int) ($row->review_count ?? 0),
-            'avg_rating' => (float) ($row->avg_rating ?? 0),
+            'avg_rating' => round((float) ($row->avg_rating ?? 0), 1),
         ];
+    }
+
+    /**
+     * Get ratings by user with filters and pagination.
+     * (Lấy danh sách đánh giá của người dùng với bộ lọc và phân trang)
+     */
+    public function getByUserPaginated(int $userId, array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->with(['location', 'images'])
+            ->orderByDesc('created_at');
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        $perPage = $filters['per_page'] ?? 10;
+        $page = $filters['page'] ?? 1;
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 }

@@ -258,7 +258,7 @@ final class RatingService
                 ]);
 
                 return [
-                    'status' => 200,
+                    'status' => HttpStatusCode::SUCCESS->value,
                     'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'images', 'approver']),
                     'message' => 'Rating approved',
                 ];
@@ -267,7 +267,7 @@ final class RatingService
             return $result;
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to approve rating',
             ];
         }
@@ -283,11 +283,11 @@ final class RatingService
             $result = DB::transaction(function () use ($adminId, $ratingId, $data) {
                 $rating = $this->ratingRepository->findForUpdate($ratingId, ['user', 'location']);
                 if (! $rating) {
-                    return ['status' => 404, 'message' => 'Rating not found'];
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
 
                 if ($rating->status !== 'pending') {
-                    return ['status' => 409, 'message' => 'Rating is not pending'];
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending'];
                 }
 
                 $rating->update([
@@ -311,7 +311,7 @@ final class RatingService
                 ]);
 
                 return [
-                    'status' => 200,
+                    'status' => HttpStatusCode::SUCCESS->value,
                     'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'images', 'approver']),
                     'message' => 'Rating rejected',
                 ];
@@ -320,7 +320,7 @@ final class RatingService
             return $result;
         } catch (\Exception $_) {
             return [
-                'status' => 500,
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to reject rating',
             ];
         }
@@ -347,7 +347,7 @@ final class RatingService
             }
 
             $path = $file->store('ratings/'.$ratingId, 'public');
-            $urls[] = $disk->url($path);
+            $urls[] = asset('storage/'.$path);
         }
 
         return array_slice($urls, 0, 5);
