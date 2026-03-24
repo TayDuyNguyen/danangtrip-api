@@ -43,4 +43,10 @@ interface RatingRepositoryInterface extends RepositoryInterface
      * @return array{review_count:int,avg_rating:float}
      */
     public function getApprovedStatsForLocation(int $locationId): array;
+
+    /**
+     * Get ratings by user with filters and pagination.
+     * (Lấy danh sách đánh giá của người dùng với bộ lọc và phân trang)
+     */
+    public function getByUserPaginated(int $userId, array $filters): LengthAwarePaginator;
 }

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Route;
@@ -81,6 +82,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/favorites', [FavoriteController::class, 'index']);
         Route::post('/user/favorites', [FavoriteController::class, 'store']);
         Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
+
+        // User Profile & History
+        // (Thông tin cá nhân & Lịch sử)
+        Route::get('/user/profile', [ProfileController::class, 'show']);
+        Route::put('/user/profile', [ProfileController::class, 'update']);
+        Route::post('/user/profile/avatar', [ProfileController::class, 'updateAvatar']);
+        Route::put('/user/password', [ProfileController::class, 'changePassword']);
+        Route::get('/user/ratings', [ProfileController::class, 'ratings']);
     });
 
     // =========================================================================
