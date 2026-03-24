@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Pagination;
 use App\Models\Rating;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -40,8 +41,8 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('location_id', $filters['location_id']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
-        $page = $filters['page'] ?? 1;
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
     }
@@ -121,8 +122,8 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('status', $filters['status']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
-        $page = $filters['page'] ?? 1;
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
     }

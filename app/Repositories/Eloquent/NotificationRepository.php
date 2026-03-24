@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Pagination;
 use App\Models\Notification;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -36,7 +37,7 @@ final class NotificationRepository extends BaseRepository implements Notificatio
             $query->where('is_read', (bool) $filters['is_read']);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
         return $query->paginate($perPage);
     }

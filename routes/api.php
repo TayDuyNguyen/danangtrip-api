@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
@@ -59,6 +61,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/search', [SearchController::class, 'search']);
     Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
     Route::get('/search/popular', [SearchController::class, 'popular']);
+
+    // Blog: Public access
+    // (Blog: Truy cập công khai)
+    Route::get('/blog', [BlogController::class, 'index']);
+    Route::get('/blog/categories', [BlogController::class, 'categories']);
+    Route::get('/blog/{slug}', [BlogController::class, 'show']);
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -147,6 +155,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/ratings', [AdminRatingController::class, 'index']);
         Route::patch('/ratings/{id}/approve', [AdminRatingController::class, 'approve'])->whereNumber('id');
         Route::patch('/ratings/{id}/reject', [AdminRatingController::class, 'reject'])->whereNumber('id');
+
+        // Blog Management
+        // (Quản lý Blog)
+        Route::post('/blog', [AdminBlogController::class, 'store']);
+        Route::put('/blog/{id}', [AdminBlogController::class, 'update'])->whereNumber('id');
+        Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/blog/{id}/publish', [AdminBlogController::class, 'publish'])->whereNumber('id');
     });
 
 });

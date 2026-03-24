@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Pagination;
 use App\Models\PointTransaction;
 use App\Repositories\Interfaces\PointTransactionRepositoryInterface;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -40,8 +41,8 @@ final class PointTransactionRepository extends BaseRepository implements PointTr
             $query->where('status', $filters['status']);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
-        $page = $filters['page'] ?? 1;
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
     }

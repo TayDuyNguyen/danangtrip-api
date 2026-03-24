@@ -201,7 +201,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $location = $this->find($id);
 
         if (! $location) {
-            return new LengthAwarePaginator([], 0, $request['per_page'] ?? 10);
+            return new LengthAwarePaginator([], 0, $request['per_page'] ?? Pagination::PER_PAGE->value);
         }
 
         return $location->approvedRatings()
