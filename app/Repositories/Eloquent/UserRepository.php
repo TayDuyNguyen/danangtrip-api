@@ -2,8 +2,10 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Pagination;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Class UserRepository
@@ -57,5 +59,47 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function decrementPointBalance(int $userId, int $amount): bool
     {
         return (bool) $this->model->where('id', $userId)->decrement('point_balance', $amount);
+    }
+
+    /**
+     * Get paginated users with filters.
+     * (Lấy danh sách người dùng có phân trang và bộ lọc)
+     */
+    public function getUsersPaginated(array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery();
+
+        if (! empty($filters['q'])) {
+            $search = $filters['q'];
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('username', 'like', "%{$search}%");
+            });
+        }
+
+        if (! empty($filters['role'])) {
+            $query->where('role', $filters['role']);
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
+
+        return $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Get user detail with stats.
+     * (Lấy chi tiết người dùng kèm thống kê)
+     */
+    public function getUserWithStats(int $id): ?User
+    {
+        return $this->model->newQuery()
+            ->withCount(['ratings', 'pointTransactions'])
+            ->find($id);
     }
 }

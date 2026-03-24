@@ -14,6 +14,25 @@ use Illuminate\Validation\Validator as ValidatorInstance;
 final class UserValidation
 {
     /**
+     * Validate list users request.
+     * (Xác thực yêu cầu danh sách người dùng)
+     */
+    public static function validateIndex(Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'q' => 'sometimes|string|max:100',
+                'role' => 'sometimes|string|in:admin,partner,user',
+                'status' => 'sometimes|string|in:active,banned',
+                'page' => 'sometimes|integer|min:1',
+                'per_page' => 'sometimes|integer|min:1|max:100',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Validate show user request.
      * (Xác thực yêu cầu chi tiết người dùng)
      */
@@ -36,6 +55,38 @@ final class UserValidation
             ['id' => $id],
             [
                 'id' => 'required|integer|exists:users,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate update status request.
+     * (Xác thực yêu cầu cập nhật trạng thái người dùng)
+     */
+    public static function validateUpdateStatus(Request $request, int $id): ValidatorInstance
+    {
+        return Validator::make(
+            array_merge($request->all(), ['id' => $id]),
+            [
+                'id' => 'required|integer|exists:users,id',
+                'status' => 'required|string|in:active,banned',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate update role request.
+     * (Xác thực yêu cầu cập nhật vai trò người dùng)
+     */
+    public static function validateUpdateRole(Request $request, int $id): ValidatorInstance
+    {
+        return Validator::make(
+            array_merge($request->all(), ['id' => $id]),
+            [
+                'id' => 'required|integer|exists:users,id',
+                'role' => 'required|string|in:admin,partner,user',
             ],
             self::messages()
         );
