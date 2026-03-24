@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Repositories\Eloquent\BlogCategoryRepository;
+use App\Repositories\Eloquent\BlogPostRepository;
 use App\Repositories\Eloquent\CategoryRepository;
 use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
@@ -12,6 +14,8 @@ use App\Repositories\Eloquent\RatingRepository;
 use App\Repositories\Eloquent\SearchLogRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\UserRepository;
+use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
+use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
@@ -47,6 +51,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
         $this->app->bind(PointTransactionRepositoryInterface::class, PointTransactionRepository::class);
         $this->app->bind(FavoriteRepositoryInterface::class, FavoriteRepository::class);
+        $this->app->bind(BlogPostRepositoryInterface::class, BlogPostRepository::class);
+        $this->app->bind(BlogCategoryRepositoryInterface::class, BlogCategoryRepository::class);
     }
 
     /**
