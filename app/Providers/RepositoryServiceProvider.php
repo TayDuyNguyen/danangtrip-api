@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Repositories\Eloquent\AmenityRepository;
 use App\Repositories\Eloquent\BlogCategoryRepository;
 use App\Repositories\Eloquent\BlogPostRepository;
 use App\Repositories\Eloquent\CategoryRepository;
@@ -13,7 +14,9 @@ use App\Repositories\Eloquent\RatingImageRepository;
 use App\Repositories\Eloquent\RatingRepository;
 use App\Repositories\Eloquent\SearchLogRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
+use App\Repositories\Eloquent\TagRepository;
 use App\Repositories\Eloquent\UserRepository;
+use App\Repositories\Interfaces\AmenityRepositoryInterface;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
@@ -25,6 +28,7 @@ use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
+use App\Repositories\Interfaces\TagRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
 
@@ -53,6 +57,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(FavoriteRepositoryInterface::class, FavoriteRepository::class);
         $this->app->bind(BlogPostRepositoryInterface::class, BlogPostRepository::class);
         $this->app->bind(BlogCategoryRepositoryInterface::class, BlogCategoryRepository::class);
+        $this->app->bind(TagRepositoryInterface::class, TagRepository::class);
+        $this->app->bind(AmenityRepositoryInterface::class, AmenityRepository::class);
     }
 
     /**
