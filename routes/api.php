@@ -1,12 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AmenityController as AdminAmenityController;
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
+use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CategoryController;
@@ -17,6 +20,7 @@ use App\Http\Controllers\Api\PointController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\TagController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -68,6 +72,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/blog', [BlogController::class, 'index']);
     Route::get('/blog/categories', [BlogController::class, 'categories']);
     Route::get('/blog/{slug}', [BlogController::class, 'show']);
+
+    // Tags & Amenities: Public access
+    // (Tags & Tiện ích: Truy cập công khai)
+    Route::get('/tags', [TagController::class, 'index']);
+    Route::get('/amenities', [AmenityController::class, 'index']);
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -173,6 +182,13 @@ Route::prefix('v1')->group(function () {
         Route::put('/blog/{id}', [AdminBlogController::class, 'update'])->whereNumber('id');
         Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy'])->whereNumber('id');
         Route::patch('/blog/{id}/publish', [AdminBlogController::class, 'publish'])->whereNumber('id');
+
+        // Tags & Amenities Management
+        // (Quản lý Tags & Tiện ích)
+        Route::post('/tags', [AdminTagController::class, 'store']);
+        Route::delete('/tags/{id}', [AdminTagController::class, 'destroy'])->whereNumber('id');
+        Route::post('/amenities', [AdminAmenityController::class, 'store']);
+        Route::delete('/amenities/{id}', [AdminAmenityController::class, 'destroy'])->whereNumber('id');
     });
 
 });
