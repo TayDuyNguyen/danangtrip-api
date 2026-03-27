@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -123,6 +124,12 @@ Route::prefix('v1')->group(function () {
         Route::patch('/user/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->whereNumber('id');
         Route::patch('/user/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/user/notifications/{id}', [NotificationController::class, 'destroy'])->whereNumber('id');
+
+        // Upload Management
+        // (Quản lý Upload)
+        Route::post('/upload/image', [UploadController::class, 'uploadImage']);
+        Route::post('/upload/images', [UploadController::class, 'uploadImages']);
+        Route::delete('/upload/image', [UploadController::class, 'deleteImage']);
     });
 
     // =========================================================================
