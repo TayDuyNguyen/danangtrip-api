@@ -59,6 +59,7 @@ docker exec -it danangtrip_app bash
 # Force a rebuild of images (Necessary after modifying Dockerfile or Nginx config)
 docker-compose up -d --build
 ```
+
 - Xóa cache tối ưu của Laravel trong container:
 - docker compose -f docker/docker-compose.yml exec app php artisan optimize:clear
 - Nếu vừa sửa .env, thêm:
