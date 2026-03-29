@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * Class AuthService
@@ -113,6 +114,37 @@ class AuthService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Logout failed',
+            ];
+        }
+    }
+
+    /**
+     * Refresh user token.
+     * (Refresh token người dùng)
+     */
+    public function refresh(string $token): array
+    {
+        try {
+            $newToken = JWTAuth::setToken($token)->refresh();
+
+            if (! $newToken) {
+                return [
+                    'status' => HttpStatusCode::UNAUTHORIZED->value,
+                    'message' => 'Invalid token',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'token' => $newToken,
+                    'user' => JWTAuth::setToken($newToken)->authenticate(),
+                ],
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Refresh failed',
             ];
         }
     }

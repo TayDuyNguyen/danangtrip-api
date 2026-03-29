@@ -91,6 +91,25 @@ class AuthController extends Controller
     }
 
     /**
+     *  Refresh token
+     * (Tạo lại token mới cho người dùng)
+     */
+    public function refresh(Request $request): JsonResponse
+    {
+        $token = $request->bearerToken();
+        if (! $token) {
+            return $this->error('Token is required', HttpStatusCode::UNAUTHORIZED->value);
+        }
+
+        $result = $this->authService->refresh($token);
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
+            return $this->success($result['data'], 'Token refreshed successfully');
+        } else {
+            return $this->unauthorized($result['message']);
+        }
+    }
+
+    /**
      * Get authenticated user.
      * (Lấy thông tin người dùng đã xác thực)
      */

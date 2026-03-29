@@ -13,10 +13,6 @@ final class UploadService
     /**
      * Upload a single image to Cloudinary.
      * (Tải lên một ảnh lên Cloudinary)
-     *
-     * @param UploadedFile $file
-     * @param string|null $folder
-     * @return array
      */
     public function uploadImage(UploadedFile $file, ?string $folder = null): array
     {
@@ -53,10 +49,6 @@ final class UploadService
     /**
      * Upload multiple images to Cloudinary.
      * (Tải lên nhiều ảnh lên Cloudinary)
-     *
-     * @param array $files
-     * @param string|null $folder
-     * @return array
      */
     public function uploadImages(array $files, ?string $folder = null): array
     {
@@ -116,9 +108,6 @@ final class UploadService
     /**
      * Delete an image from Cloudinary using its public ID.
      * (Xóa một ảnh từ Cloudinary bằng public ID của nó)
-     *
-     * @param string $publicId
-     * @return array
      */
     public function deleteImage(string $publicId): array
     {

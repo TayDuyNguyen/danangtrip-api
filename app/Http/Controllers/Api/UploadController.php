@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Services\UploadService;
 use App\Http\Validations\UploadValidation;
+use App\Services\UploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,19 +19,12 @@ final class UploadController extends Controller
     /**
      * UploadController constructor.
      * (Khởi tạo UploadController)
-     *
-     * @param UploadService $uploadService
      */
-    public function __construct(protected UploadService $uploadService)
-    {
-    }
+    public function __construct(protected UploadService $uploadService) {}
 
     /**
      * Upload a single image.
      * (Tải lên một ảnh)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function uploadImage(Request $request): JsonResponse
     {
@@ -43,6 +36,7 @@ final class UploadController extends Controller
 
         $data = $validator->validated();
         $result = $this->uploadService->uploadImage($request->file('image'), $data['folder'] ?? null);
+
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'])
             : $this->error($result['message'], $result['status']);
@@ -51,9 +45,6 @@ final class UploadController extends Controller
     /**
      * Upload multiple images.
      * (Tải lên nhiều ảnh)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function uploadImages(Request $request): JsonResponse
     {
@@ -78,9 +69,6 @@ final class UploadController extends Controller
     /**
      * Delete an image from Cloudinary.
      * (Xóa một ảnh từ Cloudinary)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function deleteImage(Request $request): JsonResponse
     {

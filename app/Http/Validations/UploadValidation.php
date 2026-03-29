@@ -8,16 +8,12 @@ use Illuminate\Validation\Validator as ValidatorInstance;
 
 /**
  * Class UploadValidation
- * @package App\Http\Validations
  */
 final class UploadValidation
 {
     /**
      * Validate the request for uploading a single image.
      * (Xác thực yêu cầu tải lên một ảnh)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateUploadImage(Request $request): ValidatorInstance
     {
@@ -30,9 +26,6 @@ final class UploadValidation
     /**
      * Validate the request for uploading multiple images.
      * (Xác thực yêu cầu tải lên nhiều ảnh)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateUploadImages(Request $request): ValidatorInstance
     {
@@ -46,9 +39,6 @@ final class UploadValidation
     /**
      * Validate the request for deleting an image.
      * (Xác thực yêu cầu xóa ảnh)
-     *
-     * @param Request $request
-     * @return ValidatorInstance
      */
     public static function validateDeleteImage(Request $request): ValidatorInstance
     {
@@ -60,8 +50,6 @@ final class UploadValidation
     /**
      * Get the validation messages.
      * (Lấy các thông báo xác thực)
-     *
-     * @return array
      */
     protected static function messages(): array
     {
