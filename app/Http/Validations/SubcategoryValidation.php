@@ -85,6 +85,21 @@ final class SubcategoryValidation
     }
 
     /**
+     * Validate update subcategory status request.
+     * (Xác thực yêu cầu đổi trạng thái danh mục con)
+     */
+    public static function validateUpdateStatus(Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'status' => 'required|in:active,inactive',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Get custom validation messages.
      * (Lấy thông báo lỗi tùy chỉnh)
      */
@@ -105,6 +120,7 @@ final class SubcategoryValidation
             'description.string' => 'The description must be a string. (Mô tả phải là chuỗi ký tự.)',
             'status.in' => 'The selected status is invalid. (Trạng thái được chọn không hợp lệ.)',
             'sort_order.integer' => 'The sort order must be an integer. (Thứ tự sắp xếp phải là số nguyên.)',
+            'status.required' => 'The status field is required. (Trường trạng thái là bắt buộc.)',
         ];
     }
 }

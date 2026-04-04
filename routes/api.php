@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\NotificationController;
@@ -48,10 +49,15 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
-    // Categories: List & Detail
-    // (Danh mục: Danh sách & Chi tiết)
+    // Categories: List & Detail & Locations by slug
+    // (Danh mục: Danh sách & Chi tiết & Địa điểm theo danh mục)
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{id}', [CategoryController::class, 'show'])->whereNumber('id');
+    Route::get('/categories/{slug}/locations', [CategoryController::class, 'locationsBySlug'])->where('slug', '[a-z0-9-]+');
+
+    // Districts: Static list of Da Nang districts
+    // (Quận/huyện: Danh sách tĩnh các quận của Đà Nẵng)
+    Route::get('/districts', [DistrictController::class, 'index']);
 
     // Locations: Search & Details
     // (Địa điểm: Tìm kiếm & Xem thông tin)
@@ -141,19 +147,20 @@ Route::prefix('v1')->group(function () {
         Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports']);
         Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports']);
         Route::get('/reports/users', [AdminDashboardController::class, 'userReports']);
-        Route::get('/reports/points', [AdminDashboardController::class, 'pointReports']);
 
         // Categories Management
         // (Quản lý Danh mục)
         Route::post('/categories', [AdminCategoryController::class, 'store']);
         Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/categories/{id}/status', [AdminCategoryController::class, 'updateStatus'])->whereNumber('id');
 
         // Subcategory Management
         // (Quản lý Danh mục con)
         Route::post('/subcategories', [AdminSubcategoryController::class, 'store']);
         Route::put('/subcategories/{id}', [AdminSubcategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/subcategories/{id}', [AdminSubcategoryController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/subcategories/{id}/status', [AdminSubcategoryController::class, 'updateStatus'])->whereNumber('id');
 
         // Location Management
         // (Quản lý Địa điểm)

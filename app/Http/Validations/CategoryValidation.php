@@ -87,6 +87,21 @@ final class CategoryValidation
     }
 
     /**
+     * Validate update category status request.
+     * (Xác thực yêu cầu đổi trạng thái danh mục)
+     */
+    public static function validateUpdateStatus(Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'status' => 'required|in:active,inactive',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Get custom validation messages.
      * (Lấy thông báo xác thực tùy chỉnh)
      */
@@ -108,6 +123,7 @@ final class CategoryValidation
             'image.string' => 'The image must be a string URL. (Hình ảnh phải là chuỗi ký tự URL.)',
             'sort_order.integer' => 'The sort order must be an integer. (Thứ tự sắp xếp phải là số nguyên.)',
             'status.in' => 'The selected status is invalid. (Trạng thái được chọn không hợp lệ.)',
+            'status.required' => 'The status field is required. (Trường trạng thái là bắt buộc.)',
         ];
     }
 }

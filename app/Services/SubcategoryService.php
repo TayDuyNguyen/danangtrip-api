@@ -121,4 +121,33 @@ final class SubcategoryService
             ];
         }
     }
+
+    /**
+     * Update the status of a subcategory.
+     * (Cập nhật trạng thái danh mục con)
+     */
+    public function updateSubcategoryStatus(int $id, string $status): array
+    {
+        try {
+            $subcategory = $this->subcategoryRepository->find($id);
+            if (! $subcategory) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Subcategory not found',
+                ];
+            }
+
+            $this->subcategoryRepository->updateStatus($id, $status);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Subcategory status updated successfully',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update subcategory status',
+            ];
+        }
+    }
 }

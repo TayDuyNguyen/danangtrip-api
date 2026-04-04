@@ -23,8 +23,6 @@ final class CategoryController extends Controller
     /**
      * Create a new category.
      * (Tạo danh mục mới)
-     *
-     * @param Request request
      */
     public function store(Request $request): JsonResponse
     {
@@ -70,6 +68,24 @@ final class CategoryController extends Controller
         }
 
         $result = $this->categoryService->deleteCategory($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Update the status of a category.
+     * (Cập nhật trạng thái danh mục)
+     */
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $validator = CategoryValidation::validateUpdateStatus($request);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->categoryService->updateCategoryStatus($id, $validator->validated()['status']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])

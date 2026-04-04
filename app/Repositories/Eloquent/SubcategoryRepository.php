@@ -17,4 +17,13 @@ final class SubcategoryRepository extends BaseRepository implements SubcategoryR
     {
         return Subcategory::class;
     }
+
+    /**
+     * Update the status of a subcategory.
+     * (Cập nhật trạng thái danh mục con)
+     */
+    public function updateStatus(int $id, string $status): bool
+    {
+        return (bool) $this->model->where('id', $id)->update(['status' => $status]);
+    }
 }

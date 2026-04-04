@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->string('image', 255)->nullable();
             $table->integer('sort_order')->default(0);
-            $table->string('status', 20)->default('active')->index();
+            $table->string('status', 20)->default('active')->index(); // active, inactive
             $table->timestamps();
         });
     }

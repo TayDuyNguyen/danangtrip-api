@@ -94,3 +94,36 @@
  *   "data": null
  * }
  */
+
+/**
+ * @api {patch} /api/v1/admin/subcategories/:id/status Update Subcategory Status
+ * @apiName UpdateSubcategoryStatus
+ * @apiGroup Subcategories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Protected endpoint - Requires authentication and role=admin
+ *
+ * @apiParam {Number} id Subcategory id
+ * @apiBody {String="active","inactive"} status New status
+ *
+ * @apiSampleRequest /api/v1/admin/subcategories/1/status
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Subcategory status updated successfully",
+ *   "data": null
+ * }
+ *
+ * @apiErrorExample {json} Not-Found:
+ * HTTP/1.1 404 Not Found
+ * {
+ *   "code": 404,
+ *   "message": "Subcategory not found",
+ *   "data": null
+ * }
+ */

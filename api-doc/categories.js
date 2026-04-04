@@ -177,4 +177,89 @@
  *   "message": "Category deleted successfully",
  *   "data": null
  * }
+ *
+ * @apiErrorExample {json} Conflict:
+ * HTTP/1.1 409 Conflict
+ * {
+ *   "code": 409,
+ *   "message": "Cannot delete category because it has subcategories",
+ *   "data": null
+ * }
+ */
+
+/**
+ * @api {patch} /api/v1/admin/categories/:id/status Update Category Status
+ * @apiName UpdateCategoryStatus
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Protected endpoint - Requires authentication and role=admin
+ *
+ * @apiParam {Number} id Category id
+ * @apiBody {String="active","inactive"} status New status
+ *
+ * @apiSampleRequest /api/v1/admin/categories/1/status
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Category status updated successfully",
+ *   "data": null
+ * }
+ *
+ * @apiErrorExample {json} Not-Found:
+ * HTTP/1.1 404 Not Found
+ * {
+ *   "code": 404,
+ *   "message": "Category not found",
+ *   "data": null
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/categories/:slug/locations Get Locations by Category Slug
+ * @apiName GetLocationsByCategorySlug
+ * @apiGroup Categories
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns paginated active locations belonging to the given category slug.
+ *
+ * @apiParam {String} slug Category slug
+ * @apiQuery {Number} [per_page=15] Number of results per page
+ *
+ * @apiSampleRequest /api/v1/categories/an-uong/locations
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "locations": {
+ *       "current_page": 1,
+ *       "data": [
+ *         {
+ *           "id": 1,
+ *           "name": "Nhà hàng Hải Sản",
+ *           "slug": "nha-hang-hai-san",
+ *           "status": "active"
+ *         }
+ *       ],
+ *       "per_page": 15,
+ *       "total": 1
+ *     }
+ *   }
+ * }
+ *
+ * @apiErrorExample {json} Not-Found:
+ * HTTP/1.1 404 Not Found
+ * {
+ *   "code": 404,
+ *   "message": "Category not found",
+ *   "data": null
+ * }
  */
