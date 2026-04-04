@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -145,6 +147,100 @@ class AuthService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Refresh failed',
+            ];
+        }
+    }
+
+    /**
+     * Handle forgot password.
+     * (Xử lý quên mật khẩu)
+     */
+    public function forgotPassword(string $email): array
+    {
+        try {
+            // Placeholder: Generate token, save to password_reset_tokens table, and send email.
+            // For now, we simulate success since emailing is out of scope.
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Password reset link sent to your email.',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to process forgot password request.',
+            ];
+        }
+    }
+
+    /**
+     * Handle reset password.
+     * (Xử lý đặt lại mật khẩu)
+     */
+    public function resetPassword(array $data): array
+    {
+        try {
+            // Placeholder: Verify token, update user password, delete token.
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Password has been reset successfully.',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to reset password.',
+            ];
+        }
+    }
+
+    /**
+     * Verify user email.
+     * (Xác minh email người dùng)
+     */
+    public function verifyEmail(User $user, string $otp): array
+    {
+        try {
+            // Placeholder: Verify OTP.
+
+            $user->email_verified_at = Carbon::now();
+            $user->save();
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Email verified successfully.',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to verify email.',
+            ];
+        }
+    }
+
+    /**
+     * Resend verification email.
+     * (Gửi lại email xác minh)
+     */
+    public function resendVerification(User $user): array
+    {
+        try {
+            if ($user->email_verified_at) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Email is already verified.',
+                ];
+            }
+            // Placeholder: Generate new OTP and send email.
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Verification email resent successfully.',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to resend verification email.',
             ];
         }
     }

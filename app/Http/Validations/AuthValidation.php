@@ -58,6 +58,21 @@ class AuthValidation
     }
 
     /**
+     * Validate forgot password request.
+     * (Xác thực yêu cầu quên mật khẩu)
+     */
+    public static function validateForgotPassword(Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'email' => 'required|email|exists:users,email',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Validate reset password request.
      * (Xác thực yêu cầu đặt lại mật khẩu)
      */
@@ -67,6 +82,23 @@ class AuthValidation
             $request->all(),
             [
                 'email' => 'required|email|exists:users,email',
+                'token' => 'required|string',
+                'password' => 'required|string|min:8|confirmed',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate verify email request.
+     * (Xác thực yêu cầu xác minh email)
+     */
+    public static function validateVerifyEmail(Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            $request->all(),
+            [
+                'otp' => 'required|string',
             ],
             self::messages()
         );
@@ -97,6 +129,8 @@ class AuthValidation
             'gender.max' => 'The gender must not exceed 20 characters. (Giới tính không được vượt quá 20 ký tự.)',
             'city.max' => 'The city name must not exceed 100 characters. (Tên thành phố không được vượt quá 100 ký tự.)',
             'role.in' => 'The selected role is invalid. (Vai trò được chọn không hợp lệ.)',
+            'token.required' => 'The token is required. (Token là bắt buộc.)',
+            'otp.required' => 'The OTP code is required. (Mã OTP là bắt buộc.)',
         ];
     }
 }

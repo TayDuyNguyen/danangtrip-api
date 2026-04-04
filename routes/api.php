@@ -90,6 +90,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+        Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
+        Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification']);
 
         // Ratings: Create / Update / Delete / Helpful
         // (Đánh giá: Tạo / Sửa / Xóa / Đánh dấu hữu ích)
