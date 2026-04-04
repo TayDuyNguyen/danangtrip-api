@@ -44,24 +44,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
 
     /**
-     * Increment user point balance.
-     * (Tăng số dư điểm của người dùng)
-     */
-    public function incrementPointBalance(int $userId, int $amount): bool
-    {
-        return (bool) $this->model->where('id', $userId)->increment('point_balance', $amount);
-    }
-
-    /**
-     * Decrement user point balance.
-     * (Giảm số dư điểm của người dùng)
-     */
-    public function decrementPointBalance(int $userId, int $amount): bool
-    {
-        return (bool) $this->model->where('id', $userId)->decrement('point_balance', $amount);
-    }
-
-    /**
      * Get paginated users with filters.
      * (Lấy danh sách người dùng có phân trang và bộ lọc)
      */
@@ -99,7 +81,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function getUserWithStats(int $id): ?User
     {
         return $this->model->newQuery()
-            ->withCount(['ratings', 'pointTransactions'])
+            ->withCount(['ratings'])
             ->find($id);
     }
 

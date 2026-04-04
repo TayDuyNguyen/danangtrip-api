@@ -21,7 +21,6 @@ class UserSeeder extends Seeder
                 'avatar' => 'https://ui-avatars.com/api/?name=Admin&background=random',
                 'role' => 'admin',
                 'status' => 'active',
-                'point_balance' => 1000,
             ]
         );
 
@@ -37,7 +36,6 @@ class UserSeeder extends Seeder
                     'avatar' => "https://ui-avatars.com/api/?name=User+{$i}&background=random",
                     'role' => $i % 5 === 0 ? 'partner' : 'user',
                     'status' => 'active',
-                    'point_balance' => rand(10, 100),
                 ]
             );
         }

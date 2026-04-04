@@ -39,11 +39,6 @@ final class User extends Authenticatable implements JWTSubject
         return $this->hasMany(View::class);
     }
 
-    public function pointTransactions(): HasMany
-    {
-        return $this->hasMany(PointTransaction::class);
-    }
-
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
@@ -57,6 +52,21 @@ final class User extends Authenticatable implements JWTSubject
     public function blogPosts(): HasMany
     {
         return $this->hasMany(BlogPost::class, 'author_id');
+    }
+
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
+
+    public function tours(): HasMany
+    {
+        return $this->hasMany(Tour::class, 'created_by');
+    }
+
+    public function repliedContacts(): HasMany
+    {
+        return $this->hasMany(Contact::class, 'replied_by');
     }
 
     /**
@@ -75,7 +85,6 @@ final class User extends Authenticatable implements JWTSubject
         'birthdate',
         'gender',
         'city',
-        'point_balance',
         'role',
         'status',
         'last_login_at',
@@ -105,7 +114,6 @@ final class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
-            'point_balance' => 'integer',
             'birthdate' => 'date',
         ];
     }

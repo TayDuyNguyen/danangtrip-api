@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
-use App\Repositories\Interfaces\PointTransactionRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
@@ -23,7 +22,7 @@ final class DashboardService
         protected UserRepositoryInterface $userRepository,
         protected LocationRepositoryInterface $locationRepository,
         protected RatingRepositoryInterface $ratingRepository,
-        protected PointTransactionRepositoryInterface $pointTransactionRepository
+
     ) {}
 
     /**
@@ -123,31 +122,6 @@ final class DashboardService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve user reports.',
-            ];
-        }
-    }
-
-    /**
-     * Get point transaction reports.
-     * (Lấy báo cáo giao dịch điểm)
-     */
-    public function getPointReports(array $filters): array
-    {
-        try {
-            $from = $filters['from'] ?? null;
-            $to = $filters['to'] ?? null;
-            $type = $filters['type'] ?? null;
-
-            $data = $this->pointTransactionRepository->getStatsByTypeAndDate($from, $to, $type);
-
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $data,
-            ];
-        } catch (Exception $e) {
-            return [
-                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to retrieve point reports.',
             ];
         }
     }
