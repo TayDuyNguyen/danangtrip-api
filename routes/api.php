@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\PointController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
@@ -112,12 +111,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/user/profile/avatar', [ProfileController::class, 'updateAvatar']);
         Route::put('/user/password', [ProfileController::class, 'changePassword']);
         Route::get('/user/ratings', [ProfileController::class, 'ratings']);
-
-        // Points Management
-        // (Quản lý Điểm thưởng)
-        Route::get('/user/points', [PointController::class, 'balance']);
-        Route::get('/user/points/transactions', [PointController::class, 'transactions']);
-        Route::post('/user/points/purchase', [PointController::class, 'purchase']);
 
         // Notifications
         // (Thông báo)

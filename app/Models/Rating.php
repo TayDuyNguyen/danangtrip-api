@@ -17,7 +17,6 @@ final class Rating extends Model
         'score',
         'comment',
         'image_count',
-        'point_cost',
         'status',
         'rejected_reason',
         'approved_by',
@@ -30,7 +29,6 @@ final class Rating extends Model
         return [
             'score' => 'integer',
             'image_count' => 'integer',
-            'point_cost' => 'integer',
             'helpful_count' => 'integer',
             'approved_at' => 'datetime',
         ];

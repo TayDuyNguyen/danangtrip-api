@@ -22,9 +22,8 @@ return new class extends Migration
             $table->date('birthdate')->nullable();
             $table->string('gender', 20)->nullable();
             $table->string('city', 100)->nullable();
-            $table->integer('point_balance')->default(0);
-            $table->string('role', 20)->default('user')->index();
-            $table->string('status', 20)->default('active')->index(); // active, Blocked, Pendding
+            $table->string('role', 20)->default('user')->index(); // user, admin
+            $table->string('status', 20)->default('pending')->index(); // active, blocked, pending
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('last_login_at')->nullable();
             $table->timestamps();

@@ -15,17 +15,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class, // Phải chạy đầu tiên để các bảng khác có FK user_id
+            UserSeeder::class,
             CategorySeeder::class,
             SubcategorySeeder::class,
             TagSeeder::class,
             LocationSeeder::class,
             AmenitySeeder::class,
+            TourCategorySeeder::class, // New
+            TourSeeder::class,         // New
+            TourScheduleSeeder::class, // New
+            BookingSeeder::class,      // New
             FavoriteSeeder::class,
-            RatingSeeder::class,
+            RatingSeeder::class,       // Updated for Tours
             BlogSeeder::class,
             InteractionSeeder::class,
-            TransactionalSeeder::class,
+            ContactSeeder::class,      // New
         ]);
     }
 }

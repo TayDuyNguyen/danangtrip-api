@@ -25,18 +25,6 @@ interface UserRepositoryInterface extends RepositoryInterface
     public function findByUsername(string $username): ?User;
 
     /**
-     * Increment user point balance.
-     * (Tăng số dư điểm của người dùng)
-     */
-    public function incrementPointBalance(int $userId, int $amount): bool;
-
-    /**
-     * Decrement user point balance.
-     * (Giảm số dư điểm của người dùng)
-     */
-    public function decrementPointBalance(int $userId, int $amount): bool;
-
-    /**
      * Get paginated users with filters.
      * (Lấy danh sách người dùng có phân trang và bộ lọc)
      */
