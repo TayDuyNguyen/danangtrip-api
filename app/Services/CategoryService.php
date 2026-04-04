@@ -199,4 +199,61 @@ final class CategoryService
             ];
         }
     }
+
+    /**
+     * Get paginated active locations for a category by its slug.
+     * (Lấy danh sách địa điểm của danh mục theo slug, có phân trang)
+     */
+    public function getLocationsByCategorySlug(string $slug, int $perPage): array
+    {
+        try {
+            $paginator = $this->categoryRepository->getLocationsBySlug($slug, $perPage);
+
+            if (! $paginator) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Category not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $paginator,
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get locations for category',
+            ];
+        }
+    }
+
+    /**
+     * Update the status of a category.
+     * (Cập nhật trạng thái danh mục)
+     */
+    public function updateCategoryStatus(int $id, string $status): array
+    {
+        try {
+            $category = $this->categoryRepository->find($id);
+            if (! $category) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Category not found',
+                ];
+            }
+
+            $this->categoryRepository->updateStatus($id, $status);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Category status updated successfully',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update category status',
+            ];
+        }
+    }
 }

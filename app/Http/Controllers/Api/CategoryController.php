@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
+use App\Enums\Pagination;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\CategoryValidation;
 use App\Services\CategoryService;
@@ -31,11 +32,9 @@ final class CategoryController extends Controller
     {
         $result = $this->categoryService->getPublicCategories();
 
-        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
-            return $this->success(['categories' => $result['data']]);
-        }
-
-        return $this->error($result['message'], $result['status']);
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
     }
 
     /**
@@ -52,10 +51,22 @@ final class CategoryController extends Controller
 
         $result = $this->categoryService->getPublicCategoryById($id);
 
-        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
-            return $this->success(['category' => $result['data']]);
-        }
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
 
-        return $this->error($result['message'], $result['status']);
+    /**
+     * Get active locations for a specific category identified by slug.
+     * (Lấy danh sách địa điểm theo slug danh mục)
+     */
+    public function locationsBySlug(string $slug): JsonResponse
+    {
+        $perPage = (int) request()->input('per_page', Pagination::PER_PAGE->value);
+        $result = $this->categoryService->getLocationsByCategorySlug($slug, $perPage);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
     }
 }

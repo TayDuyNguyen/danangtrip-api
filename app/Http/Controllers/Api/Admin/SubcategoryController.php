@@ -73,4 +73,22 @@ final class SubcategoryController extends Controller
             ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
+
+    /**
+     * Update the status of a subcategory.
+     * (Cập nhật trạng thái danh mục con)
+     */
+    public function updateStatus(Request $request, int $id): JsonResponse
+    {
+        $validator = SubcategoryValidation::validateUpdateStatus($request);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->subcategoryService->updateSubcategoryStatus($id, $validator->validated()['status']);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
 }
