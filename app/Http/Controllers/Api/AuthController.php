@@ -117,4 +117,88 @@ class AuthController extends Controller
     {
         return $this->success($request->user());
     }
+
+    /**
+     * Send forgot password email.
+     * (Gửi email quên mật khẩu)
+     */
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validator = AuthValidation::validateForgotPassword($request);
+
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $validated = $validator->validated();
+        $result = $this->authService->forgotPassword($validated['email']);
+
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
+            return $this->success(null, $result['message']);
+        } else {
+            return $this->error($result['message'], $result['status']);
+        }
+    }
+
+    /**
+     * Reset password.
+     * (Đặt lại mật khẩu)
+     */
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = AuthValidation::validateResetPassword($request);
+
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $validated = $validator->validated();
+        $result = $this->authService->resetPassword($validated);
+
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
+            return $this->success(null, $result['message']);
+        } else {
+            return $this->error($result['message'], $result['status']);
+        }
+    }
+
+    /**
+     * Verify email.
+     * (Xác thực email)
+     */
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $validator = AuthValidation::validateVerifyEmail($request);
+
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $validated = $validator->validated();
+        $user = $request->user();
+
+        $result = $this->authService->verifyEmail($user, $validated['otp']);
+
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
+            return $this->success(null, $result['message']);
+        } else {
+            return $this->error($result['message'], $result['status']);
+        }
+    }
+
+    /**
+     * Resend verification email.
+     * (Gửi lại email xác thực)
+     */
+    public function resendVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $result = $this->authService->resendVerification($user);
+
+        if ($result['status'] == HttpStatusCode::SUCCESS->value) {
+            return $this->success(null, $result['message']);
+        } else {
+            return $this->error($result['message'], $result['status']);
+        }
+    }
 }
