@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Api\Admin\TourController as AdminTourController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\TourController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
@@ -82,12 +84,23 @@ Route::prefix('v1')->group(function () {
     // (Blog: Truy cập công khai)
     Route::get('/blog', [BlogController::class, 'index']);
     Route::get('/blog/categories', [BlogController::class, 'categories']);
-    Route::get('/blog/{slug}', [BlogController::class, 'show']);
+    Route::get('/blog/{slug}', [BlogController::class, 'show'])->where('slug', '[a-z0-9-]+');
 
     // Tags & Amenities: Public access
     // (Tags & Tiện ích: Truy cập công khai)
     Route::get('/tags', [TagController::class, 'index']);
     Route::get('/amenities', [AmenityController::class, 'index']);
+
+    // Tours: Public access
+    // (Tour: Truy cập công khai)
+    Route::get('/tours', [TourController::class, 'index']);
+    Route::get('/tours/featured', [TourController::class, 'featured']);
+    Route::get('/tours/hot', [TourController::class, 'hot']);
+    Route::get('/tours/{slug}', [TourController::class, 'show'])->where('slug', '[a-z0-9-]+');
+    Route::get('/tours/{id}/schedules', [TourController::class, 'schedules'])->whereNumber('id');
+    Route::get('/tours/{id}/ratings', [TourController::class, 'ratings'])->whereNumber('id');
+    Route::get('/tours/{id}/rating-stats', [TourController::class, 'ratingStats'])->whereNumber('id');
+    Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id');
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -95,8 +108,8 @@ Route::prefix('v1')->group(function () {
     // =========================================================================
 
     Route::middleware('jwt.auth')->group(function () {
-        // Auth: Logout & Profile & Token Refresh
-        // (Xác thực: Đăng xuất & Thông tin cá nhân & Làm mới Token)
+        // Auth: Logout & Profile
+        // (Xác thực: Đăng xuất & Thông tin cá nhân)
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/refresh', [AuthController::class, 'refresh']);
@@ -201,6 +214,16 @@ Route::prefix('v1')->group(function () {
         Route::put('/blog/{id}', [AdminBlogController::class, 'update'])->whereNumber('id');
         Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy'])->whereNumber('id');
         Route::patch('/blog/{id}/publish', [AdminBlogController::class, 'publish'])->whereNumber('id');
+
+        // Tours Management
+        // (Quản lý Tour)
+        Route::post('/tours', [AdminTourController::class, 'store']);
+        Route::put('/tours/{id}', [AdminTourController::class, 'update'])->whereNumber('id');
+        Route::delete('/tours/{id}', [AdminTourController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/tours/{id}/status', [AdminTourController::class, 'updateStatus'])->whereNumber('id');
+        Route::patch('/tours/{id}/featured', [AdminTourController::class, 'toggleFeatured'])->whereNumber('id');
+        Route::patch('/tours/{id}/hot', [AdminTourController::class, 'toggleHot'])->whereNumber('id');
+        Route::get('/tours/export', [AdminTourController::class, 'export']);
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)

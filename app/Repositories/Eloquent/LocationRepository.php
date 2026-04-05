@@ -186,13 +186,19 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $sortBy = $data['sort_by'] ?? Constants::SORT_BY_NEARBY;
         $sortOrder = $data['sort_order'] ?? Constants::SORT_ORDER_NEARBY;
 
-        // Haversine formula
-        // Distance = 6371 * 2 * ASIN(SQRT(POWER(SIN((lat - lat2) * PI()/360), 2) + COS(lat * PI()/180) * COS(lat2 * PI()/180) * POWER(SIN((lng - lng2) * PI()/360), 2)))
+        // Subquery: tính distance cho mỗi location
+        $subQuery = $this->model->newQuery()
+            ->select('*')
+            ->selectRaw(
+                '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance',
+                [$lat, $lng, $lat]
+            )
+            ->where('status', 'active');
 
-        return $this->model->select('*')
-            ->selectRaw('(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance', [$lat, $lng, $lat])
-            ->where('status', 'active')
-            ->having('distance', '<=', $radius)
+        // Query chính: filter và sort trên alias "distance" từ subquery
+        return $this->model->newQuery()
+            ->fromSub($subQuery, 'locations_with_distance')
+            ->where('distance', '<=', $radius)
             ->orderBy($sortBy, $sortOrder)
             ->limit($limit)
             ->get();
@@ -309,9 +315,9 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->join('ratings', 'locations.id', '=', 'ratings.location_id')
             ->where('locations.id', $id)
             ->where('ratings.status', 'approved')
-            ->selectRaw('ratings.rating, count(*) as count')
-            ->groupBy('ratings.rating')
-            ->pluck('count', 'rating')
+            ->selectRaw('ratings.score, count(*) as count')
+            ->groupBy('ratings.score')
+            ->pluck('count', 'score')
             ->all();
 
         // Fill missing stars with 0
