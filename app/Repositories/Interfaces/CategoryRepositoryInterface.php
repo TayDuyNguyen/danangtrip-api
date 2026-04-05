@@ -13,8 +13,8 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface CategoryRepositoryInterface extends RepositoryInterface
 {
     /**
-     *  Get public categories (active) with active subcategories
-     *  (Lấy danh mục public (đang hoạt động) kèm danh mục con đang hoạt động)
+     * Get public categories (active) with active subcategories.
+     * (Lấy danh mục public (đang hoạt động) kèm danh mục con đang hoạt động)
      */
     public function getPublicCategories(): Collection;
 
@@ -35,4 +35,10 @@ interface CategoryRepositoryInterface extends RepositoryInterface
      * (Cập nhật trạng thái danh mục)
      */
     public function updateStatus(int $id, string $status): bool;
+
+    /**
+     * Check if category has any subcategories.
+     * (Kiểm tra xem danh mục có bất kỳ danh mục con nào không)
+     */
+    public function hasSubcategories(int $categoryId): bool;
 }

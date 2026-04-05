@@ -64,8 +64,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations', [LocationController::class, 'index']);
     Route::get('/locations/featured', [LocationController::class, 'featured']);
     Route::get('/locations/nearby', [LocationController::class, 'nearby']);
+    Route::get('/locations/districts', [LocationController::class, 'districts']);
     Route::get('/locations/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+');
+    Route::get('/locations/{id}/images', [LocationController::class, 'images'])->whereNumber('id');
     Route::get('/locations/{id}/ratings', [LocationController::class, 'ratings'])->whereNumber('id');
+    Route::get('/locations/{id}/rating-stats', [LocationController::class, 'ratingStats'])->whereNumber('id');
+    Route::get('/locations/{id}/nearby', [LocationController::class, 'nearbyLocations'])->whereNumber('id');
     Route::post('/locations/{id}/view', [LocationController::class, 'recordView'])->whereNumber('id');
 
     // Search: Locations Search & Suggestions & Popular Queries
@@ -164,11 +168,16 @@ Route::prefix('v1')->group(function () {
 
         // Location Management
         // (Quản lý Địa điểm)
+        Route::get('/locations/export', [AdminLocationController::class, 'export']);
         Route::post('/locations', [AdminLocationController::class, 'store']);
         Route::put('/locations/{id}', [AdminLocationController::class, 'update'])->whereNumber('id');
         Route::delete('/locations/{id}', [AdminLocationController::class, 'destroy'])->whereNumber('id');
         Route::patch('/locations/{id}/status', [AdminLocationController::class, 'updateStatus'])->whereNumber('id');
         Route::patch('/locations/{id}/featured', [AdminLocationController::class, 'toggleFeatured'])->whereNumber('id');
+        Route::post('/locations/{id}/tags', [AdminLocationController::class, 'attachTags'])->whereNumber('id');
+        Route::delete('/locations/{id}/tags/{tagId}', [AdminLocationController::class, 'detachTag'])->whereNumber('id')->whereNumber('tagId');
+        Route::post('/locations/{id}/amenities', [AdminLocationController::class, 'attachAmenities'])->whereNumber('id');
+        Route::delete('/locations/{id}/amenities/{amenityId}', [AdminLocationController::class, 'detachAmenity'])->whereNumber('id')->whereNumber('amenityId');
 
         // User Management
         // (Quản lý Người dùng)

@@ -21,8 +21,8 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
     }
 
     /**
-     *  Get public categories (active) with active subcategories
-     *  (Lấy danh mục public (đang hoạt động) kèm danh mục con đang hoạt động)
+     * Get public categories (active) with active subcategories.
+     * (Lấy danh mục public (đang hoạt động) kèm danh mục con đang hoạt động)
      */
     public function getPublicCategories(): Collection
     {
@@ -70,9 +70,9 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
      */
     public function getLocationsBySlug(string $slug, int $perPage): ?LengthAwarePaginator
     {
-        $category = Category::where('slug', $slug)->where('status', 'active')->first();
+        $category = $this->model->newQuery()->where('slug', $slug)->where('status', 'active')->first();
 
-        if (! $category) {
+        if (! ($category instanceof Category)) {
             return null;
         }
 
@@ -88,6 +88,17 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
      */
     public function updateStatus(int $id, string $status): bool
     {
-        return (bool) Category::where('id', $id)->update(['status' => $status]);
+        return (bool) $this->model->where('id', $id)->update(['status' => $status]);
+    }
+
+    /**
+     * Check if category has any subcategories.
+     * (Kiểm tra xem danh mục có bất kỳ danh mục con nào không)
+     */
+    public function hasSubcategories(int $categoryId): bool
+    {
+        $category = $this->find($categoryId);
+
+        return $category ? $category->subcategories()->exists() : false;
     }
 }

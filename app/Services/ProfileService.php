@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Storage;
  */
 final class ProfileService
 {
+    /**
+     * ProfileService constructor.
+     * (Khởi tạo ProfileService)
+     */
     public function __construct(
         protected UserRepositoryInterface $userRepository,
         protected RatingRepositoryInterface $ratingRepository
@@ -86,6 +90,8 @@ final class ProfileService
     /**
      * Upload and update user avatar.
      * (Upload và cập nhật ảnh đại diện)
+     *
+     * @param  mixed  $file
      */
     public function updateAvatar(int $userId, $file): array
     {

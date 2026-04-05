@@ -14,6 +14,12 @@ use Illuminate\Database\Eloquent\Collection;
 interface LocationRepositoryInterface extends RepositoryInterface
 {
     /**
+     * Get a list of districts that have at least one location.
+     * (Lấy danh sách các quận có ít nhất một địa điểm)
+     */
+    public function getDistrictsWithLocations(): array;
+
+    /**
      * Get locations with filters and pagination.
      * (Lấy danh sách địa điểm với bộ lọc và phân trang)
      *
@@ -82,6 +88,12 @@ interface LocationRepositoryInterface extends RepositoryInterface
     public function decrementFavoriteCount(int $id): bool;
 
     /**
+     * Increment view count of a location.
+     * (Tăng số lượng lượt xem của một địa điểm)
+     */
+    public function incrementViewCount(int $id): bool;
+
+    /**
      * Get total location count.
      * (Lấy tổng số địa điểm)
      */
@@ -98,4 +110,55 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * (Lấy thống kê địa điểm theo danh mục và quận)
      */
     public function getStatsByCategoryAndDistrict(?string $fromDate = null, ?string $toDate = null): array;
+
+    /**
+     * Get star rating statistics for a location.
+     * (Lấy thống kê số sao đánh giá của một địa điểm)
+     */
+    public function getRatingStats(int $id): array;
+
+    /**
+     * Get nearby locations relative to a specific location.
+     * (Lấy các địa điểm lân cận tương đối với một địa điểm cụ thể)
+     */
+    public function getNearbyLocationsById(int $id, int $limit): Collection;
+
+    /**
+     * Attach or sync tags to a location.
+     * (Gán tags cho địa điểm)
+     */
+    public function attachTags(int $id, array $tagIds): void;
+
+    /**
+     * Detach a specific tag from a location.
+     * (Xóa tag khỏi địa điểm)
+     */
+    public function detachTag(int $id, int $tagId): void;
+
+    /**
+     * Attach or sync amenities to a location.
+     * (Gán tiện ích cho địa điểm)
+     */
+    public function attachAmenities(int $id, array $amenityIds): void;
+
+    /**
+     * Detach a specific amenity from a location.
+     * (Xóa tiện ích khỏi địa điểm)
+     */
+    public function detachAmenity(int $id, int $amenityId): void;
+
+    /**
+     * Update location rating statistics by calculating from approved ratings.
+     * (Cập nhật thống kê đánh giá của địa điểm bằng cách tính toán từ các đánh giá đã duyệt)
+     *
+     * @param  int  $id  Location id.
+     * @return bool True if updated.
+     */
+    public function updateStats(int $id): bool;
+
+    /**
+     * Get location data for export.
+     * (Lấy dữ liệu địa điểm để xuất bản)
+     */
+    public function getExportData(): array;
 }

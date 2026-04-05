@@ -6,11 +6,15 @@ use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\LocationValidation;
 use App\Services\LocationService;
+use App\Traits\CsvExportable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class LocationController extends Controller
 {
+    use CsvExportable;
+
     public function __construct(
         protected LocationService $locationService
     ) {}
@@ -105,6 +109,83 @@ final class LocationController extends Controller
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Featured status toggled successfully')
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Export locations to CSV.
+     * (Xuất danh sách địa điểm ra file CSV)
+     */
+    public function export(): StreamedResponse|JsonResponse
+    {
+        $result = $this->locationService->getExportData();
+
+        if ($result['status'] !== HttpStatusCode::SUCCESS->value) {
+            return $this->error($result['message'], $result['status']);
+        }
+
+        return $this->exportToCsv($result['data'], 'locations');
+    }
+
+    /**
+     * Attach tags to a location.
+     * (Gán tags cho địa điểm)
+     */
+    public function attachTags(Request $request, int $id): JsonResponse
+    {
+        $validator = LocationValidation::validateAttachTags($request, $id);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->locationService->attachTags($id, $request->tag_ids);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Detach a specific tag from a location.
+     * (Xóa tag khỏi địa điểm)
+     */
+    public function detachTag(int $id, int $tagId): JsonResponse
+    {
+        $result = $this->locationService->detachTag($id, $tagId);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Attach amenities to a location.
+     * (Gán tiện ích cho địa điểm)
+     */
+    public function attachAmenities(Request $request, int $id): JsonResponse
+    {
+        $validator = LocationValidation::validateAttachAmenities($request, $id);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->locationService->attachAmenities($id, $request->amenity_ids);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Detach a specific amenity from a location.
+     * (Xóa tiện ích khỏi địa điểm)
+     */
+    public function detachAmenity(int $id, int $amenityId): JsonResponse
+    {
+        $result = $this->locationService->detachAmenity($id, $amenityId);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 }

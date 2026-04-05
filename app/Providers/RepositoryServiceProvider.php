@@ -15,6 +15,7 @@ use App\Repositories\Eloquent\SearchLogRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\TagRepository;
 use App\Repositories\Eloquent\UserRepository;
+use App\Repositories\Eloquent\ViewRepository;
 use App\Repositories\Interfaces\AmenityRepositoryInterface;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
@@ -28,6 +29,7 @@ use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -57,6 +59,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(BlogCategoryRepositoryInterface::class, BlogCategoryRepository::class);
         $this->app->bind(TagRepositoryInterface::class, TagRepository::class);
         $this->app->bind(AmenityRepositoryInterface::class, AmenityRepository::class);
+        $this->app->bind(ViewRepositoryInterface::class, ViewRepository::class);
     }
 
     /**

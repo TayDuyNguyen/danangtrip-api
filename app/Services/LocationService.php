@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
-use App\Models\View;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
+use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,11 +17,10 @@ final class LocationService
     /**
      * LocationService constructor.
      * (Khởi tạo LocationService)
-     *
-     * @return void
      */
     public function __construct(
-        protected LocationRepositoryInterface $locationRepository
+        protected LocationRepositoryInterface $locationRepository,
+        protected ViewRepositoryInterface $viewRepository
     ) {}
 
     /**
@@ -101,14 +100,16 @@ final class LocationService
     {
         try {
             DB::transaction(function () use ($id, $sessionId, $userId) {
-                View::create([
+                // (Ghi nhận lượt xem thông qua ViewRepository)
+                $this->viewRepository->create([
                     'location_id' => $id,
                     'session_id' => $sessionId,
                     'user_id' => $userId,
                     'created_at' => now(),
                 ]);
 
-                $this->locationRepository->getQuery()->where('id', $id)->increment('view_count');
+                // (Tăng lượt xem thông qua LocationRepository)
+                $this->locationRepository->incrementViewCount($id);
             });
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'View recorded'];
@@ -193,6 +194,144 @@ final class LocationService
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $ratings];
         } catch (\Exception $_) {
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location ratings'];
+        }
+    }
+
+    /**
+     * Get list of districts with active locations.
+     * (Lấy danh sách các quận có địa điểm đang hoạt động)
+     */
+    public function getDistrictsWithLocations(): array
+    {
+        try {
+            $districts = $this->locationRepository->getDistrictsWithLocations();
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $districts];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get districts'];
+        }
+    }
+
+    /**
+     * Get images for a location.
+     * (Lấy danh sách ảnh của địa điểm)
+     */
+    public function getLocationImages(int $id): array
+    {
+        try {
+            $location = $this->locationRepository->find($id);
+            if (! $location) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Location not found'];
+            }
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => ['images' => $location->images ?? []]];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location images'];
+        }
+    }
+
+    /**
+     * Get rating statistics for a location.
+     * (Lấy thống kê đánh giá của một địa điểm)
+     */
+    public function getLocationRatingStats(int $id): array
+    {
+        try {
+            $stats = $this->locationRepository->getRatingStats($id);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $stats];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get rating stats'];
+        }
+    }
+
+    /**
+     * Get nearby locations relative to a location ID.
+     * (Lấy các địa điểm lân cận theo ID địa điểm)
+     */
+    public function getNearbyLocationsByLocationId(int $id, int $limit): array
+    {
+        try {
+            $locations = $this->locationRepository->getNearbyLocationsById($id, $limit);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get nearby locations'];
+        }
+    }
+
+    /**
+     * Attach tags to a location.
+     * (Gán tags cho địa điểm)
+     */
+    public function attachTags(int $id, array $tagIds): array
+    {
+        try {
+            $this->locationRepository->attachTags($id, $tagIds);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tags attached successfully'];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach tags'];
+        }
+    }
+
+    /**
+     * Detach a tag from a location.
+     * (Xóa tag khỏi địa điểm)
+     */
+    public function detachTag(int $id, int $tagId): array
+    {
+        try {
+            $this->locationRepository->detachTag($id, $tagId);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tag detached successfully'];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach tag'];
+        }
+    }
+
+    /**
+     * Attach amenities to a location.
+     * (Gán tiện ích cho địa điểm)
+     */
+    public function attachAmenities(int $id, array $amenityIds): array
+    {
+        try {
+            $this->locationRepository->attachAmenities($id, $amenityIds);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenities attached successfully'];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach amenities'];
+        }
+    }
+
+    /**
+     * Detach an amenity from a location.
+     * (Xóa tiện ích khỏi địa điểm)
+     */
+    public function detachAmenity(int $id, int $amenityId): array
+    {
+        try {
+            $this->locationRepository->detachAmenity($id, $amenityId);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenity detached successfully'];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach amenity'];
+        }
+    }
+
+    /**
+     * Get data for export.
+     * (Lấy dữ liệu để xuất bản)
+     */
+    public function getExportData(): array
+    {
+        try {
+            $data = $this->locationRepository->getExportData();
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $data];
+        } catch (\Exception $_) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get export data'];
         }
     }
 }

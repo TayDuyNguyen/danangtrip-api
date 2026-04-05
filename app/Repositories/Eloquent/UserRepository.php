@@ -108,4 +108,15 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             ->get()
             ->toArray();
     }
+
+    /**
+     * Mark a user's email as verified.
+     * (Đánh dấu email của người dùng là đã xác minh)
+     */
+    public function markEmailAsVerified(int $userId): bool
+    {
+        return (bool) $this->update($userId, [
+            'email_verified_at' => now(),
+        ]);
+    }
 }

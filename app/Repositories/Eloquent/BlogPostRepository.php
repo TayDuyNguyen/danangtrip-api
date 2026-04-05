@@ -49,6 +49,8 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
     /**
      * Get a single public blog post by slug.
      * (Lấy chi tiết một bài viết Blog theo slug cho chế độ công khai)
+     *
+     * @return mixed
      */
     public function findPublicBySlug(string $slug)
     {
@@ -68,5 +70,17 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
     public function incrementViewCount(int $id): int
     {
         return $this->model->where('id', $id)->increment('view_count');
+    }
+
+    /**
+     * Sync categories for a blog post.
+     * (Đồng bộ danh mục cho bài viết Blog)
+     */
+    public function syncCategories(int $postId, array $categoryIds): void
+    {
+        $post = $this->find($postId);
+        if ($post) {
+            $post->categories()->sync($categoryIds);
+        }
     }
 }

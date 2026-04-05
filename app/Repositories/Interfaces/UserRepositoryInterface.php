@@ -47,4 +47,10 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Lấy số lượng người dùng mới theo tháng trong một năm)
      */
     public function getNewUsersByMonth(int $year): array;
+
+    /**
+     * Mark a user's email as verified.
+     * (Đánh dấu email của người dùng là đã xác minh)
+     */
+    public function markEmailAsVerified(int $userId): bool;
 }

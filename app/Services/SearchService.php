@@ -18,8 +18,6 @@ final class SearchService
     /**
      * SearchService constructor.
      * (Khởi tạo SearchService)
-     *
-     * @return void
      */
     public function __construct(
         protected LocationRepositoryInterface $locationRepository,
