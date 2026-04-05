@@ -78,6 +78,32 @@ The project uses **Docker Volumes** (`- ../:/var/www`), meaning your local sourc
     docker exec -it danangtrip_app composer install
     ```
 
+## 📖 API Documentation
+
+To generate and view the API documentation:
+
+```bash
+# Generate documentation
+npm run apidoc
+
+# Access via browser
+# http://localhost:8000/apidoc/
+```
+
+## 🛠️ Code Quality & Testing
+
+To ensure the code follows best practices and passes all tests (Formatting, PHPStan, PHPUnit):
+
+```bash
+# Run all checks (Lint, Static Analysis, Tests)
+composer check
+
+# Or individually
+composer format
+composer analyze
+composer test
+```
+
 ## Project Overview
 
 **Topic**: BUILDING "DA NANG TRIP" TRAVEL WEBSITE - INTEGRATING A RATING AND CONTENT MANAGEMENT SYSTEM POWERED BY REWARD POINTS.
