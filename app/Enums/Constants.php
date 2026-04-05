@@ -8,7 +8,7 @@ namespace App\Enums;
  */
 final class Constants
 {
-    public const RADIUS = 10;
+    public const RADIUS = 5;
 
     public const LIMIT = 10;
 

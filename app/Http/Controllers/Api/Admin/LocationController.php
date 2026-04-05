@@ -151,6 +151,11 @@ final class LocationController extends Controller
      */
     public function detachTag(int $id, int $tagId): JsonResponse
     {
+        $validator = LocationValidation::validateDetachTag($id, $tagId);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
         $result = $this->locationService->detachTag($id, $tagId);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
@@ -182,6 +187,11 @@ final class LocationController extends Controller
      */
     public function detachAmenity(int $id, int $amenityId): JsonResponse
     {
+        $validator = LocationValidation::validateDetachAmenity($id, $amenityId);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
         $result = $this->locationService->detachAmenity($id, $amenityId);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

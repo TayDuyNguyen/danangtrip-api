@@ -311,6 +311,38 @@ final class LocationValidation
     }
 
     /**
+     * Validate detach tag request.
+     * (Xác thực yêu cầu bỏ gán tag)
+     */
+    public static function validateDetachTag(int $id, int $tagId): ValidatorInstance
+    {
+        return Validator::make(
+            ['id' => $id, 'tag_id' => $tagId],
+            [
+                'id' => 'required|integer|exists:locations,id',
+                'tag_id' => 'required|integer|exists:tags,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate detach amenity request.
+     * (Xác thực yêu cầu bỏ gán tiện ích)
+     */
+    public static function validateDetachAmenity(int $id, int $amenityId): ValidatorInstance
+    {
+        return Validator::make(
+            ['id' => $id, 'amenity_id' => $amenityId],
+            [
+                'id' => 'required|integer|exists:locations,id',
+                'amenity_id' => 'required|integer|exists:amenities,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Get custom validation messages.
      * (Lấy thông báo xác thực tùy chỉnh)
      */
