@@ -14,6 +14,7 @@ final class TagService
 {
     /**
      * TagService constructor.
+     * (Khởi tạo TagService)
      */
     public function __construct(
         protected TagRepositoryInterface $tagRepository
@@ -21,7 +22,7 @@ final class TagService
 
     /**
      * Get all tags.
-     * (Lấy tất cả tags)
+     * (Lấy tất cả danh mục thẻ)
      */
     public function getAllTags(array $filters): array
     {
@@ -43,7 +44,7 @@ final class TagService
 
     /**
      * Create a new tag (Admin).
-     * (Tạo tag mới - Admin)
+     * (Tạo thẻ mới - Admin)
      */
     public function createTag(array $data): array
     {
@@ -65,7 +66,7 @@ final class TagService
 
     /**
      * Delete a tag (Admin).
-     * (Xóa tag - Admin)
+     * (Xóa thẻ - Admin)
      */
     public function deleteTag(int $id): array
     {

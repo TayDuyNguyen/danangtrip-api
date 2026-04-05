@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -18,20 +17,12 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthService
 {
     /**
-     * @var UserRepositoryInterface
-     */
-    protected $userRepository;
-
-    /**
      * AuthService constructor.
      * (Khởi tạo AuthService)
-     *
-     * @return void
      */
-    public function __construct(UserRepositoryInterface $userRepository)
-    {
-        $this->userRepository = $userRepository;
-    }
+    public function __construct(
+        protected UserRepositoryInterface $userRepository
+    ) {}
 
     /**
      * Register a new user.
@@ -53,8 +44,6 @@ class AuthService
                 'city' => $data['city'] ?? null,
                 'role' => $data['role'] ?? 'user',
             ]);
-
-            // $token = Auth::guard('api')->login($user);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -203,8 +192,7 @@ class AuthService
         try {
             // Placeholder: Verify OTP.
 
-            $user->email_verified_at = Carbon::now();
-            $user->save();
+            $this->userRepository->markEmailAsVerified($user->id);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

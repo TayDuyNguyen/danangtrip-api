@@ -14,20 +14,12 @@ use Illuminate\Support\Facades\Hash;
 class UserService
 {
     /**
-     * @var UserRepositoryInterface
-     */
-    protected $userRepository;
-
-    /**
      * UserService constructor.
      * (Khởi tạo UserService)
-     *
-     * @return void
      */
-    public function __construct(UserRepositoryInterface $userRepository)
-    {
-        $this->userRepository = $userRepository;
-    }
+    public function __construct(
+        protected UserRepositoryInterface $userRepository
+    ) {}
 
     /**
      * Get paginated users with filters.

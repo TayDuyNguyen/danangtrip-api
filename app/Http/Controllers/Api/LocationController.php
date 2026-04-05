@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\Constants;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Validations\LocationValidation;
@@ -118,6 +119,74 @@ final class LocationController extends Controller
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get unique districts that have active locations.
+     * (Danh sách quận có địa điểm (dynamic))
+     */
+    public function districts(): JsonResponse
+    {
+        $result = $this->locationService->getDistrictsWithLocations();
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get images for a location.
+     * (Danh sách ảnh của địa điểm)
+     */
+    public function images(int $id): JsonResponse
+    {
+        $validator = LocationValidation::validateShow($id);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->locationService->getLocationImages($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get rating statistics for a location.
+     * (Phân bố số sao (5 sao:12, 4 sao:8...))
+     */
+    public function ratingStats(int $id): JsonResponse
+    {
+        $validator = LocationValidation::validateRatingStats($id);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $result = $this->locationService->getLocationRatingStats($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get nearby locations relative to a specific location.
+     * (Địa điểm lân cận (gợi ý sau khi xem chi tiết))
+     */
+    public function nearbyLocations(int $id, Request $request): JsonResponse
+    {
+        $validator = LocationValidation::validateNearbyById($id, $request);
+        if ($validator->fails()) {
+            return $this->validation_error($validator->errors());
+        }
+
+        $limit = $request->limit ?? Constants::LIMIT;
+        $result = $this->locationService->getNearbyLocationsByLocationId($id, $limit);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
 }

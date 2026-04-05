@@ -123,7 +123,7 @@ final class BlogService
                 $post = $this->blogPostRepository->create($data);
 
                 if (! empty($data['category_ids'])) {
-                    $post->categories()->sync($data['category_ids']);
+                    $this->blogPostRepository->syncCategories($post->id, $data['category_ids']);
                 }
 
                 return [
@@ -176,7 +176,7 @@ final class BlogService
                 $this->blogPostRepository->update($id, $data);
 
                 if (isset($data['category_ids'])) {
-                    $post->categories()->sync($data['category_ids']);
+                    $this->blogPostRepository->syncCategories($id, $data['category_ids']);
                 }
 
                 return [

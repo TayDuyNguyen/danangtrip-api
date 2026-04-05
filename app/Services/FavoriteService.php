@@ -15,20 +15,14 @@ use Illuminate\Support\Facades\DB;
  */
 final class FavoriteService
 {
-    private FavoriteRepositoryInterface $favoriteRepository;
-
-    private LocationRepositoryInterface $locationRepository;
-
     /**
      * FavoriteService constructor.
+     * (Khởi tạo FavoriteService)
      */
     public function __construct(
-        FavoriteRepositoryInterface $favoriteRepository,
-        LocationRepositoryInterface $locationRepository
-    ) {
-        $this->favoriteRepository = $favoriteRepository;
-        $this->locationRepository = $locationRepository;
-    }
+        protected FavoriteRepositoryInterface $favoriteRepository,
+        protected LocationRepositoryInterface $locationRepository
+    ) {}
 
     /**
      * Get list of favorites for a user.

@@ -2,55 +2,107 @@
 
 namespace App\Observers;
 
-use App\Models\Notification;
+use App\Jobs\SendRatingApprovedNotification;
 use App\Models\Rating;
-use Illuminate\Support\Facades\DB;
+use App\Repositories\Interfaces\LocationRepositoryInterface;
+use App\Repositories\Interfaces\RatingRepositoryInterface;
 
+/**
+ * Observer for Rating model events.
+ * (Observer xử lý các sự kiện của model Đánh giá)
+ */
 class RatingObserver
 {
+    protected LocationRepositoryInterface $locationRepository;
+
+    protected RatingRepositoryInterface $ratingRepository;
+
     /**
-     * Handle the Rating "updated" event.
+     * Create a new observer instance.
+     * (Khởi tạo một instance observer mới)
      */
-    public function updated(Rating $rating): void
+    public function __construct(LocationRepositoryInterface $locationRepository, RatingRepositoryInterface $ratingRepository)
     {
-        // Kiểm tra xem status có chuyển sang 'approved' từ 'pending' không
-        if ($rating->isDirty('status') && $rating->status === 'approved' && $rating->getOriginal('status') === 'pending') {
-            $this->handleApproval($rating);
+        $this->locationRepository = $locationRepository;
+        $this->ratingRepository = $ratingRepository;
+    }
+
+    /**
+     * Handle the Rating "created" event.
+     * (Xử lý sự kiện khi Đánh giá được tạo)
+     */
+    public function created(Rating $rating): void
+    {
+        if ($rating->status === 'approved') {
+            $this->refreshLocationStats($rating->location_id);
+            $this->notifyUserRatingApproved($rating);
         }
     }
 
     /**
-     * Logic xử lý khi bài đánh giá được duyệt.
+     * Handle the Rating "updated" event.
+     * (Xử lý sự kiện khi Đánh giá được cập nhật)
      */
-    protected function handleApproval(Rating $rating): void
+    public function updated(Rating $rating): void
     {
-        DB::transaction(function () use ($rating) {
-            $location = $rating->location;
-            $user = $rating->user;
+        $wasApproved = $rating->getOriginal('status') === 'approved';
+        $isApproved = $rating->status === 'approved';
 
-            // 1. Cập nhật thống kê địa điểm
-            $approvedRatings = $location->ratings()->where('status', 'approved')->get();
-            $reviewCount = $approvedRatings->count();
-            $avgRating = $approvedRatings->avg('score') ?? 0;
+        if (! $wasApproved && $isApproved) {
+            // Mới được duyệt
+            $this->refreshLocationStats($rating->location_id);
+            $this->notifyUserRatingApproved($rating);
+        } elseif ($wasApproved && $isApproved && $rating->isDirty('score')) {
+            // Đã duyệt nhưng thay đổi điểm
+            $this->refreshLocationStats($rating->location_id);
+        } elseif ($wasApproved && ! $isApproved) {
+            // Bị hủy duyệt / từ chối
+            $this->refreshLocationStats($rating->location_id);
+        }
+    }
 
-            $location->update([
-                'review_count' => $reviewCount,
-                'avg_rating' => $avgRating,
-            ]);
+    /**
+     * Handle the Rating "deleted" event.
+     * (Xử lý sự kiện khi Đánh giá bị xóa)
+     */
+    public function deleted(Rating $rating): void
+    {
+        if ($rating->status === 'approved') {
+            $this->refreshLocationStats($rating->location_id);
+        }
+    }
 
-            // 4. Gửi thông báo cho user
-            Notification::create([
-                'user_id' => $user->id,
-                'type' => 'rating_approved',
-                'title' => 'Bài đánh giá đã được duyệt',
-                'content' => "Chúc mừng! Bài đánh giá của bạn tại {$location->name} đã được duyệt.",
-                'data' => [
-                    'rating_id' => $rating->id,
-                    'location_name' => $location->name,
-                ],
-                'is_read' => false,
-                'created_at' => now(),
-            ]);
-        });
+    /**
+     * Handle the Rating "restored" event.
+     * (Xử lý sự kiện khi Đánh giá được khôi phục)
+     */
+    public function restored(Rating $rating): void
+    {
+        if ($rating->status === 'approved') {
+            $this->refreshLocationStats($rating->location_id);
+        }
+    }
+
+    /**
+     * Refresh location rating statistics.
+     * (Cập nhật lại thống kê đánh giá của Địa điểm)
+     */
+    protected function refreshLocationStats(?int $locationId): void
+    {
+        if (! $locationId) {
+            return;
+        }
+
+        // Use the repository to update stats internally (handles calculation, locking, and transaction)
+        $this->locationRepository->updateStats($locationId);
+    }
+
+    /**
+     * Dispatch job to notify user that their rating is approved.
+     * (Gửi job thông báo cho người dùng rằng đánh giá của họ đã được duyệt)
+     */
+    protected function notifyUserRatingApproved(Rating $rating): void
+    {
+        SendRatingApprovedNotification::dispatch($rating->id);
     }
 }

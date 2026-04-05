@@ -22,8 +22,6 @@ final class RatingService
     /**
      * RatingService constructor.
      * (Khởi tạo RatingService)
-     *
-     * @return void
      */
     public function __construct(
         protected RatingRepositoryInterface $ratingRepository,
@@ -45,10 +43,10 @@ final class RatingService
                     'location_id' => $data['location_id'],
                     'score' => $data['score'],
                     'comment' => $data['comment'] ?? null,
-                    'status' => 'pending',
+                    'status' => 'approved',
                     'rejected_reason' => null,
                     'approved_by' => null,
-                    'approved_at' => null,
+                    'approved_at' => now(),
                 ]);
 
                 $imageUrls = $this->storeRatingImages($request, $rating->id);
@@ -105,11 +103,11 @@ final class RatingService
                 }
 
                 if (count($update) > 0) {
-                    $update['status'] = 'pending';
+                    $update['status'] = 'approved';
                     $update['rejected_reason'] = null;
                     $update['approved_by'] = null;
-                    $update['approved_at'] = null;
-                    $rating->update($update);
+                    $update['approved_at'] = now();
+                    $this->ratingRepository->update($ratingId, $update);
                 }
 
                 if ($request->hasFile('images')) {
@@ -123,8 +121,8 @@ final class RatingService
                     $this->ratingImageRepository->createMany($rating->id, $imageUrls);
                 }
 
-                if ($wasApproved && $rating->status !== 'approved') {
-                    $this->recalculateLocationStats((int) $rating->location_id);
+                if ($wasApproved) {
+                    $this->locationRepository->updateStats((int) $rating->location_id);
                 }
 
                 return [
@@ -165,7 +163,7 @@ final class RatingService
                 $this->ratingRepository->delete($rating->id);
 
                 if ($wasApproved) {
-                    $this->recalculateLocationStats($locationId);
+                    $this->locationRepository->updateStats($locationId);
                 }
 
                 return [
@@ -250,7 +248,7 @@ final class RatingService
                     return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending'];
                 }
 
-                $rating->update([
+                $this->ratingRepository->update($ratingId, [
                     'status' => 'approved',
                     'approved_by' => $adminId,
                     'approved_at' => now(),
@@ -290,7 +288,7 @@ final class RatingService
                     return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending'];
                 }
 
-                $rating->update([
+                $this->ratingRepository->update($ratingId, [
                     'status' => 'rejected',
                     'rejected_reason' => $data['rejected_reason'],
                     'approved_by' => $adminId,
@@ -326,6 +324,10 @@ final class RatingService
         }
     }
 
+    /**
+     * Store rating images and return URLs.
+     * (Lưu ảnh đánh giá và trả về danh sách URL)
+     */
     private function storeRatingImages(Request $request, int $ratingId): array
     {
         if (! $request->hasFile('images')) {
@@ -351,20 +353,5 @@ final class RatingService
         }
 
         return array_slice($urls, 0, 5);
-    }
-
-    private function recalculateLocationStats(int $locationId): void
-    {
-        $location = $this->locationRepository->find($locationId);
-        if (! $location || $location->id === null) {
-            return;
-        }
-
-        $stats = $this->ratingRepository->getApprovedStatsForLocation($locationId);
-
-        $this->locationRepository->update($locationId, [
-            'review_count' => $stats['review_count'],
-            'avg_rating' => $stats['avg_rating'],
-        ]);
     }
 }

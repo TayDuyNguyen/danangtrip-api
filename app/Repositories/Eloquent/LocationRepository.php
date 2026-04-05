@@ -26,6 +26,21 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     }
 
     /**
+     * Get a list of districts that have at least one location.
+     * (Lấy danh sách các quận có ít nhất một địa điểm)
+     */
+    public function getDistrictsWithLocations(): array
+    {
+        return $this->model->newQuery()
+            ->where('status', 'active')
+            ->distinct()
+            ->pluck('district')
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /**
      * Get locations with filters and pagination.
      * (Lấy danh sách địa điểm với bộ lọc và phân trang)
      *
@@ -236,6 +251,15 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     }
 
     /**
+     * Increment view count of a location.
+     * (Tăng số lượng lượt xem của một địa điểm)
+     */
+    public function incrementViewCount(int $id): bool
+    {
+        return (bool) $this->model->where('id', $id)->increment('view_count');
+    }
+
+    /**
      * Get total location count.
      * (Lấy tổng số địa điểm)
      */
@@ -272,6 +296,151 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
         return $query->groupBy('category_id', 'district')
             ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get star rating statistics for a location.
+     * (Lấy thống kê số sao đánh giá của một địa điểm)
+     */
+    public function getRatingStats(int $id): array
+    {
+        $stats = $this->model->newQuery()
+            ->join('ratings', 'locations.id', '=', 'ratings.location_id')
+            ->where('locations.id', $id)
+            ->where('ratings.status', 'approved')
+            ->selectRaw('ratings.rating, count(*) as count')
+            ->groupBy('ratings.rating')
+            ->pluck('count', 'rating')
+            ->all();
+
+        // Fill missing stars with 0
+        $result = [];
+        for ($i = 5; $i >= 1; $i--) {
+            $result[$i] = $stats[$i] ?? 0;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get nearby locations relative to a specific location.
+     * (Lấy các địa điểm lân cận tương đối với một địa điểm cụ thể)
+     */
+    public function getNearbyLocationsById(int $id, int $limit): Collection
+    {
+        $location = $this->find($id);
+        if (! $location || ! $location->latitude || ! $location->longitude) {
+            return new Collection;
+        }
+
+        return $this->getNearbyLocations([
+            'lat' => $location->latitude,
+            'lng' => $location->longitude,
+            'radius' => 5, // 5km default for recommendations
+            'limit' => $limit + 1, // +1 to exclude self
+        ])->reject(fn ($item) => $item->id === $id)->take($limit);
+    }
+
+    /**
+     * Attach or sync tags to a location.
+     * (Gán tags cho địa điểm)
+     */
+    public function attachTags(int $id, array $tagIds): void
+    {
+        $location = $this->find($id);
+        if ($location) {
+            $location->tags()->sync($tagIds);
+        }
+    }
+
+    /**
+     * Detach a specific tag from a location.
+     * (Xóa tag khỏi địa điểm)
+     */
+    public function detachTag(int $id, int $tagId): void
+    {
+        $location = $this->find($id);
+        if ($location) {
+            $location->tags()->detach($tagId);
+        }
+    }
+
+    /**
+     * Attach or sync amenities to a location.
+     * (Gán tiện ích cho địa điểm)
+     */
+    public function attachAmenities(int $id, array $amenityIds): void
+    {
+        $location = $this->find($id);
+        if ($location) {
+            $location->amenities()->sync($amenityIds);
+        }
+    }
+
+    /**
+     * Detach a specific amenity from a location.
+     * (Xóa tiện ích khỏi địa điểm)
+     */
+    public function detachAmenity(int $id, int $amenityId): void
+    {
+        $location = $this->find($id);
+        if ($location) {
+            $location->amenities()->detach($amenityId);
+        }
+    }
+
+    /**
+     * Update location rating statistics by calculating from approved ratings.
+     * (Cập nhật thống kê đánh giá của địa điểm bằng cách tính toán từ các đánh giá đã duyệt)
+     *
+     * @param  int  $id  Location id.
+     * @return bool True if updated.
+     */
+    public function updateStats(int $id): bool
+    {
+        $stats = $this->model->newQuery()
+            ->join('ratings', 'locations.id', '=', 'ratings.location_id')
+            ->where('locations.id', $id)
+            ->where('ratings.status', 'approved')
+            ->selectRaw('COUNT(ratings.id) as count, AVG(ratings.score) as avg')
+            ->first();
+
+        return (bool) $this->model->newQuery()
+            ->where('id', $id)
+            ->lockForUpdate()
+            ->update([
+                'review_count' => $stats->count ?? 0,
+                'avg_rating' => round(($stats->avg ?? 0), 1),
+                'updated_at' => now(),
+            ]);
+    }
+
+    /**
+     * Get location data for export.
+     * (Lấy dữ liệu địa điểm để xuất bản)
+     */
+    public function getExportData(): array
+    {
+        return $this->model->newQuery()
+            ->with(['category:id,name', 'subcategory:id,name'])
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($item) => [
+                'ID' => $item->id,
+                'Name' => $item->name,
+                'Slug' => $item->slug,
+                'Category' => $item->category?->name,
+                'Subcategory' => $item->subcategory?->name,
+                'District' => $item->district,
+                'Address' => $item->address,
+                'Phone' => $item->phone,
+                'Avg Rating' => $item->avg_rating,
+                'Review Count' => $item->review_count,
+                'View Count' => $item->view_count,
+                'Status' => $item->status,
+                'Created At' => $item->created_at->format('Y-m-d H:i:s'),
+            ])
             ->toArray();
     }
 }

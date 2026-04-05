@@ -15,8 +15,6 @@ final class CategoryService
     /**
      * CategoryService constructor.
      * (Khởi tạo CategoryService)
-     *
-     * @return void
      */
     public function __construct(
         protected CategoryRepositoryInterface $categoryRepository
@@ -173,7 +171,7 @@ final class CategoryService
                 ];
             }
 
-            if ($category->subcategories()->exists()) {
+            if ($this->categoryRepository->hasSubcategories($id)) {
                 return [
                     'status' => HttpStatusCode::CONFLICT->value,
                     'message' => 'Cannot delete category because it has subcategories',

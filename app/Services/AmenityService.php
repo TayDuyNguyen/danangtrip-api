@@ -14,6 +14,7 @@ final class AmenityService
 {
     /**
      * AmenityService constructor.
+     * (Khởi tạo AmenityService)
      */
     public function __construct(
         protected AmenityRepositoryInterface $amenityRepository

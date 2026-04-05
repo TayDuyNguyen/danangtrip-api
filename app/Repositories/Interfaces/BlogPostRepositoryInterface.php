@@ -29,4 +29,10 @@ interface BlogPostRepositoryInterface extends RepositoryInterface
      * (Tăng lượt xem cho bài viết)
      */
     public function incrementViewCount(int $id): int;
+
+    /**
+     * Sync categories for a blog post.
+     * (Đồng bộ danh mục cho bài viết Blog)
+     */
+    public function syncCategories(int $postId, array $categoryIds): void;
 }

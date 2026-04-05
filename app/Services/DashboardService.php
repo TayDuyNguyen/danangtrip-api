@@ -17,12 +17,12 @@ final class DashboardService
 {
     /**
      * DashboardService constructor.
+     * (Khởi tạo DashboardService)
      */
     public function __construct(
         protected UserRepositoryInterface $userRepository,
         protected LocationRepositoryInterface $locationRepository,
         protected RatingRepositoryInterface $ratingRepository,
-
     ) {}
 
     /**

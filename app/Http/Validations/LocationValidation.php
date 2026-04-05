@@ -246,6 +246,71 @@ final class LocationValidation
     }
 
     /**
+     * Validate rating stats request.
+     * (Xác thực yêu cầu thống kê đánh giá)
+     */
+    public static function validateRatingStats(int $id): ValidatorInstance
+    {
+        return Validator::make(
+            ['id' => $id],
+            [
+                'id' => 'required|integer|exists:locations,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate nearby locations by ID request.
+     * (Xác thực yêu cầu địa điểm lân cận theo ID)
+     */
+    public static function validateNearbyById(int $id, Request $request): ValidatorInstance
+    {
+        return Validator::make(
+            array_merge($request->all(), ['id' => $id]),
+            [
+                'id' => 'required|integer|exists:locations,id',
+                'limit' => 'sometimes|integer|min:1|max:50',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate attach tags request.
+     * (Xác thực yêu cầu gán tags)
+     */
+    public static function validateAttachTags(Request $request, int $id): ValidatorInstance
+    {
+        return Validator::make(
+            array_merge($request->all(), ['id' => $id]),
+            [
+                'id' => 'required|integer|exists:locations,id',
+                'tag_ids' => 'required|array|min:1',
+                'tag_ids.*' => 'integer|exists:tags,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
+     * Validate attach amenities request.
+     * (Xác thực yêu cầu gán tiện ích)
+     */
+    public static function validateAttachAmenities(Request $request, int $id): ValidatorInstance
+    {
+        return Validator::make(
+            array_merge($request->all(), ['id' => $id]),
+            [
+                'id' => 'required|integer|exists:locations,id',
+                'amenity_ids' => 'required|array|min:1',
+                'amenity_ids.*' => 'integer|exists:amenities,id',
+            ],
+            self::messages()
+        );
+    }
+
+    /**
      * Get custom validation messages.
      * (Lấy thông báo xác thực tùy chỉnh)
      */
@@ -321,6 +386,12 @@ final class LocationValidation
             'session_id.required' => 'The session ID is required. (Mã phiên là bắt buộc.)',
             'session_id.string' => 'The session ID must be a string. (Mã phiên phải là chuỗi ký tự.)',
             'session_id.max' => 'The session ID must not exceed 255 characters. (Mã phiên không được vượt quá 255 ký tự.)',
+            'tag_ids.required' => 'At least one tag ID is required. (Ít nhất một mã tag là bắt buộc.)',
+            'tag_ids.array' => 'Tag IDs must be an array. (Danh sách mã tag phải là một mảng.)',
+            'tag_ids.*.exists' => 'One or more tag IDs are invalid. (Một hoặc nhiều mã tag không hợp lệ.)',
+            'amenity_ids.required' => 'At least one amenity ID is required. (Ít nhất một mã tiện ích là bắt buộc.)',
+            'amenity_ids.array' => 'Amenity IDs must be an array. (Danh sách mã tiện ích phải là một mảng.)',
+            'amenity_ids.*.exists' => 'One or more amenity IDs are invalid. (Một hoặc nhiều mã tiện ích không hợp lệ.)',
         ];
     }
 }
