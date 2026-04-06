@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
+use App\Http\Controllers\Api\Admin\TourCategoryController as AdminTourCategoryController;
 use App\Http\Controllers\Api\Admin\TourController as AdminTourController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AmenityController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\TourCategoryController;
 use App\Http\Controllers\Api\TourController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
@@ -101,6 +103,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/tours/{id}/ratings', [TourController::class, 'ratings'])->whereNumber('id');
     Route::get('/tours/{id}/rating-stats', [TourController::class, 'ratingStats'])->whereNumber('id');
     Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id');
+
+    // Tour Categories: Public access
+    // (Danh mục tour: Truy cập công khai)
+    Route::get('/tour-categories', [TourCategoryController::class, 'index']);
+    Route::get('/tour-categories/{slug}/tours', [TourCategoryController::class, 'toursBySlug'])->where('slug', '[a-z0-9-]+');
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -224,6 +231,14 @@ Route::prefix('v1')->group(function () {
         Route::patch('/tours/{id}/featured', [AdminTourController::class, 'toggleFeatured'])->whereNumber('id');
         Route::patch('/tours/{id}/hot', [AdminTourController::class, 'toggleHot'])->whereNumber('id');
         Route::get('/tours/export', [AdminTourController::class, 'export']);
+
+        // Tour Categories Management
+        // (Quản lý Danh mục Tour)
+        Route::get('/tour-categories', [AdminTourCategoryController::class, 'index']);
+        Route::post('/tour-categories', [AdminTourCategoryController::class, 'store']);
+        Route::put('/tour-categories/{id}', [AdminTourCategoryController::class, 'update'])->whereNumber('id');
+        Route::delete('/tour-categories/{id}', [AdminTourCategoryController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/tour-categories/{id}/status', [AdminTourCategoryController::class, 'updateStatus'])->whereNumber('id');
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)
