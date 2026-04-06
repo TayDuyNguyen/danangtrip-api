@@ -11,14 +11,19 @@ This project is containerized using Docker and connects to a Supabase (PostgreSQ
 
 ### Essential Docker Commands
 
+> **Note**: All commands should be run from the project root directory.
+
 **1. Managing Containers:**
 
 ```bash
 # Start the project in the background
-docker-compose up -d
+docker compose -f docker/docker-compose.yml up -d
 
 # Stop and remove containers
-docker-compose down
+docker compose -f docker/docker-compose.yml down
+
+# Restart the app container
+docker compose -f docker/docker-compose.yml restart app
 ```
 
 **2. Database Management (Crucial for Development):**
@@ -43,6 +48,9 @@ docker exec -it danangtrip_app php artisan migrate:status
 # Clear all application cache (Use if changes aren't reflecting)
 docker exec -it danangtrip_app php artisan optimize:clear
 
+# Clear config cache (Use after modifying .env)
+docker exec -it danangtrip_app php artisan config:clear
+
 # Display all registered API routes
 docker exec -it danangtrip_app php artisan route:list
 
@@ -53,26 +61,22 @@ docker exec -it danangtrip_app php artisan make:model YourModel -mc
 docker exec -it danangtrip_app bash
 ```
 
-**4. Rebuilding the Environment:**
+**4. Environment & Rebuilding:**
 
 ```bash
 # Force a rebuild of images (Necessary after modifying Dockerfile or Nginx config)
-docker-compose up -d --build
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
-- Xóa cache tối ưu của Laravel trong container:
-- docker compose -f docker/docker-compose.yml exec app php artisan optimize:clear
-- Nếu vừa sửa .env, thêm:
-- docker compose -f docker/docker-compose.yml exec app php artisan config:clear
-- Restart app container nếu cần:
-- docker compose -f docker/docker-compose.yml restart app
-
-### 📦 Docker & Package Management (Composer/NPM)
+### 📦 Package Management (Composer/NPM)
 
 The project uses **Docker Volumes** (`- ../:/var/www`), meaning your local source code and the code inside the container are automatically synchronized.
 
-- **Installing packages locally (Host Machine):** Packages will appear inside the container. However, this may cause issues if your local PHP version differs from the Docker environment.
 - **Installing via Docker (Recommended):** Use `docker exec -it danangtrip_app composer require <package-name>`. This ensures 100% compatibility with the project's environment.
+- **Updating Packages:**
+    ```bash
+    docker exec -it danangtrip_app composer update
+    ```
 - **Troubleshooting:** If you experience errors after pulling code from Git or installing packages locally, run:
     ```bash
     docker exec -it danangtrip_app composer install
