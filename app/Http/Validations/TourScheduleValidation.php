@@ -2,7 +2,6 @@
 
 namespace App\Http\Validations;
 
-use App\Models\TourSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Validator as ValidatorInstance;
@@ -81,8 +80,8 @@ final class TourScheduleValidation
             array_merge($request->all(), ['id' => $id]),
             [
                 'id' => 'required|integer|exists:tour_schedules,id',
-                'start_date' => 'required|date|date_format:Y-m-d|after_or_equal:today',
-                'end_date' => 'required|date|date_format:Y-m-d|after_or_equal:start_date',
+                'start_date' => 'sometimes|date|date_format:Y-m-d|after_or_equal:today',
+                'end_date' => 'sometimes|date|date_format:Y-m-d|after_or_equal:start_date',
                 'max_people' => 'sometimes|integer|min:1',
                 'price_adult' => 'sometimes|nullable|numeric|min:0',
                 'price_child' => 'sometimes|nullable|numeric|min:0',

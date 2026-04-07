@@ -63,6 +63,15 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
     }
 
     /**
+     * Find a schedule by ID and lock for update.
+     * (Tìm lịch khởi hành và lock để tránh conflict khi book)
+     */
+    public function findForUpdate(int $id): ?TourSchedule
+    {
+        return $this->model->with('tour')->lockForUpdate()->find($id);
+    }
+
+    /**
      * Update schedule status.
      * (Cập nhật trạng thái lịch khởi hành)
      */

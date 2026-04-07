@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Repositories\Eloquent\AmenityRepository;
 use App\Repositories\Eloquent\BlogCategoryRepository;
 use App\Repositories\Eloquent\BlogPostRepository;
+use App\Repositories\Eloquent\BookingRepository;
 use App\Repositories\Eloquent\CategoryRepository;
 use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
@@ -22,6 +23,7 @@ use App\Repositories\Eloquent\ViewRepository;
 use App\Repositories\Interfaces\AmenityRepositoryInterface;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
+use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
@@ -69,6 +71,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(TourRepositoryInterface::class, TourRepository::class);
         $this->app->bind(TourCategoryRepositoryInterface::class, TourCategoryRepository::class);
         $this->app->bind(TourScheduleRepositoryInterface::class, TourScheduleRepository::class);
+        $this->app->bind(BookingRepositoryInterface::class, BookingRepository::class);
     }
 
     /**

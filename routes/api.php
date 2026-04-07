@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AmenityController as AdminAmenityController;
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
@@ -157,6 +159,16 @@ Route::prefix('v1')->group(function () {
         Route::post('/upload/image', [UploadController::class, 'uploadImage']);
         Route::post('/upload/images', [UploadController::class, 'uploadImages']);
         Route::delete('/upload/image', [UploadController::class, 'deleteImage']);
+
+        // Bookings
+        // (Đặt tour)
+        Route::post('/bookings/calculate', [BookingController::class, 'calculate']);
+        Route::post('/bookings', [BookingController::class, 'store']);
+        Route::get('/user/bookings', [BookingController::class, 'index']);
+        Route::get('/user/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id');
+        Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode']);
+        Route::get('/user/bookings/{id}/invoice', [BookingController::class, 'invoice'])->whereNumber('id');
+        Route::post('/user/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id');
     });
 
     // =========================================================================
@@ -249,6 +261,16 @@ Route::prefix('v1')->group(function () {
         Route::put('/tour-schedules/{id}', [AdminTourScheduleController::class, 'update'])->whereNumber('id');
         Route::delete('/tour-schedules/{id}', [AdminTourScheduleController::class, 'destroy'])->whereNumber('id');
         Route::patch('/tour-schedules/{id}/status', [AdminTourScheduleController::class, 'updateStatus'])->whereNumber('id');
+
+        // Bookings Management
+        // (Quản lý Đặt tour)
+        Route::get('/bookings', [AdminBookingController::class, 'index']);
+        Route::get('/bookings/export', [AdminBookingController::class, 'export']);
+        Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
+        Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
+        Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->whereNumber('id');
+        Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'adminCancel'])->whereNumber('id');
+        Route::post('/bookings/{id}/complete', [AdminBookingController::class, 'complete'])->whereNumber('id');
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)
