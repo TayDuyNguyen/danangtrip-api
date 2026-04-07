@@ -1,0 +1,192 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\HttpStatusCode;
+use App\Models\Tour;
+use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
+
+/**
+ * Class TourScheduleService
+ * Handles business logic related to tour schedules.
+ * (Xử lý logic nghiệp vụ liên quan đến lịch khởi hành tour)
+ */
+final class TourScheduleService
+{
+    /**
+     * TourScheduleService constructor.
+     * (Khởi tạo TourScheduleService)
+     */
+    public function __construct(
+        protected TourScheduleRepositoryInterface $tourScheduleRepository,
+        protected TourRepositoryInterface $tourRepository
+    ) {}
+
+    /**
+     * Get list of tour schedules with filters.
+     * (Lấy danh sách lịch khởi hành với bộ lọc)
+     */
+    public function getSchedules(array $filters): array
+    {
+        try {
+            $schedules = $this->tourScheduleRepository->getSchedules($filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $schedules,
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get tour schedules',
+            ];
+        }
+    }
+
+    /**
+     * Get tour schedule detail by ID.
+     * (Lấy chi tiết lịch khởi hành theo ID)
+     */
+    public function getScheduleById(int $id): array
+    {
+        try {
+            $schedule = $this->tourScheduleRepository->findWithTour($id);
+            if (! $schedule) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $schedule,
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get tour schedule',
+            ];
+        }
+    }
+
+    /**
+     * Create a new tour schedule.
+     * (Tạo lịch khởi hành mới)
+     */
+    public function createSchedule(array $data): array
+    {
+        try {
+            // Handle fallback prices from tour if not provided
+            if (empty($data['price_adult']) || empty($data['price_child']) || empty($data['price_infant'])) {
+                $tour = $this->tourRepository->find($data['tour_id']);
+                if ($tour instanceof Tour) {
+                    $data['price_adult'] = $data['price_adult'] ?? $tour->price_adult;
+                    $data['price_child'] = $data['price_child'] ?? $tour->price_child;
+                    $data['price_infant'] = $data['price_infant'] ?? $tour->price_infant;
+                }
+            }
+
+            $schedule = $this->tourScheduleRepository->create($data);
+
+            return [
+                'status' => HttpStatusCode::CREATED->value,
+                'data' => $schedule,
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to create tour schedule',
+            ];
+        }
+    }
+
+    /**
+     * Update an existing tour schedule.
+     * (Cập nhật lịch khởi hành)
+     */
+    public function updateSchedule(int $id, array $data): array
+    {
+        try {
+            $updated = $this->tourScheduleRepository->update($id, $data);
+            if (! $updated) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->tourScheduleRepository->find($id),
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update tour schedule',
+            ];
+        }
+    }
+
+    /**
+     * Delete a tour schedule.
+     * (Xóa lịch khởi hành)
+     */
+    public function deleteSchedule(int $id): array
+    {
+        try {
+            if ($this->tourScheduleRepository->hasBookings($id)) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Cannot delete schedule with existing bookings',
+                ];
+            }
+
+            $deleted = $this->tourScheduleRepository->delete($id);
+            if (! $deleted) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Tour schedule deleted successfully',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to delete tour schedule',
+            ];
+        }
+    }
+
+    /**
+     * Update tour schedule status.
+     * (Cập nhật trạng thái lịch khởi hành)
+     */
+    public function updateStatus(int $id, string $status): array
+    {
+        try {
+            $updated = $this->tourScheduleRepository->updateStatus($id, $status);
+            if (! $updated) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Status updated successfully',
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update status',
+            ];
+        }
+    }
+}

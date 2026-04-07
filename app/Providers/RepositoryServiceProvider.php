@@ -16,6 +16,7 @@ use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\TagRepository;
 use App\Repositories\Eloquent\TourCategoryRepository;
 use App\Repositories\Eloquent\TourRepository;
+use App\Repositories\Eloquent\TourScheduleRepository;
 use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Eloquent\ViewRepository;
 use App\Repositories\Interfaces\AmenityRepositoryInterface;
@@ -32,6 +33,7 @@ use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use App\Repositories\Interfaces\TourCategoryRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Support\ServiceProvider;
@@ -66,6 +68,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(ViewRepositoryInterface::class, ViewRepository::class);
         $this->app->bind(TourRepositoryInterface::class, TourRepository::class);
         $this->app->bind(TourCategoryRepositoryInterface::class, TourCategoryRepository::class);
+        $this->app->bind(TourScheduleRepositoryInterface::class, TourScheduleRepository::class);
     }
 
     /**
