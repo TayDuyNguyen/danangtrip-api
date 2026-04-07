@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryCont
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\Admin\TourCategoryController as AdminTourCategoryController;
 use App\Http\Controllers\Api\Admin\TourController as AdminTourController;
+use App\Http\Controllers\Api\Admin\TourScheduleController as AdminTourScheduleController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
@@ -239,6 +240,15 @@ Route::prefix('v1')->group(function () {
         Route::put('/tour-categories/{id}', [AdminTourCategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/tour-categories/{id}', [AdminTourCategoryController::class, 'destroy'])->whereNumber('id');
         Route::patch('/tour-categories/{id}/status', [AdminTourCategoryController::class, 'updateStatus'])->whereNumber('id');
+
+        // Tour Schedules Management
+        // (Quản lý Lịch khởi hành Tour)
+        Route::get('/tour-schedules', [AdminTourScheduleController::class, 'index']);
+        Route::get('/tour-schedules/{id}', [AdminTourScheduleController::class, 'show'])->whereNumber('id');
+        Route::post('/tours/{id}/schedules', [AdminTourScheduleController::class, 'store'])->whereNumber('id');
+        Route::put('/tour-schedules/{id}', [AdminTourScheduleController::class, 'update'])->whereNumber('id');
+        Route::delete('/tour-schedules/{id}', [AdminTourScheduleController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/tour-schedules/{id}/status', [AdminTourScheduleController::class, 'updateStatus'])->whereNumber('id');
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)
