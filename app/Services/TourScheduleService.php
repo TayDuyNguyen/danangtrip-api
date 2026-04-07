@@ -109,11 +109,30 @@ final class TourScheduleService
     public function updateSchedule(int $id, array $data): array
     {
         try {
-            $updated = $this->tourScheduleRepository->update($id, $data);
-            if (! $updated) {
+            $schedule = $this->tourScheduleRepository->find($id);
+            if (! $schedule) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Tour schedule not found',
+                ];
+            }
+
+            // Business logic: Ensure end_date is not before start_date
+            $startDate = $data['start_date'] ?? $schedule->start_date->format('Y-m-d');
+            $endDate = $data['end_date'] ?? $schedule->end_date->format('Y-m-d');
+
+            if ($endDate < $startDate) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'The end date must be after or equal to start date.',
+                ];
+            }
+
+            $updated = $this->tourScheduleRepository->update($id, $data);
+            if (! $updated) {
+                return [
+                    'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                    'message' => 'Failed to update tour schedule',
                 ];
             }
 

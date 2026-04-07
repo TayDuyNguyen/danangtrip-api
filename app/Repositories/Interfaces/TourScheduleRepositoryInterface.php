@@ -25,6 +25,12 @@ interface TourScheduleRepositoryInterface extends RepositoryInterface
     public function findWithTour(int $id): ?TourSchedule;
 
     /**
+     * Find a schedule by ID for update.
+     * (Tìm lịch khởi hành theo ID để cập nhật)
+     */
+    public function findForUpdate(int $id): ?TourSchedule;
+
+    /**
      * Update schedule status.
      * (Cập nhật trạng thái lịch khởi hành)
      */
