@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\DashboardValidation;
+use App\Http\Requests\Dashboard\LocationReportsDashboardRequest;
+use App\Http\Requests\Dashboard\PointReportsDashboardRequest;
+use App\Http\Requests\Dashboard\RatingReportsDashboardRequest;
+use App\Http\Requests\Dashboard\UserReportsDashboardRequest;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class DashboardController
@@ -37,14 +39,9 @@ final class DashboardController extends Controller
      * Get location reports.
      * (Lấy báo cáo địa điểm)
      */
-    public function locationReports(Request $request): JsonResponse
+    public function locationReports(LocationReportsDashboardRequest $request): JsonResponse
     {
-        $validator = DashboardValidation::validateLocationReports($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->dashboardService->getLocationReports($validator->validated());
+        $result = $this->dashboardService->getLocationReports($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -55,14 +52,9 @@ final class DashboardController extends Controller
      * Get rating reports.
      * (Lấy báo cáo đánh giá)
      */
-    public function ratingReports(Request $request): JsonResponse
+    public function ratingReports(RatingReportsDashboardRequest $request): JsonResponse
     {
-        $validator = DashboardValidation::validateRatingReports($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->dashboardService->getRatingReports($validator->validated());
+        $result = $this->dashboardService->getRatingReports($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -73,14 +65,9 @@ final class DashboardController extends Controller
      * Get user reports.
      * (Lấy báo cáo người dùng)
      */
-    public function userReports(Request $request): JsonResponse
+    public function userReports(UserReportsDashboardRequest $request): JsonResponse
     {
-        $validator = DashboardValidation::validateUserReports($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->dashboardService->getUserReports($validator->validated());
+        $result = $this->dashboardService->getUserReports($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -91,14 +78,9 @@ final class DashboardController extends Controller
      * Get point transaction reports.
      * (Lấy báo cáo giao dịch điểm)
      */
-    public function pointReports(Request $request): JsonResponse
+    public function pointReports(PointReportsDashboardRequest $request): JsonResponse
     {
-        $validator = DashboardValidation::validatePointReports($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->dashboardService->getPointReports($validator->validated());
+        $result = $this->dashboardService->getPointReports($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

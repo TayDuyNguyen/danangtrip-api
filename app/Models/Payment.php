@@ -26,7 +26,7 @@ final class Payment extends Model
     protected function casts(): array
     {
         return [
-            'amount' => 'decimal:0',
+            'amount' => 'decimal:2',
             'gateway_response' => 'json',
             'paid_at' => 'datetime',
             'refunded_at' => 'datetime',

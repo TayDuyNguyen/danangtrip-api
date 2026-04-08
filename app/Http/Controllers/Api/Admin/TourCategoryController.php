@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\TourCategoryValidation;
+use App\Http\Requests\TourCategory\ShowTourCategoryRequest;
+use App\Http\Requests\TourCategory\StoreTourCategoryRequest;
+use App\Http\Requests\TourCategory\UpdateStatusTourCategoryRequest;
+use App\Http\Requests\TourCategory\UpdateTourCategoryRequest;
 use App\Services\TourCategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,14 +44,9 @@ final class TourCategoryController extends Controller
      * Store a new tour category.
      * (Tạo danh mục tour mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTourCategoryRequest $request): JsonResponse
     {
-        $validator = TourCategoryValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->tourCategoryService->createCategory($validator->validated());
+        $result = $this->tourCategoryService->createCategory($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created(['category' => $result['data']], 'Tour category created successfully')
@@ -59,14 +57,9 @@ final class TourCategoryController extends Controller
      * Update an existing tour category.
      * (Cập nhật danh mục tour)
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateTourCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = TourCategoryValidation::validateUpdate($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->tourCategoryService->updateCategory($id, $validator->validated());
+        $result = $this->tourCategoryService->updateCategory($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(['category' => $result['data']], 'Tour category updated successfully')
@@ -77,13 +70,8 @@ final class TourCategoryController extends Controller
      * Delete a tour category.
      * (Xóa danh mục tour)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(ShowTourCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = TourCategoryValidation::validateShow($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tourCategoryService->deleteCategory($id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
@@ -95,13 +83,8 @@ final class TourCategoryController extends Controller
      * Update tour category status.
      * (Cập nhật trạng thái danh mục tour)
      */
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateStatusTourCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = TourCategoryValidation::validateUpdateStatus($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tourCategoryService->updateStatus($id, $request->status);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

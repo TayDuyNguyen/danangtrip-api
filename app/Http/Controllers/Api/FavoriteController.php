@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\FavoriteValidation;
+use App\Http\Requests\Favorite\StoreFavoriteRequest;
 use App\Services\FavoriteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -45,15 +45,10 @@ final class FavoriteController extends Controller
      * Add a location to favorites.
      * (Thêm địa điểm vào danh sách yêu thích)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreFavoriteRequest $request): JsonResponse
     {
-        $validator = FavoriteValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
-        $locationId = (int) $request->input('location_id');
+        $locationId = (int) $request->validated('location_id');
 
         $result = $this->favoriteService->saveFavorite($userId, $locationId);
 

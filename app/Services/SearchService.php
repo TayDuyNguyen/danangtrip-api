@@ -113,6 +113,31 @@ final class SearchService
     }
 
     /**
+     * Get popular search queries with optional filters.
+     * (Lấy danh sách từ khóa tìm kiếm phổ biến với bộ lọc tùy chọn)
+     */
+    public function popularWithFilters(array $data): array
+    {
+        try {
+            $limit = (int) ($data['limit'] ?? 10);
+            $days = (int) ($data['days'] ?? 30);
+            $filters = $data['filters'] ?? [];
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'popular' => $this->searchLogRepository->getPopularQueriesByFilters($filters, $limit, $days),
+                ],
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get popular queries with filters',
+            ];
+        }
+    }
+
+    /**
      * Resolve session ID from request.
      * (Xác định ID phiên từ request)
      */

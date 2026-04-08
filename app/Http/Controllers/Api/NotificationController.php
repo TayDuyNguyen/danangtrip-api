@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\NotificationValidation;
+use App\Http\Requests\Notification\ListNotificationRequest;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,15 +27,10 @@ final class NotificationController extends Controller
      * Get a list of notifications.
      * (Lấy danh sách thông báo)
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListNotificationRequest $request): JsonResponse
     {
-        $validator = NotificationValidation::validateList($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
-        $result = $this->notificationService->getNotifications($userId, $validator->validated());
+        $result = $this->notificationService->getNotifications($userId, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

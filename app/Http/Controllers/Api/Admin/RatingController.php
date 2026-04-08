@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\RatingValidation;
+use App\Http\Requests\Rating\AdminIndexRatingRequest;
+use App\Http\Requests\Rating\ApproveRatingRequest;
+use App\Http\Requests\Rating\RejectRatingRequest;
 use App\Services\RatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,14 +26,9 @@ final class RatingController extends Controller
      * List ratings for moderation.
      * (Danh sách đánh giá chờ duyệt / tất cả)
      */
-    public function index(Request $request): JsonResponse
+    public function index(AdminIndexRatingRequest $request): JsonResponse
     {
-        $validator = RatingValidation::validateAdminIndex($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->ratingService->adminList($validator->validated());
+        $result = $this->ratingService->adminList($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -42,13 +39,8 @@ final class RatingController extends Controller
      * Approve a rating.
      * (Duyệt đánh giá)
      */
-    public function approve(int $id): JsonResponse
+    public function approve(ApproveRatingRequest $request, int $id): JsonResponse
     {
-        $validator = RatingValidation::validateApprove($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $adminId = auth('api')->id();
         $result = $this->ratingService->approve($adminId, $id);
 
@@ -63,15 +55,10 @@ final class RatingController extends Controller
      *
      * @param Request request
      */
-    public function reject(Request $request, int $id): JsonResponse
+    public function reject(RejectRatingRequest $request, int $id): JsonResponse
     {
-        $validator = RatingValidation::validateReject($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $adminId = auth('api')->id();
-        $result = $this->ratingService->reject($adminId, $id, $validator->validated());
+        $result = $this->ratingService->reject($adminId, $id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Rating rejected')

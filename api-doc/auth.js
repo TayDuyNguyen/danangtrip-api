@@ -125,3 +125,93 @@
  *   }
  * }
  */
+
+/**
+ * @api {post} /api/v1/auth/refresh Refresh Token
+ * @apiName RefreshToken
+ * @apiGroup Auth
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public or Protected endpoint - Returns a new JWT token.
+ *
+ * @apiHeader {String} [Authorization] Bearer token (JWT)
+ *
+ * @apiSampleRequest /api/v1/auth/refresh
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Token refreshed",
+ *   "data": {
+ *     "token": "new_eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+ *   }
+ * }
+ */
+
+/**
+ * @api {post} /api/v1/auth/forgot-password Forgot Password
+ * @apiName ForgotPassword
+ * @apiGroup Auth
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint - Sends a password reset email to the user.
+ *
+ * @apiBody {String} email User's registered email
+ *
+ * @apiSampleRequest /api/v1/auth/forgot-password
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Reset password link sent to your email",
+ *   "data": null
+ * }
+ */
+
+/**
+ * @api {post} /api/v1/auth/reset-password Reset Password
+ * @apiName ResetPassword
+ * @apiGroup Auth
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint - Resets user's password using a token.
+ *
+ * @apiBody {String} email User's email
+ * @apiBody {String} token Reset token from email
+ * @apiBody {String} password New password
+ * @apiBody {String} password_confirmation Confirm new password
+ *
+ * @apiSampleRequest /api/v1/auth/reset-password
+ */
+
+/**
+ * @api {post} /api/v1/auth/verify-email Verify Email
+ * @apiName VerifyEmail
+ * @apiGroup Auth
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission user
+ *
+ * @apiDescription Protected endpoint - Verifies the user's email using a code.
+ *
+ * @apiBody {String} otp One-time password (OTP) code from email
+ *
+ * @apiSampleRequest /api/v1/auth/verify-email
+ */
+
+/**
+ * @api {post} /api/v1/auth/resend-verification Resend Verification
+ * @apiName ResendVerification
+ * @apiGroup Auth
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission user
+ *
+ * @apiDescription Protected endpoint - Resends the email verification OTP.
+ *
+ * @apiSampleRequest /api/v1/auth/resend-verification
+ */

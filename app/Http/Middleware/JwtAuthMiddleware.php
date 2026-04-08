@@ -6,8 +6,8 @@ use App\Enums\HttpStatusCode;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Symfony\Component\HttpFoundation\Response;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * Class JwtAuthMiddleware

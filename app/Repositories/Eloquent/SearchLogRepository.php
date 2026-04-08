@@ -76,7 +76,7 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
         return $this->model->newQuery()
             ->whereNotNull('created_at')
             ->where('created_at', '>=', $since)
-            ->where('query', 'like', $q.'%')
+            ->where('query', 'ilike', '%'.$q.'%')
             ->selectRaw('query, COUNT(*) as count')
             ->groupBy('query')
             ->orderByDesc('count')
@@ -84,6 +84,31 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
             ->pluck('query')
             ->map(fn ($v) => (string) $v)
             ->values()
+            ->all();
+    }
+
+    /**
+     * Get popular search queries with optional filters.
+     * (Lấy danh sách từ khóa tìm kiếm phổ biến với bộ lọc tùy chọn)
+     */
+    public function getPopularQueriesByFilters(array $filters = [], int $limit = 10, int $days = 30): array
+    {
+        $since = now()->subDays($days);
+
+        $query = $this->model->newQuery()
+            ->whereNotNull('created_at')
+            ->where('created_at', '>=', $since);
+
+        if (! empty($filters)) {
+            $query->whereRaw('filters::jsonb @> ?::jsonb', [json_encode($filters)]);
+        }
+
+        return $query->selectRaw('query, COUNT(*) as count')
+            ->groupBy('query')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => ['query' => (string) $row->query, 'count' => (int) $row->count])
             ->all();
     }
 }

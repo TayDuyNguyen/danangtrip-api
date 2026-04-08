@@ -3,14 +3,20 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\BookingStatus;
+use App\Enums\Pagination;
 use App\Models\Booking;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
-class BookingRepository extends BaseRepository implements BookingRepositoryInterface
+/**
+ * Class BookingRepository
+ * (Triển khai Repository cho Đặt chỗ)
+ */
+final class BookingRepository extends BaseRepository implements BookingRepositoryInterface
 {
     /**
      * Get the model instance.
+     * (Lấy lớp Model)
      */
     public function getModel(): string
     {
@@ -19,6 +25,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Get all bookings with optional filters.
+     * (Lấy danh sách đặt chỗ với bộ lọc tùy chọn)
      */
     public function getBookings(array $filters = []): LengthAwarePaginator
     {
@@ -53,7 +60,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
             $query->whereDate('booked_at', '<=', $filters['to_date']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
+        $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
 
@@ -64,6 +71,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Find a booking by ID with its related tour schedule and user.
+     * (Tìm một đơn đặt chỗ theo ID với lịch khởi hành tour và người dùng liên quan)
      */
     public function findWithDetails(int $id): ?Booking
     {
@@ -72,6 +80,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Find a booking by Code with its related items.
+     * (Tìm một đơn đặt chỗ theo Mã với các mục liên quan)
      */
     public function findByCode(string $code): ?Booking
     {
@@ -82,6 +91,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Update the status of a booking.
+     * (Cập nhật trạng thái của đơn đặt chỗ)
      */
     public function updateStatus(int $id, string $status): bool
     {
@@ -97,6 +107,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Update the payment status of a booking.
+     * (Cập nhật trạng thái thanh toán của đơn đặt chỗ)
      */
     public function updatePaymentStatus(int $id, string $paymentStatus): bool
     {
@@ -112,6 +123,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Get bookings for a specific user.
+     * (Lấy danh sách đặt chỗ của một người dùng cụ thể)
      */
     public function getUserBookings(int $userId, array $filters = []): LengthAwarePaginator
     {
@@ -125,7 +137,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
             $query->where('payment_status', $filters['payment_status']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
+        $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
         $sortBy = $filters['sort_by'] ?? 'created_at';
         $sortOrder = $filters['sort_order'] ?? 'desc';
 
@@ -136,6 +148,7 @@ class BookingRepository extends BaseRepository implements BookingRepositoryInter
 
     /**
      * Check if a tour schedule has any associated bookings.
+     * (Kiểm tra xem lịch khởi hành tour có đơn đặt chỗ nào liên quan không)
      */
     public function hasBookings(int $tourScheduleId): bool
     {

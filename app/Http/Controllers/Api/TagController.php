@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\TagValidation;
+use App\Http\Requests\Tag\IndexTagRequest;
 use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class TagController
@@ -26,13 +25,8 @@ final class TagController extends Controller
      * Display a listing of all tags.
      * (Hiển thị danh sách tất cả tags)
      */
-    public function index(Request $request): JsonResponse
+    public function index(IndexTagRequest $request): JsonResponse
     {
-        $validator = TagValidation::validateIndex($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tagService->getAllTags($request->all());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

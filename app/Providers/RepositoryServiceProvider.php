@@ -10,8 +10,10 @@ use App\Repositories\Eloquent\CategoryRepository;
 use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
 use App\Repositories\Eloquent\NotificationRepository;
+use App\Repositories\Eloquent\PaymentRepository;
 use App\Repositories\Eloquent\RatingImageRepository;
 use App\Repositories\Eloquent\RatingRepository;
+use App\Repositories\Eloquent\RefreshTokenRepository;
 use App\Repositories\Eloquent\SearchLogRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\TagRepository;
@@ -28,8 +30,10 @@ use App\Repositories\Interfaces\CategoryRepositoryInterface;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
+use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
 use App\Repositories\Interfaces\TagRepositoryInterface;
@@ -72,6 +76,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(TourCategoryRepositoryInterface::class, TourCategoryRepository::class);
         $this->app->bind(TourScheduleRepositoryInterface::class, TourScheduleRepository::class);
         $this->app->bind(BookingRepositoryInterface::class, BookingRepository::class);
+        $this->app->bind(PaymentRepositoryInterface::class, PaymentRepository::class);
+        $this->app->bind(RefreshTokenRepositoryInterface::class, RefreshTokenRepository::class);
     }
 
     /**

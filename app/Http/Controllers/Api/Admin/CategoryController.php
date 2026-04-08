@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\CategoryValidation;
+use App\Http\Requests\Category\DeleteCategoryRequest;
+use App\Http\Requests\Category\StoreCategoryRequest;
+use App\Http\Requests\Category\UpdateCategoryRequest;
+use App\Http\Requests\Category\UpdateStatusCategoryRequest;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class CategoryController
@@ -24,14 +26,9 @@ final class CategoryController extends Controller
      * Create a new category.
      * (Tạo danh mục mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $validator = CategoryValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->createCategory($validator->validated());
+        $result = $this->categoryService->createCategory($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created(['category' => $result['data']], 'Category created successfully')
@@ -42,14 +39,9 @@ final class CategoryController extends Controller
      * Update an existing category.
      * (Cập nhật danh mục)
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = CategoryValidation::validateUpdate($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->updateCategory($id, $validator->validated());
+        $result = $this->categoryService->updateCategory($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(['category' => $result['data']], 'Category updated successfully')
@@ -60,13 +52,8 @@ final class CategoryController extends Controller
      * Delete a category.
      * (Xóa danh mục)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = CategoryValidation::validateDelete($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->categoryService->deleteCategory($id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
@@ -78,14 +65,9 @@ final class CategoryController extends Controller
      * Update the status of a category.
      * (Cập nhật trạng thái danh mục)
      */
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateStatusCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = CategoryValidation::validateUpdateStatus($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->categoryService->updateCategoryStatus($id, $validator->validated()['status']);
+        $result = $this->categoryService->updateCategoryStatus($id, $request->validated('status'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])
