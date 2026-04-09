@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\UploadValidation;
+use App\Http\Requests\Upload\DeleteImageUploadRequest;
+use App\Http\Requests\Upload\UploadImagesUploadRequest;
+use App\Http\Requests\Upload\UploadImageUploadRequest;
 use App\Services\UploadService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class UploadController
@@ -26,15 +27,9 @@ final class UploadController extends Controller
      * Upload a single image.
      * (Tải lên một ảnh)
      */
-    public function uploadImage(Request $request): JsonResponse
+    public function uploadImage(UploadImageUploadRequest $request): JsonResponse
     {
-
-        $validator = UploadValidation::validateUploadImage($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $data = $validator->validated();
+        $data = $request->validated();
         $result = $this->uploadService->uploadImage($request->file('image'), $data['folder'] ?? null);
 
         return $result['status'] === HttpStatusCode::CREATED->value
@@ -46,15 +41,9 @@ final class UploadController extends Controller
      * Upload multiple images.
      * (Tải lên nhiều ảnh)
      */
-    public function uploadImages(Request $request): JsonResponse
+    public function uploadImages(UploadImagesUploadRequest $request): JsonResponse
     {
-        $validator = UploadValidation::validateUploadImages($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $data = $validator->validated();
+        $data = $request->validated();
 
         $result = $this->uploadService->uploadImages(
             $data['images'],
@@ -70,15 +59,9 @@ final class UploadController extends Controller
      * Delete an image from Cloudinary.
      * (Xóa một ảnh từ Cloudinary)
      */
-    public function deleteImage(Request $request): JsonResponse
+    public function deleteImage(DeleteImageUploadRequest $request): JsonResponse
     {
-        $validator = UploadValidation::validateDeleteImage($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $data = $validator->validated();
+        $data = $request->validated();
 
         $result = $this->uploadService->deleteImage($data['public_id']);
 

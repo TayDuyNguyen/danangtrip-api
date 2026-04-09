@@ -36,10 +36,10 @@ final class Booking extends Model
     protected function casts(): array
     {
         return [
-            'total_amount' => 'decimal:0',
-            'discount_amount' => 'decimal:0',
-            'final_amount' => 'decimal:0',
-            'deposit_amount' => 'decimal:0',
+            'total_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'final_amount' => 'decimal:2',
+            'deposit_amount' => 'decimal:2',
             'booked_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',

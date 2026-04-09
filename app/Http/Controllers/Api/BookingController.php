@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\BookingValidation;
+use App\Http\Requests\Booking\CalculateBookingRequest;
+use App\Http\Requests\Booking\CancelBookingRequest;
+use App\Http\Requests\Booking\IndexBookingRequest;
+use App\Http\Requests\Booking\StoreBookingRequest;
 use App\Services\BookingService;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class BookingController extends Controller
@@ -20,15 +22,9 @@ class BookingController extends Controller
         //
     }
 
-    public function calculate(Request $request): JsonResponse
+    public function calculate(CalculateBookingRequest $request): JsonResponse
     {
-        $validation = BookingValidation::validateCalculate($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->calculatePrice($validation->validated());
+        $result = $this->bookingService->calculatePrice($request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);
@@ -37,16 +33,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexBookingRequest $request): JsonResponse
     {
-        $userId = Auth::id();
-        $validation = BookingValidation::validateIndex($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->getUserBookings($userId, $validation->validated());
+        $result = $this->bookingService->getUserBookings(Auth::id(), $request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);
@@ -55,15 +44,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreBookingRequest $request): JsonResponse
     {
-        $validation = BookingValidation::validateStore($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->createBooking($validation->validated(), Auth::id());
+        $result = $this->bookingService->createBooking($request->validated(), Auth::id());
 
         if ($result['status'] === HttpStatusCode::CREATED->value) {
             return $this->created($result['data'] ?? null, $result['message']);
@@ -115,15 +98,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function cancel(Request $request, int $id): JsonResponse
+    public function cancel(CancelBookingRequest $request, int $id): JsonResponse
     {
-        $validation = BookingValidation::validateCancel($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->cancelBooking($id, Auth::id(), $validation->validated());
+        $result = $this->bookingService->cancelBooking($id, Auth::id(), $request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);

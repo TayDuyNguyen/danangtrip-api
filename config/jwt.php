@@ -1,7 +1,7 @@
 <?php
 
-use Tymon\JWTAuth\Providers\Auth\Illuminate;
-use Tymon\JWTAuth\Providers\JWT\Lcobucci;
+use PHPOpenSourceSaver\JWTAuth\Providers\Auth\Illuminate;
+use PHPOpenSourceSaver\JWTAuth\Providers\JWT\Lcobucci;
 
 return [
     /*
@@ -27,7 +27,7 @@ return [
     | JWT time to live
     |--------------------------------------------------------------------------
     */
-    'ttl' => env('JWT_TTL', 60),
+    'ttl' => env('JWT_TTL', 15),
 
     /*
     |--------------------------------------------------------------------------
@@ -103,6 +103,6 @@ return [
     'providers' => [
         'jwt' => Lcobucci::class,
         'auth' => Illuminate::class,
-        'storage' => Tymon\JWTAuth\Providers\Storage\Illuminate::class,
+        'storage' => PHPOpenSourceSaver\JWTAuth\Providers\Storage\Illuminate::class,
     ],
 ];

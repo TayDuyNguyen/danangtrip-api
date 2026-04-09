@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\AuthValidation;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\VerifyEmailRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,37 +16,22 @@ use Illuminate\Http\Request;
 /**
  * Class AuthController
  * Handles user authentication requests.
- * (Xử lý các yêu cầu xác thực người dùng)
+ * Đã thay thế custom Request Validator thành chuẩn FormRequest trực tiếp và Cắm HttpOnly Cookie.
  */
 class AuthController extends Controller
 {
     /**
-     * @var AuthService
-     */
-    protected $authService;
-
-    /**
      * AuthController constructor.
-     * (Khởi tạo AuthController)
      */
-    public function __construct(AuthService $authService)
-    {
-        $this->authService = $authService;
-    }
+    public function __construct(protected AuthService $authService) {}
 
     /**
      * Register a new user.
-     * (Đăng ký người dùng mới)
      */
-    public function register(Request $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validator = AuthValidation::validateRegister($request);
+        $result = $this->authService->register($request->validated());
 
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->authService->register($validator->validated());
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->created($result['data'], 'User registered successfully');
         } else {
@@ -51,23 +40,22 @@ class AuthController extends Controller
     }
 
     /**
-     * Authenticate a user and return token.
-     * (Xác thực người dùng và trả về token)
+     * Authenticate a user and return token via JSON and HttpOnly refresh cookie.
      */
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $validator = AuthValidation::validateLogin($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $validated = $validator->validated();
-
+        $validated = $request->validated();
         $result = $this->authService->login($validated['email'], $validated['password']);
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
-            return $this->success($result['data'], 'Login successful');
+            $data = $result['data'];
+            $refreshToken = $data['refresh_token'];
+            unset($data['refresh_token']);
+
+            $secureCookie = env('APP_ENV') !== 'local';
+
+            return $this->success($data, 'Login successful')
+                ->cookie('refresh_token', $refreshToken, 20160, '/', null, $secureCookie, true, false, 'Lax');
         } else {
             return $this->unauthorized($result['message']);
         }
@@ -75,43 +63,51 @@ class AuthController extends Controller
 
     /**
      * Invalidate user token (Logout).
-     * (Vô hiệu hóa token người dùng - Đăng xuất)
-     *
-     * @param  Request  $request
      */
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
-        $result = $this->authService->logout();
+        $refreshToken = $request->cookie('refresh_token');
+        $result = $this->authService->logout($refreshToken);
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
-            return $this->success(null, 'Logged out successfully');
+            return $this->success(null, 'Logged out successfully')
+                ->withoutCookie('refresh_token');
         } else {
             return $this->unauthorized($result['message']);
         }
     }
 
     /**
-     *  Refresh token
-     * (Tạo lại token mới cho người dùng)
+     * Refresh Token
      */
     public function refresh(Request $request): JsonResponse
     {
-        $token = $request->bearerToken();
-        if (! $token) {
-            return $this->error('Token is required', HttpStatusCode::UNAUTHORIZED->value);
+        $refreshToken = $request->cookie('refresh_token');
+
+        if (! $refreshToken) {
+            return $this->error('Refresh token is required in cookie', HttpStatusCode::UNAUTHORIZED->value);
         }
 
-        $result = $this->authService->refresh($token);
+        $result = $this->authService->refresh($refreshToken);
+
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
-            return $this->success($result['data'], 'Token refreshed successfully');
+            $data = $result['data'];
+            $newRefreshToken = $data['refresh_token'];
+            unset($data['refresh_token']);
+
+            $secureCookie = env('APP_ENV') !== 'local';
+
+            return $this->success($data, 'Token refreshed successfully')
+                ->cookie('refresh_token', $newRefreshToken, 20160, '/', null, $secureCookie, true, false, 'Lax');
         } else {
-            return $this->unauthorized($result['message']);
+            // Khi không hợp lệ do hết hạn hoặc Token Reuse Attack, revoke HttpOnly Cookie hiện tại
+            return $this->error($result['message'], $result['status'])
+                ->withoutCookie('refresh_token');
         }
     }
 
     /**
      * Get authenticated user.
-     * (Lấy thông tin người dùng đã xác thực)
      */
     public function me(Request $request): JsonResponse
     {
@@ -120,18 +116,10 @@ class AuthController extends Controller
 
     /**
      * Send forgot password email.
-     * (Gửi email quên mật khẩu)
      */
-    public function forgotPassword(Request $request): JsonResponse
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
     {
-        $validator = AuthValidation::validateForgotPassword($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $validated = $validator->validated();
-        $result = $this->authService->forgotPassword($validated['email']);
+        $result = $this->authService->forgotPassword($request->validated('email'));
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
@@ -142,18 +130,10 @@ class AuthController extends Controller
 
     /**
      * Reset password.
-     * (Đặt lại mật khẩu)
      */
-    public function resetPassword(Request $request): JsonResponse
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
-        $validator = AuthValidation::validateResetPassword($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $validated = $validator->validated();
-        $result = $this->authService->resetPassword($validated);
+        $result = $this->authService->resetPassword($request->validated());
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
@@ -164,20 +144,10 @@ class AuthController extends Controller
 
     /**
      * Verify email.
-     * (Xác thực email)
      */
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(VerifyEmailRequest $request): JsonResponse
     {
-        $validator = AuthValidation::validateVerifyEmail($request);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $validated = $validator->validated();
-        $user = $request->user();
-
-        $result = $this->authService->verifyEmail($user, $validated['otp']);
+        $result = $this->authService->verifyEmail($request->user(), $request->validated('otp'));
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
@@ -188,12 +158,10 @@ class AuthController extends Controller
 
     /**
      * Resend verification email.
-     * (Gửi lại email xác thực)
      */
     public function resendVerification(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $result = $this->authService->resendVerification($user);
+        $result = $this->authService->resendVerification($request->user());
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);

@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\TourCategoryValidation;
+use App\Http\Requests\TourCategory\ToursBySlugTourCategoryRequest;
 use App\Services\TourCategoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class TourCategoryController
@@ -41,13 +40,8 @@ final class TourCategoryController extends Controller
      * Display paginated tours by category slug.
      * (Danh sách tour theo slug danh mục, có phân trang)
      */
-    public function toursBySlug(string $slug, Request $request): JsonResponse
+    public function toursBySlug(ToursBySlugTourCategoryRequest $request, string $slug): JsonResponse
     {
-        $validator = TourCategoryValidation::validateToursBySlug($slug, $request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tourCategoryService->getToursBySlug($slug, $request->all());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

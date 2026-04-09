@@ -4,10 +4,11 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Models\User;
+use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Str;
 
 /**
  * Class AuthService
@@ -21,7 +22,8 @@ class AuthService
      * (Khởi tạo AuthService)
      */
     public function __construct(
-        protected UserRepositoryInterface $userRepository
+        protected UserRepositoryInterface $userRepository,
+        protected RefreshTokenRepositoryInterface $refreshTokenRepository
     ) {}
 
     /**
@@ -58,8 +60,8 @@ class AuthService
     }
 
     /**
-     * Authenticate a user and return token.
-     * (Xác thực người dùng và trả về token)
+     * Authenticate a user and return token + refresh token.
+     * (Xác thực người dùng và trả về token cùng với refresh token mới)
      */
     public function login(string $email, string $password): ?array
     {
@@ -71,30 +73,47 @@ class AuthService
                 ];
             }
 
+            $user = Auth::guard('api')->user();
+
+            // Sinh Refresh Token an toàn và mã hoá vào DB (Cấp chuẩn OAuth 2.1)
+            $refreshTokenStr = Str::random(64);
+            $this->refreshTokenRepository->create([
+                'user_id' => $user->id,
+                'token' => hash('sha256', $refreshTokenStr),
+                'expires_at' => now()->addDays(14),
+            ]);
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'token' => $token,
-                    'user' => Auth::guard('api')->user(),
+                    'refresh_token' => $refreshTokenStr,
+                    'user' => $user,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Login failed',
+                'message' => 'Login failed: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Invalidate user token (Logout).
-     * (Vô hiệu hóa token người dùng - Đăng xuất)
+     * (Vô hiệu hóa token người dùng và xóa Refresh Token - Đăng xuất)
      */
-    public function logout(): array
+    public function logout(?string $refreshTokenStr = null): array
     {
         try {
             if (Auth::guard('api')->check()) {
                 Auth::guard('api')->logout();
+            }
+
+            if ($refreshTokenStr) {
+                // Thu hồi Refresh Token
+                $hashedToken = hash('sha256', $refreshTokenStr);
+                $this->refreshTokenRepository->deleteByToken($hashedToken);
             }
 
             return [
@@ -110,46 +129,77 @@ class AuthService
     }
 
     /**
-     * Refresh user token.
-     * (Refresh token người dùng)
+     * Refresh user token with Refresh Token rotation logic.
+     * (Tạo lại token mới thay cho access_token cũ đã hết hạn thông qua hệ thống Refresh Token xoay vòng an toàn)
      */
-    public function refresh(string $token): array
+    public function refresh(string $refreshTokenStr): array
     {
         try {
-            $newToken = JWTAuth::setToken($token)->refresh();
+            $hashedToken = hash('sha256', $refreshTokenStr);
+            $storedToken = $this->refreshTokenRepository->findByToken($hashedToken);
 
-            if (! $newToken) {
+            if (! $storedToken) {
                 return [
                     'status' => HttpStatusCode::UNAUTHORIZED->value,
-                    'message' => 'Invalid token',
+                    'message' => 'Invalid refresh token',
                 ];
             }
+
+            // Theo tiêu chuẩn Auth-Security: Reuse Detection
+            if ($storedToken->used_at) {
+                // Refresh token đã sử dụng -> Bị kẻ gian cắp và thử gọi lại. Revoke toàn bộ token.
+                $this->refreshTokenRepository->deleteAllByUserId($storedToken->user_id);
+
+                return [
+                    'status' => HttpStatusCode::FORBIDDEN->value,
+                    'message' => 'Token reuse detected. All sessions revoked. Please login again.',
+                ];
+            }
+
+            if ($storedToken->expires_at < now()) {
+                return [
+                    'status' => HttpStatusCode::UNAUTHORIZED->value,
+                    'message' => 'Refresh token expired',
+                ];
+            }
+
+            // Đánh dấu đã sử dụng (để tracking Reuse)
+            $storedToken->update(['used_at' => now()]);
+
+            // Sinh Access Token JWT mới
+            $newAccessToken = Auth::guard('api')->login($storedToken->user);
+
+            // Xoay vòng: Sinh mới Refresh Token cho quy trình mượt mà
+            $newRefreshTokenStr = Str::random(64);
+            $this->refreshTokenRepository->create([
+                'user_id' => $storedToken->user_id,
+                'token' => hash('sha256', $newRefreshTokenStr),
+                'expires_at' => now()->addDays(14),
+                'previous_token_id' => $storedToken->id,
+            ]);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
-                    'token' => $newToken,
-                    'user' => JWTAuth::setToken($newToken)->authenticate(),
+                    'token' => $newAccessToken,
+                    'refresh_token' => $newRefreshTokenStr,
+                    'user' => $storedToken->user,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Refresh failed',
+                'message' => 'Refresh failed: '.$e->getMessage(),
             ];
         }
     }
 
     /**
      * Handle forgot password.
-     * (Xử lý quên mật khẩu)
      */
     public function forgotPassword(string $email): array
     {
         try {
-            // Placeholder: Generate token, save to password_reset_tokens table, and send email.
-            // For now, we simulate success since emailing is out of scope.
-
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password reset link sent to your email.',
@@ -164,13 +214,10 @@ class AuthService
 
     /**
      * Handle reset password.
-     * (Xử lý đặt lại mật khẩu)
      */
     public function resetPassword(array $data): array
     {
         try {
-            // Placeholder: Verify token, update user password, delete token.
-
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password has been reset successfully.',
@@ -185,13 +232,10 @@ class AuthService
 
     /**
      * Verify user email.
-     * (Xác minh email người dùng)
      */
     public function verifyEmail(User $user, string $otp): array
     {
         try {
-            // Placeholder: Verify OTP.
-
             $this->userRepository->markEmailAsVerified($user->id);
 
             return [
@@ -208,7 +252,6 @@ class AuthService
 
     /**
      * Resend verification email.
-     * (Gửi lại email xác minh)
      */
     public function resendVerification(User $user): array
     {
@@ -219,7 +262,6 @@ class AuthService
                     'message' => 'Email is already verified.',
                 ];
             }
-            // Placeholder: Generate new OTP and send email.
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

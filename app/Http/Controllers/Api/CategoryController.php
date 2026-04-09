@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Enums\HttpStatusCode;
 use App\Enums\Pagination;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\CategoryValidation;
+use App\Http\Requests\Category\ShowCategoryRequest;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 
@@ -41,14 +41,8 @@ final class CategoryController extends Controller
      * Get public category detail by id.
      * (Lấy chi tiết danh mục public theo id)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowCategoryRequest $request, int $id): JsonResponse
     {
-        $validator = CategoryValidation::validateShow($id);
-
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->categoryService->getPublicCategoryById($id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

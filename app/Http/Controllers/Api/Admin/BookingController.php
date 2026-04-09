@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\BookingValidation;
+use App\Http\Requests\Booking\CancelBookingRequest;
+use App\Http\Requests\Booking\IndexBookingRequest;
+use App\Http\Requests\Booking\UpdateBookingStatusRequest;
 use App\Services\BookingService;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
@@ -19,15 +20,9 @@ class BookingController extends Controller
         //
     }
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexBookingRequest $request): JsonResponse
     {
-        $validation = BookingValidation::validateIndex($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->getBookings($validation->validated());
+        $result = $this->bookingService->getBookings($request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);
@@ -36,15 +31,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function export(Request $request): JsonResponse
+    public function export(IndexBookingRequest $request): JsonResponse
     {
-        $validation = BookingValidation::validateIndex($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->getBookings($validation->validated());
+        $result = $this->bookingService->getBookings($request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'], 'Export data retrieved successfully. Excel file generation is not yet implemented.');
@@ -64,15 +53,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(UpdateBookingStatusRequest $request, int $id): JsonResponse
     {
-        $validation = BookingValidation::validateUpdateStatus($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->updateBookingStatus($id, $validation->validated());
+        $result = $this->bookingService->updateBookingStatus($id, $request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);
@@ -92,15 +75,9 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function adminCancel(Request $request, int $id): JsonResponse
+    public function adminCancel(CancelBookingRequest $request, int $id): JsonResponse
     {
-        $validation = BookingValidation::validateCancel($request->all());
-
-        if ($validation->fails()) {
-            return $this->validation_error($validation->errors()->first());
-        }
-
-        $result = $this->bookingService->cancelBookingAdmin($id, $validation->validated());
+        $result = $this->bookingService->cancelBookingAdmin($id, $request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);

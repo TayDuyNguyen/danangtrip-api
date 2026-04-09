@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\TagValidation;
+use App\Http\Requests\Tag\StoreTagRequest;
 use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class TagController
@@ -26,14 +25,9 @@ final class TagController extends Controller
      * Store a new tag.
      * (Tạo tag mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTagRequest $request): JsonResponse
     {
-        $validator = TagValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->tagService->createTag($validator->validated());
+        $result = $this->tagService->createTag($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'])

@@ -110,3 +110,33 @@
  *   }
  * }
  */
+
+/**
+ * @api {get} /api/v1/search/popular-with-filters Get Popular Search Queries with Filters
+ * @apiName GetPopularSearchQueriesWithFilters
+ * @apiGroup Search
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint - Returns a list of popular search queries, filtered by specific criteria.
+ *
+ * @apiQuery {Number} [limit=10] Max items to return.
+ * @apiQuery {Number} [days=30] Lookback window (days).
+ * @apiQuery {Object} [filters] JSON object of filters (e.g., {"district":"Hai Chau", "price_level":2}).
+ * @apiQuery {String} [filters.district] Filter by district.
+ * @apiQuery {Number} [filters.price_level] Filter by price level.
+ *
+ * @apiSampleRequest /api/v1/search/popular-with-filters?filters[district]=Hai%20Chau&filters[price_level]=2
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "popular": [
+ *       {"query": "beach", "count": 15},
+ *       {"query": "hotel", "count": 10}
+ *     ]
+ *   }
+ * }
+ */

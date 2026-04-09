@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
@@ -50,11 +52,11 @@ Route::prefix('v1')->group(function () {
 
     // Auth: Register & Login & Forgot Password
     // (Xác thực: Đăng ký & Đăng nhập & Quên mật khẩu)
-    Route::post('/auth/register', [AuthController::class, 'register']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
-    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
     // Categories: List & Detail & Locations by slug
     // (Danh mục: Danh sách & Chi tiết & Địa điểm theo danh mục)
@@ -77,13 +79,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations/{id}/ratings', [LocationController::class, 'ratings'])->whereNumber('id');
     Route::get('/locations/{id}/rating-stats', [LocationController::class, 'ratingStats'])->whereNumber('id');
     Route::get('/locations/{id}/nearby', [LocationController::class, 'nearbyLocations'])->whereNumber('id');
-    Route::post('/locations/{id}/view', [LocationController::class, 'recordView'])->whereNumber('id');
+    Route::post('/locations/{id}/view', [LocationController::class, 'recordView'])->whereNumber('id')->middleware('throttle:60,1');
 
     // Search: Locations Search & Suggestions & Popular Queries
     // (Tìm kiếm: Tìm kiếm địa điểm & Gợi ý & Từ khóa phổ biến)
-    Route::get('/search', [SearchController::class, 'search']);
-    Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
-    Route::get('/search/popular', [SearchController::class, 'popular']);
+    Route::get('/search', [SearchController::class, 'search'])->middleware('throttle:60,1');
+    Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:60,1');
+    Route::get('/search/popular', [SearchController::class, 'popular'])->middleware('throttle:60,1');
+    Route::get('/search/popular-with-filters', [SearchController::class, 'popularWithFilters'])->middleware('throttle:60,1');
 
     // Blog: Public access
     // (Blog: Truy cập công khai)
@@ -105,12 +108,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/tours/{id}/schedules', [TourController::class, 'schedules'])->whereNumber('id');
     Route::get('/tours/{id}/ratings', [TourController::class, 'ratings'])->whereNumber('id');
     Route::get('/tours/{id}/rating-stats', [TourController::class, 'ratingStats'])->whereNumber('id');
-    Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id');
+    Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id')->middleware('throttle:60,1');
 
     // Tour Categories: Public access
     // (Danh mục tour: Truy cập công khai)
     Route::get('/tour-categories', [TourCategoryController::class, 'index']);
     Route::get('/tour-categories/{slug}/tours', [TourCategoryController::class, 'toursBySlug'])->where('slug', '[a-z0-9-]+');
+
+    // Payments: Webhook
+    // (Thanh toán: Webhook)
+    Route::post('/payments/callback', [PaymentController::class, 'callback'])->middleware('throttle:20,1');
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -122,7 +129,6 @@ Route::prefix('v1')->group(function () {
         // (Xác thực: Đăng xuất & Thông tin cá nhân)
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
-        Route::post('/auth/refresh', [AuthController::class, 'refresh']);
         Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail']);
         Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification']);
 
@@ -169,6 +175,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode']);
         Route::get('/user/bookings/{id}/invoice', [BookingController::class, 'invoice'])->whereNumber('id');
         Route::post('/user/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id');
+
+        // Payments
+        // (Thanh toán)
+        Route::post('/payments/create', [PaymentController::class, 'create']);
+        Route::get('/payments/status/{transaction_code}', [PaymentController::class, 'status']);
+        Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry']);
     });
 
     // =========================================================================
@@ -180,10 +192,10 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard & Reports
         // (Bảng điều khiển & Báo cáo)
-        Route::get('/dashboard', [AdminDashboardController::class, 'overview']);
-        Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports']);
-        Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports']);
-        Route::get('/reports/users', [AdminDashboardController::class, 'userReports']);
+        Route::get('/dashboard', [AdminDashboardController::class, 'overview'])->middleware('throttle:30,1');
+        Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports'])->middleware('throttle:30,1');
+        Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports'])->middleware('throttle:30,1');
+        Route::get('/reports/users', [AdminDashboardController::class, 'userReports'])->middleware('throttle:30,1');
 
         // Categories Management
         // (Quản lý Danh mục)
@@ -201,26 +213,26 @@ Route::prefix('v1')->group(function () {
 
         // Location Management
         // (Quản lý Địa điểm)
-        Route::get('/locations/export', [AdminLocationController::class, 'export']);
-        Route::post('/locations', [AdminLocationController::class, 'store']);
-        Route::put('/locations/{id}', [AdminLocationController::class, 'update'])->whereNumber('id');
-        Route::delete('/locations/{id}', [AdminLocationController::class, 'destroy'])->whereNumber('id');
-        Route::patch('/locations/{id}/status', [AdminLocationController::class, 'updateStatus'])->whereNumber('id');
-        Route::patch('/locations/{id}/featured', [AdminLocationController::class, 'toggleFeatured'])->whereNumber('id');
-        Route::post('/locations/{id}/tags', [AdminLocationController::class, 'attachTags'])->whereNumber('id');
-        Route::delete('/locations/{id}/tags/{tagId}', [AdminLocationController::class, 'detachTag'])->whereNumber('id')->whereNumber('tagId');
-        Route::post('/locations/{id}/amenities', [AdminLocationController::class, 'attachAmenities'])->whereNumber('id');
-        Route::delete('/locations/{id}/amenities/{amenityId}', [AdminLocationController::class, 'detachAmenity'])->whereNumber('id')->whereNumber('amenityId');
+        Route::get('/locations/export', [AdminLocationController::class, 'export'])->middleware('throttle:10,1');
+        Route::post('/locations', [AdminLocationController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('/locations/{id}', [AdminLocationController::class, 'update'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/locations/{id}', [AdminLocationController::class, 'destroy'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::patch('/locations/{id}/status', [AdminLocationController::class, 'updateStatus'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::patch('/locations/{id}/featured', [AdminLocationController::class, 'toggleFeatured'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/locations/{id}/tags', [AdminLocationController::class, 'attachTags'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/locations/{id}/tags/{tagId}', [AdminLocationController::class, 'detachTag'])->whereNumber('id')->whereNumber('tagId')->middleware('throttle:60,1');
+        Route::post('/locations/{id}/amenities', [AdminLocationController::class, 'attachAmenities'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/locations/{id}/amenities/{amenityId}', [AdminLocationController::class, 'detachAmenity'])->whereNumber('id')->whereNumber('amenityId')->middleware('throttle:60,1');
 
         // User Management
         // (Quản lý Người dùng)
-        Route::get('/users', [AdminUserController::class, 'index']);
-        Route::get('/users/{id}', [AdminUserController::class, 'show'])->whereNumber('id');
-        Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus'])->whereNumber('id');
-        Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole'])->whereNumber('id');
-        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');
-        Route::post('/users', [AdminUserController::class, 'store']);
-        Route::put('/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id');
+        Route::get('/users', [AdminUserController::class, 'index'])->middleware('throttle:30,1');
+        Route::get('/users/{id}', [AdminUserController::class, 'show'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/users', [AdminUserController::class, 'store'])->middleware('throttle:60,1');
+        Route::put('/users/{id}', [AdminUserController::class, 'update'])->whereNumber('id')->middleware('throttle:60,1');
 
         // Ratings Management
         // (Quản lý Đánh giá)
@@ -264,13 +276,20 @@ Route::prefix('v1')->group(function () {
 
         // Bookings Management
         // (Quản lý Đặt tour)
-        Route::get('/bookings', [AdminBookingController::class, 'index']);
-        Route::get('/bookings/export', [AdminBookingController::class, 'export']);
-        Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
-        Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
-        Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->whereNumber('id');
-        Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'adminCancel'])->whereNumber('id');
-        Route::post('/bookings/{id}/complete', [AdminBookingController::class, 'complete'])->whereNumber('id');
+        Route::get('/bookings', [AdminBookingController::class, 'index'])->middleware('throttle:30,1');
+        Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:10,1');
+        Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'adminCancel'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/bookings/{id}/complete', [AdminBookingController::class, 'complete'])->whereNumber('id')->middleware('throttle:60,1');
+
+        // Payments Management
+        // (Quản lý Thanh toán)
+        Route::get('/payments', [AdminPaymentController::class, 'index'])->middleware('throttle:30,1');
+        Route::get('/payments/export', [AdminPaymentController::class, 'export'])->middleware('throttle:10,1');
+        Route::get('/payments/{id}', [AdminPaymentController::class, 'show'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::post('/payments/{id}/refund', [AdminPaymentController::class, 'refund'])->whereNumber('id')->middleware('throttle:10,1');
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)

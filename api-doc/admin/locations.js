@@ -198,14 +198,6 @@
  * @apiBody {Number[]} tag_ids Array of tag IDs
  *
  * @apiSampleRequest /api/v1/admin/locations/1/tags
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "code": 200,
- *   "message": "Tags attached successfully",
- *   "data": null
- * }
  */
 
 /**
@@ -222,15 +214,7 @@
  * @apiParam {Number} id Location id
  * @apiParam {Number} tagId Tag id
  *
- * @apiSampleRequest /api/v1/admin/locations/1/tags/1
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "code": 200,
- *   "message": "Tag detached successfully",
- *   "data": null
- * }
+ * @apiSampleRequest /api/v1/admin/locations/1/tags/5
  */
 
 /**
@@ -248,14 +232,6 @@
  * @apiBody {Number[]} amenity_ids Array of amenity IDs
  *
  * @apiSampleRequest /api/v1/admin/locations/1/amenities
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "code": 200,
- *   "message": "Amenities attached successfully",
- *   "data": null
- * }
  */
 
 /**
@@ -272,13 +248,5 @@
  * @apiParam {Number} id Location id
  * @apiParam {Number} amenityId Amenity id
  *
- * @apiSampleRequest /api/v1/admin/locations/1/amenities/1
- *
- * @apiSuccessExample {json} Success-Response:
- * HTTP/1.1 200 OK
- * {
- *   "code": 200,
- *   "message": "Amenity detached successfully",
- *   "data": null
- * }
+ * @apiSampleRequest /api/v1/admin/locations/1/amenities/10
  */

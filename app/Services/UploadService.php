@@ -8,6 +8,10 @@ use Exception;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 
+/**
+ * Class UploadService
+ * (Dịch vụ xử lý việc tải lên)
+ */
 final class UploadService
 {
     /**

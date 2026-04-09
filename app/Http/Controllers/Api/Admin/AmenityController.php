@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\AmenityValidation;
+use App\Http\Requests\Amenity\StoreAmenityRequest;
 use App\Services\AmenityService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class AmenityController
@@ -26,14 +25,9 @@ final class AmenityController extends Controller
      * Store a new amenity.
      * (Tạo tiện ích mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreAmenityRequest $request): JsonResponse
     {
-        $validator = AmenityValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->amenityService->createAmenity($validator->validated());
+        $result = $this->amenityService->createAmenity($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'])

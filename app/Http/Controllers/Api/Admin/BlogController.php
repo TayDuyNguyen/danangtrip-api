@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\BlogValidation;
+use App\Http\Requests\Blog\PublishBlogRequest;
+use App\Http\Requests\Blog\StoreBlogRequest;
+use App\Http\Requests\Blog\UpdateBlogRequest;
 use App\Services\BlogService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class BlogController
@@ -27,15 +28,10 @@ final class BlogController extends Controller
      * Store a new blog post.
      * (Tạo bài viết Blog mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreBlogRequest $request): JsonResponse
     {
-        $validator = BlogValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $authorId = auth('api')->id();
-        $result = $this->blogService->createBlogPost($validator->validated(), $authorId);
+        $result = $this->blogService->createBlogPost($request->validated(), $authorId);
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], 'Blog post created successfully.')
@@ -46,14 +42,9 @@ final class BlogController extends Controller
      * Update an existing blog post.
      * (Cập nhật bài viết Blog)
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateBlogRequest $request, int $id): JsonResponse
     {
-        $validator = BlogValidation::validateUpdate($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->blogService->updateBlogPost($id, $validator->validated());
+        $result = $this->blogService->updateBlogPost($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Blog post updated successfully.')
@@ -77,13 +68,8 @@ final class BlogController extends Controller
      * Publish/Unpublish a blog post.
      * (Xuất bản/ẩn bài viết Blog)
      */
-    public function publish(Request $request, int $id): JsonResponse
+    public function publish(PublishBlogRequest $request, int $id): JsonResponse
     {
-        $validator = BlogValidation::validatePublish($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->blogService->togglePublishStatus($id, $request->input('status'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

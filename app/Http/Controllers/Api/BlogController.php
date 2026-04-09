@@ -4,10 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\BlogValidation;
+use App\Http\Requests\Blog\IndexBlogRequest;
 use App\Services\BlogService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class BlogController
@@ -27,13 +26,8 @@ final class BlogController extends Controller
      * Display a listing of blog posts.
      * (Danh sách bài viết Blog)
      */
-    public function index(Request $request): JsonResponse
+    public function index(IndexBlogRequest $request): JsonResponse
     {
-        $validator = BlogValidation::validateIndex($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->blogService->getPublicPosts($request->all());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

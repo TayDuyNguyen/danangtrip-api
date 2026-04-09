@@ -202,6 +202,66 @@
  */
 
 /**
+ * @api {get} /api/v1/locations/districts Get Location Districts
+ * @apiName GetLocationDistricts
+ * @apiGroup Locations
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns a list of all districts used by active locations.
+ *
+ * @apiSampleRequest /api/v1/locations/districts
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": ["Hải Châu", "Thanh Khê", "Sơn Trà"]
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/locations/:id/images Get Location Images
+ * @apiName GetLocationImages
+ * @apiGroup Locations
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns all approved images for a specific location.
+ *
+ * @apiParam {Number} id Location id
+ *
+ * @apiSampleRequest /api/v1/locations/1/images
+ */
+
+/**
+ * @api {get} /api/v1/locations/:id/rating-stats Get Location Rating Stats
+ * @apiName GetLocationRatingStats
+ * @apiGroup Locations
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns rating distribution (1-5 stars) for a location.
+ *
+ * @apiParam {Number} id Location id
+ *
+ * @apiSampleRequest /api/v1/locations/1/rating-stats
+ */
+
+/**
+ * @api {get} /api/v1/locations/:id/nearby Get Nearby Locations (Specific)
+ * @apiName GetNearbySpecificLocations
+ * @apiGroup Locations
+ * @apiVersion 1.0.0
+ *
+ * @apiDescription Public endpoint. Returns nearby locations for a specific location based on its coordinates.
+ *
+ * @apiParam {Number} id Location id
+ * @apiQuery {Number{0.1-50}} [radius=5] Radius in kilometers
+ * @apiQuery {Number{1-100}} [limit=10] Max items
+ *
+ * @apiSampleRequest /api/v1/locations/1/nearby
+ */
+
+/**
  * @api {post} /api/v1/locations/:id/view Record Location View
  * @apiName RecordLocationView
  * @apiGroup Locations

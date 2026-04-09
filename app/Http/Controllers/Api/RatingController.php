@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\RatingValidation;
+use App\Http\Requests\Rating\DestroyRatingRequest;
+use App\Http\Requests\Rating\HelpfulRatingRequest;
+use App\Http\Requests\Rating\StoreRatingRequest;
+use App\Http\Requests\Rating\UpdateRatingRequest;
 use App\Services\RatingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,14 +29,9 @@ final class RatingController extends Controller
      *
      * @param Request request
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreRatingRequest $request): JsonResponse
     {
-        $validator = RatingValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $data = $validator->validated();
+        $data = $request->validated();
         $data['user_id'] = auth('api')->id();
 
         $result = $this->ratingService->createRating($data, $request);
@@ -47,14 +45,9 @@ final class RatingController extends Controller
      * Update a rating of the authenticated user.
      * (Cập nhật đánh giá của chính mình)
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateRatingRequest $request, int $id): JsonResponse
     {
-        $validator = RatingValidation::validateUpdate($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $data = $validator->validated();
+        $data = $request->validated();
         $userId = auth('api')->id();
 
         $result = $this->ratingService->updateRating($userId, $id, $data, $request);
@@ -68,13 +61,8 @@ final class RatingController extends Controller
      * Delete a rating of the authenticated user.
      * (Xóa đánh giá của chính mình)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DestroyRatingRequest $request, int $id): JsonResponse
     {
-        $validator = RatingValidation::validateDestroy($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = auth('api')->id();
 
         $result = $this->ratingService->deleteRating($userId, $id);
@@ -88,13 +76,8 @@ final class RatingController extends Controller
      * Mark a rating as helpful.
      * (Đánh dấu đánh giá hữu ích)
      */
-    public function helpful(int $id): JsonResponse
+    public function helpful(HelpfulRatingRequest $request, int $id): JsonResponse
     {
-        $validator = RatingValidation::validateHelpful($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->ratingService->markHelpful($id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

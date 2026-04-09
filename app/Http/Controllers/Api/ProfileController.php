@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\ProfileValidation;
+use App\Http\Requests\Profile\AvatarProfileRequest;
+use App\Http\Requests\Profile\PasswordProfileRequest;
+use App\Http\Requests\Profile\RatingsProfileRequest;
+use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,15 +41,10 @@ final class ProfileController extends Controller
      * Update user profile information.
      * (Cập nhật thông tin cá nhân)
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateProfileRequest $request): JsonResponse
     {
-        $validator = ProfileValidation::validateUpdate($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
-        $result = $this->profileService->updateProfile($userId, $validator->validated());
+        $result = $this->profileService->updateProfile($userId, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'])
@@ -57,13 +55,8 @@ final class ProfileController extends Controller
      * Upload and update user avatar.
      * (Upload và cập nhật ảnh đại diện)
      */
-    public function updateAvatar(Request $request): JsonResponse
+    public function updateAvatar(AvatarProfileRequest $request): JsonResponse
     {
-        $validator = ProfileValidation::validateAvatar($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
         $result = $this->profileService->updateAvatar($userId, $request->file('avatar'));
 
@@ -76,15 +69,10 @@ final class ProfileController extends Controller
      * Change user password.
      * (Thay đổi mật khẩu người dùng)
      */
-    public function changePassword(Request $request): JsonResponse
+    public function changePassword(PasswordProfileRequest $request): JsonResponse
     {
-        $validator = ProfileValidation::validatePassword($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
-        $data = $validator->validated();
+        $data = $request->validated();
 
         $result = $this->profileService->changePassword($userId, $data['current_password'], $data['password']);
 
@@ -97,15 +85,10 @@ final class ProfileController extends Controller
      * Get user rating history.
      * (Lấy lịch sử đánh giá của người dùng)
      */
-    public function ratings(Request $request): JsonResponse
+    public function ratings(RatingsProfileRequest $request): JsonResponse
     {
-        $validator = ProfileValidation::validateRatings($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $userId = $request->user()->id;
-        $result = $this->profileService->getRatingHistory($userId, $validator->validated());
+        $result = $this->profileService->getRatingHistory($userId, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

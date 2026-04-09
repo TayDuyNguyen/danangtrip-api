@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Exports\ToursExport;
 use App\Http\Controllers\Controller;
-use App\Http\Validations\TourValidation;
+use App\Http\Requests\Tour\PatchStatusTourRequest;
+use App\Http\Requests\Tour\ShowTourRequest;
+use App\Http\Requests\Tour\StoreTourRequest;
+use App\Http\Requests\Tour\UpdateTourRequest;
 use App\Services\TourService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
@@ -30,14 +32,9 @@ final class TourController extends Controller
      * Store a new tour.
      * (Tạo tour mới)
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreTourRequest $request): JsonResponse
     {
-        $validator = TourValidation::validateStore($request);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->tourService->createTour($validator->validated());
+        $result = $this->tourService->createTour($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created(['tour' => $result['data']], 'Tour created successfully')
@@ -48,14 +45,9 @@ final class TourController extends Controller
      * Update an existing tour.
      * (Cập nhật tour)
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(UpdateTourRequest $request, int $id): JsonResponse
     {
-        $validator = TourValidation::validateUpdate($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
-        $result = $this->tourService->updateTour($id, $validator->validated());
+        $result = $this->tourService->updateTour($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(['tour' => $result['data']], 'Tour updated successfully')
@@ -66,13 +58,8 @@ final class TourController extends Controller
      * Delete a tour.
      * (Xóa tour)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(ShowTourRequest $request, int $id): JsonResponse
     {
-        $validator = TourValidation::validateShow($id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tourService->deleteTour($id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
@@ -84,13 +71,8 @@ final class TourController extends Controller
      * Update tour status.
      * (Đổi trạng thái tour)
      */
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(PatchStatusTourRequest $request, int $id): JsonResponse
     {
-        $validator = TourValidation::validatePatchStatus($request, $id);
-        if ($validator->fails()) {
-            return $this->validation_error($validator->errors());
-        }
-
         $result = $this->tourService->updateStatus($id, $request->status);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

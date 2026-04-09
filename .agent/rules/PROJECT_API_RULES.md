@@ -13,8 +13,8 @@ An API request in this project starts at the HTTP boundary and ends as a standar
 **Core pipeline**
 1. **Route matching** (Laravel router)
 2. **Middleware chain**
-3. **Controller action**
-4. **Validation layer** (static validation classes)
+3. **Validation layer** (FormRequest injection)
+4. **Controller action**
 5. **Service layer** (business logic)
 6. **Repository layer** (data access via Eloquent)
 7. **Model / DB** (Eloquent models + migrations)
@@ -63,9 +63,8 @@ Controllers live under:
 - `App\Http\Controllers\Api\Admin\...` (admin)
 
 Controller responsibilities:
-- Parse input from `Request` and route params.
-- Call the correct `Validation` method and return validation errors early.
-- Call a `Service` method with validated data only.
+- Receive `FormRequest` or `Request` containing already-validated data from the route injection.
+- Call a `Service` method with the validated data (e.g. `$request->validated()`).
 - Convert `Service` results to standardized JSON responses.
 
 Controllers MUST NOT:
@@ -94,27 +93,26 @@ Use these helpers consistently:
 - `not_found($message?)`
 - `server_error($message?)`
 
-## 5) Validation Rules (Input validation)
+## 5) Validation Rules (FormRequest)
 
-Validation lives in `App\Http\Validations\*Validation.php`.
+Validation logic lives in `App\Http\Requests\*\...Request.php` matching the controller domain (e.g., `App\Http\Requests\Auth\LoginRequest.php`).
 
 Pattern:
-- Static methods returning a Laravel `Validator` instance.
-- Controllers call:
-  - `$validator = XValidation::validateSomething($request, ...)`
-  - `if ($validator->fails()) return $this->validation_error($validator->errors());`
-  - `$validated = $validator->validated();`
+- All new validation must extend `Illuminate\Foundation\Http\FormRequest`.
+- Controllers must inject the `FormRequest` class directly into their method signature. Laravel will automatically run the validation before entering the controller.
+- All `FormRequest` classes must implement `authorize(): bool` (usually returning `true` since authorization often happens in middleware/gates) and `rules(): array`.
+- Validation errors are automatically caught and transformed into our standardized `ApiResponser` format (422 JSON) via the exception handler in `bootstrap/app.php`.
 
 ### Hard rules for Validation Messages
-- Every validation class MUST have a `protected static function messages(): array` method to centralize all validation error messages.
-- All messages in this method MUST be in English.
-- Use these messages in the `Validator::make` call: `Validator::make($data, $rules, self::messages())`.
+- Every `FormRequest` class SHOULD implement the `messages(): array` method.
+- Messages should generally provide an English version, optionally followed by a Vietnamese translation in parentheses to match current frontend expectations. (e.g., `'email.required' => 'The email address is required. (Địa chỉ email là bắt buộc.)'`).
 
 Rules:
 - Validation constraints MUST match database constraints from migrations:
   - string lengths, required/nullable, unique indexes, etc.
 - Prefer `sometimes` for optional update fields.
-- Use `exists:<table>,<column>` and `unique:<table>,<column>[,<ignoreId>]` as appropriate.
+- Use `exists:<table>,<column>` and `Rule::unique(...)` as appropriate.
+- Fetch validated data in the controller using `$request->validated()`.
 
 ## 6) Service Rules (Business logic)
 
@@ -208,13 +206,12 @@ Example patterns (do not copy-paste into code blindly; match surrounding style):
     - ` * @param Request $request`
     - ` * @return JsonResponse`
     - ` */`
-  - Validation method (typical, matches SearchValidation):
-    - `/**`
+    - ` * Validation method (deprecated style):`
     - ` * Validate something.`
     - ` * (Xác thực ...)`
     - ` *`
     - ` * @param Request $request`
-    - ` * @return ValidatorInstance`
+    - ` * @return array`
     - ` */`
   - Service method (typical):
     - `/**`
@@ -258,9 +255,10 @@ Rules for `@return`:
 
 1. Add route in `routes/api.php` under the correct group (public/protected/admin).
 2. Create/extend a controller method in the correct namespace.
-3. Add a validation method in the appropriate `*Validation.php`.
-4. Add or update a service method to implement business logic.
-5. Use repositories for ALL DB access; add repository methods whenever a query/write is needed.
+3. Create a `FormRequest` class in `app/Http/Requests/...` for input validation.
+4. Type-hint the `FormRequest` in the controller method signature.
+5. Add or update a service method to implement business logic.
+6. Use repositories for ALL DB access; add repository methods whenever a query/write is needed.
 6. If you need a new table/model, also create:
    - `App\Repositories\Interfaces\XRepositoryInterface`
    - `App\Repositories\Eloquent\XRepository`
@@ -275,7 +273,7 @@ Rules for `@return`:
 - Do not introduce new response shapes; always use ApiResponser format.
 - Do not bypass middleware for protected/admin endpoints.
 - Prefer existing patterns (services return `status/data/message`) over ad-hoc responses.
-- **Magic Numbers & Enums**: Avoid using "magic numbers" (like `10`, `20`, `404`) directly in the code. Instead, use defined constants in the `App\Enums` namespace (e.g., `Pagination::PER_PAGE->value`, `HttpStatusCode::OK->value`).
+- **Magic Numbers & Enums**: Avoid using "magic numbers" (like `10`, `20`, `404`) directly in the code. Instead, use defined constants in the `App\Enums` namespace.
 - **Logging**: Do not use `Log::error` in services or controllers for general error handling. It should only be used temporarily for debugging and must be removed before commit.
-- **Response Language**: All API response messages (the `message` field) MUST be in English. Vietnamese is allowed only in PHPDoc translations.
-- **Validation Messages**: Every validation class MUST have a `protected static function messages(): array` method to centralize all validation error messages. All messages in this method MUST be in English. Use these messages in the `Validator::make` call: `Validator::make($data, $rules, self::messages())`.
+- **Response Language**: All API response messages (the `message` field) MUST be in English. Vietnamese is allowed only in PHPDoc translations and FormRequest `messages()` arrays.
+- **Validation Classes**: Always use Laravel `FormRequest` classes injected into controller methods. Do not write custom static Validation classes.

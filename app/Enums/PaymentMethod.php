@@ -8,6 +8,9 @@ enum PaymentMethod: string
     case CREDIT_CARD = 'credit_card';
     case PAYPAL = 'paypal';
     case CASH = 'cash';
+    case MOMO = 'momo';
+    case VNPAY = 'vnpay';
+    case ZALOPAY = 'zalopay';
 
     /**
      * Get all values of the enum.

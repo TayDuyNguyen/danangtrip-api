@@ -38,4 +38,15 @@ interface SearchLogRepositoryInterface extends RepositoryInterface
      * @return string[] Suggested queries.
      */
     public function getQuerySuggestions(string $q, int $limit = 5, int $days = 30): array;
+
+    /**
+     * Get popular search queries with optional filters.
+     * (Lấy danh sách từ khóa tìm kiếm phổ biến với bộ lọc tùy chọn)
+     *
+     * @param  array  $filters  Filters to apply (e.g., ['district' => 'Hai Chau']).
+     * @param  int  $limit  Max items to return.
+     * @param  int  $days  Lookback window (days).
+     * @return array<int, array{query:string,count:int}> Popular queries and counts.
+     */
+    public function getPopularQueriesByFilters(array $filters = [], int $limit = 10, int $days = 30): array;
 }
