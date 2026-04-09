@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class LocationService
@@ -36,7 +37,9 @@ final class LocationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $locations,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get locations',
@@ -57,7 +60,9 @@ final class LocationService
             }
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $location];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location'];
         }
     }
@@ -72,7 +77,9 @@ final class LocationService
             $locations = $this->locationRepository->getFeaturedLocations($limit);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get featured locations'];
         }
     }
@@ -87,7 +94,9 @@ final class LocationService
             $locations = $this->locationRepository->getNearbyLocations($data);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get nearby locations'];
         }
     }
@@ -113,7 +122,9 @@ final class LocationService
             });
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'View recorded'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to record view'];
         }
     }
@@ -135,7 +146,9 @@ final class LocationService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $location,
             ];
-        } catch (\Throwable $_) {
+        } catch (\Throwable $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create location',
@@ -162,7 +175,9 @@ final class LocationService
             $this->locationRepository->update($id, $data);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $this->locationRepository->find($id)];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to update location'];
         }
     }
@@ -177,7 +192,9 @@ final class LocationService
             $deleted = $this->locationRepository->delete($id);
 
             return $deleted ? ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Deleted'] : ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Not found'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to delete location'];
         }
     }
@@ -192,7 +209,9 @@ final class LocationService
             $ratings = $this->locationRepository->getApprovedRatings($id, $request);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $ratings];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location ratings'];
         }
     }
@@ -207,7 +226,9 @@ final class LocationService
             $districts = $this->locationRepository->getDistrictsWithLocations();
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $districts];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get districts'];
         }
     }
@@ -225,7 +246,9 @@ final class LocationService
             }
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => ['images' => $location->images ?? []]];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location images'];
         }
     }
@@ -240,7 +263,9 @@ final class LocationService
             $stats = $this->locationRepository->getRatingStats($id);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $stats];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get rating stats'];
         }
     }
@@ -255,7 +280,9 @@ final class LocationService
             $locations = $this->locationRepository->getNearbyLocationsById($id, $limit);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get nearby locations'];
         }
     }
@@ -270,7 +297,9 @@ final class LocationService
             $this->locationRepository->attachTags($id, $tagIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tags attached successfully'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach tags'];
         }
     }
@@ -285,7 +314,9 @@ final class LocationService
             $this->locationRepository->detachTag($id, $tagId);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tag detached successfully'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach tag'];
         }
     }
@@ -300,7 +331,9 @@ final class LocationService
             $this->locationRepository->attachAmenities($id, $amenityIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenities attached successfully'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach amenities'];
         }
     }
@@ -315,7 +348,9 @@ final class LocationService
             $this->locationRepository->detachAmenity($id, $amenityId);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenity detached successfully'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach amenity'];
         }
     }
@@ -330,7 +365,9 @@ final class LocationService
             $data = $this->locationRepository->getExportData();
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $data];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get export data'];
         }
     }

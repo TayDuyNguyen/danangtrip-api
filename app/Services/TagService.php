@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class TagService
@@ -35,6 +36,8 @@ final class TagService
                 'data' => $tags,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve tags.',
@@ -57,6 +60,8 @@ final class TagService
                 'message' => 'Tag created successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create tag.',

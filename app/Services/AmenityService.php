@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\AmenityRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class AmenityService
@@ -35,6 +36,8 @@ final class AmenityService
                 'data' => $amenities,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve amenities.',
@@ -57,6 +60,8 @@ final class AmenityService
                 'message' => 'Amenity created successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create amenity.',
@@ -87,6 +92,8 @@ final class AmenityService
                 'message' => 'Amenity deleted successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete amenity.',

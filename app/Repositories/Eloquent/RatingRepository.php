@@ -6,6 +6,7 @@ use App\Enums\Pagination;
 use App\Models\Rating;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Class RatingRepository
@@ -30,7 +31,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     public function paginateForAdmin(array $filters): LengthAwarePaginator
     {
         $query = $this->model->newQuery()
-            ->with(['user', 'location', 'images', 'approver'])
+            ->with(['user', 'location', 'tour', 'images', 'approver'])
             ->orderByDesc('created_at');
 
         if (isset($filters['status'])) {
@@ -39,6 +40,18 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
 
         if (isset($filters['location_id'])) {
             $query->where('location_id', $filters['location_id']);
+        }
+
+        if (isset($filters['tour_id'])) {
+            $query->where('tour_id', $filters['tour_id']);
+        }
+
+        if (isset($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
@@ -108,6 +121,26 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     }
 
     /**
+     * Get approved rating stats for a tour.
+     * (Lấy thống kê đánh giá đã duyệt cho một tour)
+     *
+     * @return array{review_count:int,avg_rating:float}
+     */
+    public function getApprovedStatsForTour(int $tourId): array
+    {
+        $row = $this->model->newQuery()
+            ->where('tour_id', $tourId)
+            ->where('status', 'approved')
+            ->selectRaw('COUNT(*) as review_count, AVG(score) as avg_rating')
+            ->first();
+
+        return [
+            'review_count' => (int) ($row->review_count ?? 0),
+            'avg_rating' => round((float) ($row->avg_rating ?? 0), 1),
+        ];
+    }
+
+    /**
      * Get ratings by user with filters and pagination.
      * (Lấy danh sách đánh giá của người dùng với bộ lọc và phân trang)
      */
@@ -115,7 +148,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     {
         $query = $this->model->newQuery()
             ->where('user_id', $userId)
-            ->with(['location', 'images'])
+            ->with(['location', 'tour', 'images'])
             ->orderByDesc('created_at');
 
         if (isset($filters['status'])) {
@@ -126,6 +159,58 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Check if a user has already rated an item.
+     * (Kiểm tra xem người dùng đã đánh giá một mục chưa)
+     */
+    public function checkUserRated(int $userId, array $params): ?Rating
+    {
+        $query = $this->model->newQuery()->where('user_id', $userId);
+
+        if (isset($params['location_id'])) {
+            $query->where('location_id', $params['location_id']);
+        } elseif (isset($params['tour_id'])) {
+            $query->where('tour_id', $params['tour_id']);
+        } elseif (isset($params['booking_id'])) {
+            $query->where('booking_id', $params['booking_id']);
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Collection of ratings for export.
+     * (Duyệt danh sách đánh giá phục vụ export)
+     */
+    public function searchForExport(array $filters): Collection
+    {
+        $query = $this->model->newQuery()
+            ->with(['user', 'location', 'tour', 'approver'])
+            ->orderByDesc('created_at');
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['location_id'])) {
+            $query->where('location_id', $filters['location_id']);
+        }
+
+        if (isset($filters['tour_id'])) {
+            $query->where('tour_id', $filters['tour_id']);
+        }
+
+        if (isset($filters['date_from'])) {
+            $query->whereDate('created_at', '>=', $filters['date_from']);
+        }
+
+        if (isset($filters['date_to'])) {
+            $query->whereDate('created_at', '<=', $filters['date_to']);
+        }
+
+        return $query->get();
     }
 
     /**

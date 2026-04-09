@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Exception;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -43,6 +44,8 @@ final class UploadService
                 'message' => 'Image uploaded successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to upload image.',
@@ -102,6 +105,8 @@ final class UploadService
                 'message' => 'Images uploaded successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to upload images.',
@@ -137,6 +142,8 @@ final class UploadService
                 'message' => 'Image deleted successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete image.',

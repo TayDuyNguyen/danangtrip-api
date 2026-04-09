@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class UserService
@@ -34,7 +35,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $users,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get users',
@@ -61,7 +64,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get user details',
@@ -97,7 +102,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'User status updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update user status',
@@ -133,7 +140,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'User role updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update user role',
@@ -154,7 +163,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $users,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get all users',
@@ -181,7 +192,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get user by ID',
@@ -206,7 +219,9 @@ class UserService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create user',
@@ -252,7 +267,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update user',
@@ -288,7 +305,9 @@ class UserService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'User deleted successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete user',

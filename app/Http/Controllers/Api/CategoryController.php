@@ -5,28 +5,31 @@ namespace App\Http\Controllers\Api;
 use App\Enums\HttpStatusCode;
 use App\Enums\Pagination;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Category\ShowCategoryRequest;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 
 /**
  * Class CategoryController
- * Handles API requests for categories.
- * (Xử lý các yêu cầu API cho danh mục)
+ * (Controller xử lý các yêu cầu liên quan đến Danh mục)
  */
-final class CategoryController extends Controller
+class CategoryController extends Controller
 {
     /**
-     * CategoryController constructor.
-     * (Khởi tạo CategoryController)
+     * @var CategoryService
      */
-    public function __construct(
-        protected CategoryService $categoryService
-    ) {}
+    protected $categoryService;
 
     /**
-     * Get all public categories (with subcategories).
-     * (Lấy danh sách tất cả danh mục public kèm danh mục con)
+     * CategoryController constructor.
+     */
+    public function __construct(CategoryService $categoryService)
+    {
+        $this->categoryService = $categoryService;
+    }
+
+    /**
+     * Display a listing of public categories.
+     * (Hiển thị danh sách các danh mục công khai)
      */
     public function index(): JsonResponse
     {
@@ -38,10 +41,10 @@ final class CategoryController extends Controller
     }
 
     /**
-     * Get public category detail by id.
-     * (Lấy chi tiết danh mục public theo id)
+     * Display the specified public category.
+     * (Hiển thị danh mục công khai cụ thể)
      */
-    public function show(ShowCategoryRequest $request, int $id): JsonResponse
+    public function show(int $id): JsonResponse
     {
         $result = $this->categoryService->getPublicCategoryById($id);
 
@@ -51,8 +54,8 @@ final class CategoryController extends Controller
     }
 
     /**
-     * Get active locations for a specific category identified by slug.
-     * (Lấy danh sách địa điểm theo slug danh mục)
+     * Get locations by category slug with pagination.
+     * (Lấy danh sách địa điểm theo slug Danh mục kèm phân trang)
      */
     public function locationsBySlug(string $slug): JsonResponse
     {

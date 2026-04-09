@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class SubcategoryService
@@ -42,7 +43,9 @@ final class SubcategoryService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $subcategory,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create subcategory',
@@ -85,7 +88,9 @@ final class SubcategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $subcategory,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update subcategory',
@@ -112,7 +117,9 @@ final class SubcategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Subcategory deleted successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete subcategory',
@@ -141,7 +148,9 @@ final class SubcategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Subcategory status updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update subcategory status',

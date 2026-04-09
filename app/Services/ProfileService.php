@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -44,6 +45,8 @@ final class ProfileService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to fetch profile.',
@@ -80,6 +83,8 @@ final class ProfileService
                 'message' => 'Profile updated successfully.',
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'An error occurred while updating profile.',
@@ -120,6 +125,8 @@ final class ProfileService
                 'message' => 'Avatar updated successfully.',
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to upload avatar.',
@@ -158,6 +165,8 @@ final class ProfileService
                 'message' => 'Password changed successfully.',
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to change password.',

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class NotificationService
@@ -34,6 +35,8 @@ final class NotificationService
                 'data' => $notifications,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve notifications.',
@@ -63,6 +66,8 @@ final class NotificationService
                 'message' => 'Notification marked as read.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to mark notification as read.',
@@ -85,6 +90,8 @@ final class NotificationService
                 'message' => "{$updatedCount} notifications marked as read.",
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to mark all notifications as read.',

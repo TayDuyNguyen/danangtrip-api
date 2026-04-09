@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class CategoryService
@@ -40,7 +41,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $categories,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get categories',
@@ -68,7 +71,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $category,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get category',
@@ -105,7 +110,9 @@ final class CategoryService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $category,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create category',
@@ -148,7 +155,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $category,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update category',
@@ -190,7 +199,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Category deleted successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete category',
@@ -218,7 +229,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $paginator,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get locations for category',
@@ -247,7 +260,9 @@ final class CategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Category status updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update category status',

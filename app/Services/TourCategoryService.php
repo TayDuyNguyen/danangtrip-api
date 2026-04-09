@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TourCategoryRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class TourCategoryService
@@ -33,7 +34,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $categories,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get tour categories',
@@ -60,7 +63,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $tours,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get tours by category',
@@ -81,7 +86,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $categories,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get categories',
@@ -105,7 +112,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $category,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create tour category',
@@ -135,7 +144,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $this->tourCategoryRepository->find($id),
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update tour category',
@@ -168,7 +179,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Tour category deleted successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete tour category',
@@ -195,7 +208,9 @@ final class TourCategoryService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Status updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update status',

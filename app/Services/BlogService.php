@@ -7,6 +7,7 @@ use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -38,6 +39,8 @@ final class BlogService
                 'data' => $posts,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve blog posts.',
@@ -70,6 +73,8 @@ final class BlogService
                 'data' => $post,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve blog post details.',
@@ -91,6 +96,8 @@ final class BlogService
                 'data' => $categories,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve blog categories.',
@@ -131,6 +138,8 @@ final class BlogService
                     'data' => $post->load('categories'),
                 ];
             } catch (Exception $e) {
+                Log::error($e);
+
                 return [
                     'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                     'message' => 'Failed to create blog post.',
@@ -184,6 +193,8 @@ final class BlogService
                     'data' => $post->fresh('categories'),
                 ];
             } catch (Exception $e) {
+                Log::error($e);
+
                 return [
                     'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                     'message' => 'Failed to update blog post.',
@@ -215,6 +226,8 @@ final class BlogService
                 'message' => 'Blog post deleted successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete blog post.',
@@ -254,6 +267,8 @@ final class BlogService
                 'message' => 'Blog post status updated successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update blog post status.',

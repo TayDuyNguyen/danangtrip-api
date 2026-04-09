@@ -12,8 +12,11 @@ final class Rating extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id',
         'user_id',
         'location_id',
+        'tour_id',
+        'booking_id',
         'score',
         'comment',
         'image_count',
@@ -42,6 +45,16 @@ final class Rating extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function tour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class);
+    }
+
+    public function booking(): BelongsTo
+    {
+        return $this->belongsTo(Booking::class);
     }
 
     public function approver(): BelongsTo
