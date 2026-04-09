@@ -3,12 +3,20 @@
 namespace App\Http\Requests\Subcategory;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSubcategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'id' => $this->route('id'),
+        ]);
     }
 
     public function rules(): array
@@ -34,7 +42,7 @@ class UpdateSubcategoryRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:60',
-                'unique:subcategories,slug,1,id',
+                Rule::unique('subcategories', 'slug')->ignore($this->route('id')),
             ],
             'description' => [
                 'sometimes',

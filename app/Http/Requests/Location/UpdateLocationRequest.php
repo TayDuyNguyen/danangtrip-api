@@ -3,12 +3,20 @@
 namespace App\Http\Requests\Location;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateLocationRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'id' => $this->route('id'),
+        ]);
     }
 
     public function rules(): array
@@ -29,7 +37,7 @@ class UpdateLocationRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:220',
-                'unique:locations,slug,1,id',
+                Rule::unique('locations', 'slug')->ignore($this->route('id')),
             ],
             'category_id' => [
                 'sometimes',

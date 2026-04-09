@@ -3,12 +3,20 @@
 namespace App\Http\Requests\User;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'id' => $this->route('id'),
+        ]);
     }
 
     public function rules(): array
@@ -23,14 +31,14 @@ class UpdateUserRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:50',
-                'unique:users,username,1,id',
+                Rule::unique('users', 'username')->ignore($this->route('id')),
             ],
             'email' => [
                 'sometimes',
                 'string',
                 'email',
                 'max:100',
-                'unique:users,email,1,id',
+                Rule::unique('users', 'email')->ignore($this->route('id')),
             ],
             'password' => [
                 'sometimes',

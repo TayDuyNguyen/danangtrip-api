@@ -3,12 +3,20 @@
 namespace App\Http\Requests\Tour;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateTourRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'id' => $this->route('id'),
+        ]);
     }
 
     public function rules(): array
@@ -29,7 +37,7 @@ class UpdateTourRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:220',
-                'unique:tours,slug,1,id',
+                Rule::unique('tours', 'slug')->ignore($this->route('id')),
             ],
             'tour_category_id' => [
                 'sometimes',
