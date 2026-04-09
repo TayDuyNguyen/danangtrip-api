@@ -10,6 +10,7 @@ use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class BookingService
@@ -33,7 +34,9 @@ class BookingService
                 'data' => $bookings,
                 'message' => 'Bookings retrieved successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve bookings',
@@ -61,7 +64,9 @@ class BookingService
                 'data' => $booking,
                 'message' => 'Booking retrieved successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking',
@@ -96,7 +101,9 @@ class BookingService
                 'data' => $booking,
                 'message' => 'Booking retrieved successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking by code',
@@ -165,7 +172,9 @@ class BookingService
                 ],
                 'message' => 'Price calculated successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Price calculation failed',
@@ -263,7 +272,9 @@ class BookingService
                     'message' => 'Booking created successfully.',
                 ];
             });
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking creation failed',
@@ -322,7 +333,9 @@ class BookingService
                     'message' => 'Booking cancelled successfully.',
                 ];
             });
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking cancellation failed',
@@ -366,7 +379,9 @@ class BookingService
                     'message' => 'Booking confirmed successfully.',
                 ];
             });
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking confirmation failed',
@@ -409,7 +424,9 @@ class BookingService
                     'message' => 'Booking completed successfully.',
                 ];
             });
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking completion failed',
@@ -463,7 +480,9 @@ class BookingService
                     'message' => 'Booking cancelled successfully.',
                 ];
             });
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking cancellation failed',
@@ -505,7 +524,9 @@ class BookingService
                 'data' => $booking->fresh(),
                 'message' => 'Booking status updated successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update booking status',
@@ -526,7 +547,9 @@ class BookingService
                 'data' => $bookings,
                 'message' => 'User bookings retrieved successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve user bookings',

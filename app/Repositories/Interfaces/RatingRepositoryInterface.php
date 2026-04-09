@@ -4,6 +4,7 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\Rating;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Interface RatingRepositoryInterface
@@ -45,10 +46,30 @@ interface RatingRepositoryInterface extends RepositoryInterface
     public function getApprovedStatsForLocation(int $locationId): array;
 
     /**
+     * Get approved rating stats for a tour.
+     * (Lấy thống kê đánh giá đã duyệt cho một tour)
+     *
+     * @return array{review_count:int,avg_rating:float}
+     */
+    public function getApprovedStatsForTour(int $tourId): array;
+
+    /**
      * Get ratings by user with filters and pagination.
      * (Lấy danh sách đánh giá của người dùng với bộ lọc và phân trang)
      */
     public function getByUserPaginated(int $userId, array $filters): LengthAwarePaginator;
+
+    /**
+     * Check if a user has already rated an item.
+     * (Kiểm tra xem người dùng đã đánh giá một mục chưa)
+     */
+    public function checkUserRated(int $userId, array $params): ?Rating;
+
+    /**
+     * Collection of ratings for export.
+     * (Duyệt danh sách đánh giá phục vụ export)
+     */
+    public function searchForExport(array $filters): Collection;
 
     /**
      * Get total rating count.

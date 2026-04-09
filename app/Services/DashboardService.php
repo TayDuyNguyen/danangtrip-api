@@ -7,6 +7,7 @@ use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class DashboardService
@@ -44,6 +45,8 @@ final class DashboardService
                 'data' => $stats,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve overview statistics.',
@@ -68,6 +71,8 @@ final class DashboardService
                 'data' => $data,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve location reports.',
@@ -93,6 +98,8 @@ final class DashboardService
                 'data' => $data,
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve rating reports.',

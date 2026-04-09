@@ -8,6 +8,7 @@ use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -51,7 +52,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Register failed',
@@ -92,9 +95,11 @@ class AuthService
                 ],
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Login failed: '.$e->getMessage(),
+                'message' => 'Login failed',
             ];
         }
     }
@@ -120,7 +125,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Logout successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Logout failed',
@@ -187,9 +194,11 @@ class AuthService
                 ],
             ];
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Refresh failed: '.$e->getMessage(),
+                'message' => 'Refresh failed',
             ];
         }
     }
@@ -204,7 +213,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password reset link sent to your email.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to process forgot password request.',
@@ -222,7 +233,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password has been reset successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to reset password.',
@@ -242,7 +255,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Email verified successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to verify email.',
@@ -267,7 +282,9 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Verification email resent successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to resend verification email.',

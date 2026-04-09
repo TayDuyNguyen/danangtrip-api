@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Models\Tour;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class TourScheduleService
@@ -36,7 +37,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $schedules,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get tour schedules',
@@ -63,7 +66,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $schedule,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get tour schedule',
@@ -94,7 +99,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $schedule,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create tour schedule',
@@ -140,7 +147,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $this->tourScheduleRepository->find($id),
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update tour schedule',
@@ -174,7 +183,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Tour schedule deleted successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete tour schedule',
@@ -201,7 +212,9 @@ final class TourScheduleService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Status updated successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update status',

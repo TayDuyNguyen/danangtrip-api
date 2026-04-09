@@ -7,6 +7,7 @@ use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class SearchService
@@ -53,7 +54,9 @@ final class SearchService
                     'results' => $paginator,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to search locations',
@@ -80,7 +83,9 @@ final class SearchService
                     'suggestions' => $fromLocations,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get suggestions',
@@ -104,7 +109,9 @@ final class SearchService
                     'popular' => $this->searchLogRepository->getPopularQueries($limit, $days),
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get popular queries',

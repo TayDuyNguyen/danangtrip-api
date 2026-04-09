@@ -7,9 +7,11 @@ use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use App\Repositories\Interfaces\TourRepositoryInterface;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -27,8 +29,61 @@ final class RatingService
         protected RatingRepositoryInterface $ratingRepository,
         protected RatingImageRepositoryInterface $ratingImageRepository,
         protected NotificationRepositoryInterface $notificationRepository,
-        protected LocationRepositoryInterface $locationRepository
+        protected LocationRepositoryInterface $locationRepository,
+        protected TourRepositoryInterface $tourRepository
     ) {}
+
+    /**
+     * Check if user has rated a location, tour, or booking.
+     * (Kiểm tra xem người dùng đã đánh giá chưa)
+     */
+    public function checkRating(int $userId, array $params): array
+    {
+        try {
+            $rating = $this->ratingRepository->checkUserRated($userId, $params);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'has_rated' => (bool) $rating,
+                    'rating' => $rating,
+                ],
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to check rating',
+            ];
+        }
+    }
+
+    /**
+     * Get images for a rating.
+     * (Lấy danh sách ảnh của đánh giá)
+     */
+    public function getImages(int $ratingId): array
+    {
+        try {
+            $rating = $this->ratingRepository->find($ratingId);
+            if (! $rating) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $rating->images()->get(),
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get images',
+            ];
+        }
+    }
 
     /**
      * Create a new rating.
@@ -38,16 +93,27 @@ final class RatingService
     {
         try {
             $rating = DB::transaction(function () use ($data, $request) {
-                $rating = $this->ratingRepository->create([
+                $ratingData = [
                     'user_id' => $data['user_id'],
-                    'location_id' => $data['location_id'],
                     'score' => $data['score'],
                     'comment' => $data['comment'] ?? null,
                     'status' => 'approved',
                     'rejected_reason' => null,
                     'approved_by' => null,
                     'approved_at' => now(),
-                ]);
+                ];
+
+                if (isset($data['location_id'])) {
+                    $ratingData['location_id'] = $data['location_id'];
+                } elseif (isset($data['tour_id'])) {
+                    $ratingData['tour_id'] = $data['tour_id'];
+                }
+
+                if (isset($data['booking_id'])) {
+                    $ratingData['booking_id'] = $data['booking_id'];
+                }
+
+                $rating = $this->ratingRepository->create($ratingData);
 
                 $imageUrls = $this->storeRatingImages($request, $rating->id);
                 if (count($imageUrls) > 0) {
@@ -67,7 +133,9 @@ final class RatingService
                 'data' => $rating,
                 'message' => 'Rating created successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create rating',
@@ -122,7 +190,11 @@ final class RatingService
                 }
 
                 if ($wasApproved) {
-                    $this->locationRepository->updateStats((int) $rating->location_id);
+                    if ($rating->location_id) {
+                        $this->locationRepository->updateStats((int) $rating->location_id);
+                    } elseif ($rating->tour_id) {
+                        $this->tourRepository->updateStats((int) $rating->tour_id);
+                    }
                 }
 
                 return [
@@ -132,7 +204,9 @@ final class RatingService
             });
 
             return $result;
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update rating',
@@ -163,7 +237,11 @@ final class RatingService
                 $this->ratingRepository->delete($rating->id);
 
                 if ($wasApproved) {
-                    $this->locationRepository->updateStats($locationId);
+                    if ($rating->location_id) {
+                        $this->locationRepository->updateStats((int) $rating->location_id);
+                    } elseif ($rating->tour_id) {
+                        $this->tourRepository->updateStats((int) $rating->tour_id);
+                    }
                 }
 
                 return [
@@ -173,7 +251,9 @@ final class RatingService
             });
 
             return $result;
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete rating',
@@ -204,7 +284,9 @@ final class RatingService
                 'data' => $rating,
                 'message' => 'Marked as helpful',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to mark helpful',
@@ -223,7 +305,9 @@ final class RatingService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $this->ratingRepository->paginateForAdmin($filters),
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get ratings',
@@ -255,15 +339,38 @@ final class RatingService
                     'rejected_reason' => null,
                 ]);
 
+                // Update scores and review counts
+                if ($rating->location_id) {
+                    $this->locationRepository->updateStats((int) $rating->location_id);
+                } elseif ($rating->tour_id) {
+                    $this->tourRepository->updateStats((int) $rating->tour_id);
+                }
+
+                // Notify user
+                $this->notificationRepository->create([
+                    'user_id' => $rating->user_id,
+                    'type' => 'rating_approved',
+                    'title' => 'Bài đánh giá được duyệt',
+                    'content' => 'Bài đánh giá của bạn đã được quản trị viên phê duyệt thành công. Cảm ơn sự đóng góp của bạn!',
+                    'data' => [
+                        'rating_id' => $rating->id,
+                        'score' => $rating->score,
+                    ],
+                    'is_read' => false,
+                    'created_at' => now(),
+                ]);
+
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'images', 'approver']),
+                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'tour', 'images', 'approver']),
                     'message' => 'Rating approved',
                 ];
             });
 
             return $result;
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to approve rating',
@@ -310,16 +417,83 @@ final class RatingService
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'images', 'approver']),
+                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'tour', 'images', 'approver']),
                     'message' => 'Rating rejected',
                 ];
             });
 
             return $result;
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to reject rating',
+            ];
+        }
+    }
+
+    /**
+     * Admin: delete a rating.
+     * (Admin: xóa đánh giá)
+     */
+    public function adminDelete(int $id): array
+    {
+        try {
+            $result = DB::transaction(function () use ($id) {
+                $rating = $this->ratingRepository->find($id);
+                if (! $rating) {
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
+                }
+
+                $locationId = $rating->location_id ? (int) $rating->location_id : null;
+                $tourId = $rating->tour_id ? (int) $rating->tour_id : null;
+                $wasApproved = $rating->status === 'approved';
+
+                $this->ratingRepository->delete($id);
+
+                if ($wasApproved) {
+                    if ($locationId) {
+                        $this->locationRepository->updateStats($locationId);
+                    } elseif ($tourId) {
+                        $this->tourRepository->updateStats($tourId);
+                    }
+                }
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'message' => 'Rating deleted successfully',
+                ];
+            });
+
+            return $result;
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to delete rating',
+            ];
+        }
+    }
+
+    /**
+     * Admin: Collection for export.
+     * (Admin: Phục vụ xuất file excel)
+     */
+    public function exportRatings(array $filters): array
+    {
+        try {
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->ratingRepository->searchForExport($filters),
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to fetch export data',
             ];
         }
     }

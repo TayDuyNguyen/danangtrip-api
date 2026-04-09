@@ -17,7 +17,7 @@ class FiltersPaymentRequest extends FormRequest
             'payment_status' => [
                 'nullable',
                 'string',
-                'in:\"pending\",\"paid\",\"failed\",\"refunded\"',
+                'in:pending,paid,failed,refunded',
             ],
             'payment_gateway' => [
                 'nullable',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Rating\CheckRatingRequest;
 use App\Http\Requests\Rating\DestroyRatingRequest;
 use App\Http\Requests\Rating\HelpfulRatingRequest;
 use App\Http\Requests\Rating\StoreRatingRequest;
@@ -22,6 +23,33 @@ final class RatingController extends Controller
     public function __construct(
         protected RatingService $ratingService
     ) {}
+
+    /**
+     * Check if user has rated a location, tour, or booking.
+     * (Kiểm tra xem user đã đánh giá hay chưa)
+     */
+    public function check(CheckRatingRequest $request): JsonResponse
+    {
+        $userId = auth('api')->id();
+        $result = $this->ratingService->checkRating($userId, $request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get images for a rating.
+     * (Lấy danh sách ảnh của đánh giá)
+     */
+    public function images(int $id): JsonResponse
+    {
+        $result = $this->ratingService->getImages($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
 
     /**
      * Create a new rating.

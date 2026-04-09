@@ -22,7 +22,7 @@ class CreatePaymentRequest extends FormRequest
             'payment_method' => [
                 'required',
                 'string',
-                'in:\"bank_transfer\",\"credit_card\",\"paypal\",\"cash\",\"momo\",\"vnpay\",\"zalopay\"',
+                'in:bank_transfer,credit_card,paypal,cash,momo,vnpay,zalopay',
             ],
         ];
     }

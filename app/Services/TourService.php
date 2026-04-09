@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TourRepositoryInterface;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class TourService
@@ -33,7 +34,9 @@ final class TourService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $tours,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get tours',
@@ -51,7 +54,9 @@ final class TourService
             $tours = $this->tourRepository->getFeaturedTours($limit);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $tours];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get featured tours'];
         }
     }
@@ -66,7 +71,9 @@ final class TourService
             $tours = $this->tourRepository->getHotTours($limit);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $tours];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get hot tours'];
         }
     }
@@ -84,7 +91,9 @@ final class TourService
             }
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $tour];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get tour detail'];
         }
     }
@@ -99,7 +108,9 @@ final class TourService
             $schedules = $this->tourRepository->getSchedules($id);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $schedules];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get tour schedules'];
         }
     }
@@ -114,7 +125,9 @@ final class TourService
             $ratings = $this->tourRepository->getRatings($id, $request);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $ratings];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get tour ratings'];
         }
     }
@@ -129,7 +142,9 @@ final class TourService
             $stats = $this->tourRepository->getRatingStats($id);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $stats];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get rating stats'];
         }
     }
@@ -147,7 +162,9 @@ final class TourService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => ['is_available' => $isAvailable],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to check availability'];
         }
     }
@@ -162,7 +179,9 @@ final class TourService
             $tour = $this->tourRepository->create($data);
 
             return ['status' => HttpStatusCode::CREATED->value, 'data' => $tour];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to create tour'];
         }
     }
@@ -180,7 +199,9 @@ final class TourService
             }
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $this->tourRepository->find($id)];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to update tour'];
         }
     }
@@ -195,7 +216,9 @@ final class TourService
             $deleted = $this->tourRepository->delete($id);
 
             return $deleted ? ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tour deleted successfully'] : ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Tour not found'];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to delete tour'];
         }
     }
@@ -222,7 +245,9 @@ final class TourService
             }
 
             return $this->updateTour($id, ['is_featured' => ! $tour->is_featured]);
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to toggle featured status'];
         }
     }
@@ -240,7 +265,9 @@ final class TourService
             }
 
             return $this->updateTour($id, ['is_hot' => ! $tour->is_hot]);
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to toggle hot status'];
         }
     }
@@ -255,7 +282,9 @@ final class TourService
             $data = $this->tourRepository->getExportCollection();
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $data];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error($e);
+
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to export tours'];
         }
     }

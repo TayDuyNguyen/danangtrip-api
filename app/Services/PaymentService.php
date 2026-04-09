@@ -8,13 +8,14 @@ use App\Enums\PaymentStatus;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
  * Class PaymentService
  * (Xử lý logic nghiệp vụ liên quan đến thanh toán)
  */
-final class PaymentService
+class PaymentService
 {
     /**
      * PaymentService constructor.
@@ -73,9 +74,11 @@ final class PaymentService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to create payment link: '.$e->getMessage(),
+                'message' => 'Failed to create payment link',
             ];
         }
     }
@@ -140,9 +143,11 @@ final class PaymentService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to handle callback: '.$e->getMessage(),
+                'message' => 'Failed to handle callback',
             ];
         }
     }
@@ -299,9 +304,11 @@ final class PaymentService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to refund payment: '.$e->getMessage(),
+                'message' => 'Failed to refund payment',
             ];
         }
     }
