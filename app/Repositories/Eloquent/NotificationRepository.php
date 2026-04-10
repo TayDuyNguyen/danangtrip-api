@@ -48,11 +48,8 @@ final class NotificationRepository extends BaseRepository implements Notificatio
      */
     public function markAsRead(int $userId, int $notificationId): ?Notification
     {
-        $notification = $this->model
-            ->newQuery()
-            ->where('user_id', $userId)
-            ->where('id', $notificationId)
-            ->first();
+        /** @var Notification|null $notification */
+        $notification = $this->firstWhere(['user_id' => $userId, 'id' => $notificationId]);
 
         if (! $notification || $notification->is_read) {
             return $notification;
@@ -72,7 +69,8 @@ final class NotificationRepository extends BaseRepository implements Notificatio
      */
     public function markAllAsRead(int $userId): int
     {
-        return $this->model->where('user_id', $userId)
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
             ->where('is_read', false)
             ->update([
                 'is_read' => true,
@@ -86,10 +84,41 @@ final class NotificationRepository extends BaseRepository implements Notificatio
      */
     public function deleteForUser(int $userId, int $notificationId): bool
     {
-        return $this->model
-            ->newQuery()
+        return $this->deleteBy(['user_id' => $userId, 'id' => $notificationId]) > 0;
+    }
+
+    /**
+     * Get unread notifications count for a user.
+     * (Lấy số lượng thông báo chưa đọc của người dùng)
+     */
+    public function getUnreadCount(int $userId): int
+    {
+        return $this->model->newQuery()
             ->where('user_id', $userId)
-            ->where('id', $notificationId)
-            ->delete() > 0;
+            ->where('is_read', false)
+            ->count();
+    }
+
+    /**
+     * Get paginated notifications for admin.
+     * (Lấy danh sách thông báo cho admin có phân trang)
+     */
+    public function getAdminNotifications(array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery()
+            ->with('user:id,full_name,email')
+            ->orderByDesc('created_at');
+
+        if (! empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+
+        if (! empty($filters['type'])) {
+            $query->where('type', $filters['type']);
+        }
+
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+
+        return $query->paginate($perPage);
     }
 }

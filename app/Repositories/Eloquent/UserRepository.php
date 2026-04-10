@@ -31,7 +31,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function findByEmail(string $email): ?User
     {
-        return $this->model->where('email', $email)->first();
+        return $this->model->newQuery()->where('email', $email)->first();
     }
 
     /**
@@ -40,7 +40,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function findByUsername(string $username): ?User
     {
-        return $this->model->where('username', $username)->first();
+        return $this->model->newQuery()->where('username', $username)->first();
     }
 
     /**
@@ -80,9 +80,12 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function getUserWithStats(int $id): ?User
     {
-        return $this->model->newQuery()
+        /** @var User|null $user */
+        $user = $this->model->newQuery()
             ->withCount(['ratings'])
             ->find($id);
+
+        return $user;
     }
 
     /**
@@ -91,7 +94,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function getTotalCount(): int
     {
-        return $this->model->count();
+        return $this->model->newQuery()->count();
     }
 
     /**
@@ -118,5 +121,14 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         return (bool) $this->update($userId, [
             'email_verified_at' => now(),
         ]);
+    }
+
+    /**
+     * Chunk all users.
+     * (Duyệt qua tất cả người dùng theo từng đợt)
+     */
+    public function chunkAll(int $size, callable $callback): bool
+    {
+        return $this->model->newQuery()->select('id')->chunk($size, $callback);
     }
 }

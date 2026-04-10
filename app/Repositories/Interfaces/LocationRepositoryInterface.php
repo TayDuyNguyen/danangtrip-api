@@ -160,5 +160,5 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * Get location data for export.
      * (Lấy dữ liệu địa điểm để xuất bản)
      */
-    public function getExportData(): array;
+    public function getExportData(): Collection;
 }

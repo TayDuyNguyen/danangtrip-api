@@ -20,12 +20,6 @@ interface RatingRepositoryInterface extends RepositoryInterface
     public function paginateForAdmin(array $filters): LengthAwarePaginator;
 
     /**
-     * Find rating with relations.
-     * (Tìm đánh giá kèm quan hệ)
-     */
-    public function findWithRelations(int $id, array $relations = []): ?Rating;
-
-    /**
      * Find rating for update (row lock) with relations.
      * (Tìm đánh giá để cập nhật (khóa dòng) kèm quan hệ)
      */
@@ -70,12 +64,6 @@ interface RatingRepositoryInterface extends RepositoryInterface
      * (Duyệt danh sách đánh giá phục vụ export)
      */
     public function searchForExport(array $filters): Collection;
-
-    /**
-     * Get total rating count.
-     * (Lấy tổng số đánh giá)
-     */
-    public function getTotalCount(): int;
 
     /**
      * Get rating stats grouped by date and status.

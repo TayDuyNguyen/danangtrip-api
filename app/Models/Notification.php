@@ -2,10 +2,23 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $type
+ * @property string $title
+ * @property string $content
+ * @property array|null $data
+ * @property bool $is_read
+ * @property Carbon|null $read_at
+ * @property Carbon|null $created_at
+ * @property-read User $user
+ */
 final class Notification extends Model
 {
     use HasFactory;

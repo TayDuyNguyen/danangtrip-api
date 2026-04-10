@@ -3,6 +3,7 @@
 namespace App\Repositories\Interfaces;
 
 use App\Models\Tour;
+use App\Models\TourSchedule;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -56,10 +57,10 @@ interface TourRepositoryInterface extends RepositoryInterface
     public function getRatingStats(int $id): array;
 
     /**
-     * Check availability for a tour schedule.
-     * (Kiểm tra còn chỗ cho ngày cụ thể)
+     * Get a tour schedule for a specific date.
+     * (Lấy lịch khởi hành của tour cho một ngày cụ thể)
      */
-    public function checkAvailability(int $id, string $date): bool;
+    public function getScheduleByDate(int $id, string $date): ?TourSchedule;
 
     /**
      * Update tour rating statistics.

@@ -61,31 +61,12 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     }
 
     /**
-     * Find rating with relations.
-     * (Tìm đánh giá kèm quan hệ)
-     */
-    public function findWithRelations(int $id, array $relations = []): ?Rating
-    {
-        $query = $this->model->newQuery();
-        if (count($relations) > 0) {
-            $query->with($relations);
-        }
-
-        return $query->find($id);
-    }
-
-    /**
      * Find rating for update (row lock) with relations.
      * (Tìm đánh giá để cập nhật (khóa dòng) kèm quan hệ)
      */
     public function findForUpdate(int $id, array $relations = []): ?Rating
     {
-        $query = $this->model->newQuery()->lockForUpdate();
-        if (count($relations) > 0) {
-            $query->with($relations);
-        }
-
-        return $query->find($id);
+        return $this->lockForUpdate()->with($relations)->find($id);
     }
 
     /**
@@ -94,10 +75,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
      */
     public function incrementHelpfulIfApproved(int $id): int
     {
-        return $this->model->newQuery()
-            ->where('id', $id)
-            ->where('status', 'approved')
-            ->increment('helpful_count');
+        return (int) $this->increment($id, 'helpful_count', 1, [['status', 'approved']]);
     }
 
     /**
@@ -211,15 +189,6 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
         }
 
         return $query->get();
-    }
-
-    /**
-     * Get total rating count.
-     * (Lấy tổng số đánh giá)
-     */
-    public function getTotalCount(): int
-    {
-        return $this->model->count();
     }
 
     /**

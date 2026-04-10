@@ -210,7 +210,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function findBySlug(string $slug): ?Location
     {
-        return $this->model->where('slug', $slug)->first();
+        return $this->firstWhere(['slug' => $slug]);
     }
 
     /**
@@ -242,7 +242,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function incrementFavoriteCount(int $id): bool
     {
-        return (bool) $this->model->where('id', $id)->increment('favorite_count');
+        return $this->increment($id, 'favorite_count');
     }
 
     /**
@@ -251,9 +251,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function decrementFavoriteCount(int $id): bool
     {
-        return (bool) $this->model->where('id', $id)
-            ->where('favorite_count', '>', 0)
-            ->decrement('favorite_count');
+        return $this->decrement($id, 'favorite_count', 1, [['favorite_count', '>', 0]]);
     }
 
     /**
@@ -262,7 +260,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function incrementViewCount(int $id): bool
     {
-        return (bool) $this->model->where('id', $id)->increment('view_count');
+        return $this->increment($id, 'view_count');
     }
 
     /**
@@ -271,7 +269,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function getTotalCount(): int
     {
-        return $this->model->count();
+        return $this->count();
     }
 
     /**
@@ -345,7 +343,9 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             'lng' => $location->longitude,
             'radius' => 5, // 5km default for recommendations
             'limit' => $limit + 1, // +1 to exclude self
-        ])->reject(fn ($item) => $item->id === $id)->take($limit);
+        ])->reject(function (Location $item) use ($id) {
+            return $item->id === $id;
+        })->take($limit);
     }
 
     /**
@@ -354,10 +354,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function attachTags(int $id, array $tagIds): void
     {
-        $location = $this->find($id);
-        if ($location) {
-            $location->tags()->sync($tagIds);
-        }
+        $this->sync($id, 'tags', $tagIds);
     }
 
     /**
@@ -366,10 +363,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function detachTag(int $id, int $tagId): void
     {
-        $location = $this->find($id);
-        if ($location) {
-            $location->tags()->detach($tagId);
-        }
+        $this->detach($id, 'tags', [$tagId]);
     }
 
     /**
@@ -378,10 +372,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function attachAmenities(int $id, array $amenityIds): void
     {
-        $location = $this->find($id);
-        if ($location) {
-            $location->amenities()->sync($amenityIds);
-        }
+        $this->sync($id, 'amenities', $amenityIds);
     }
 
     /**
@@ -390,10 +381,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function detachAmenity(int $id, int $amenityId): void
     {
-        $location = $this->find($id);
-        if ($location) {
-            $location->amenities()->detach($amenityId);
-        }
+        $this->detach($id, 'amenities', [$amenityId]);
     }
 
     /**
@@ -426,27 +414,14 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      * Get location data for export.
      * (Lấy dữ liệu địa điểm để xuất bản)
      */
-    public function getExportData(): array
+    public function getExportData(): Collection
     {
-        return $this->model->newQuery()
+        /** @var Collection $data */
+        $data = $this->model->newQuery()
             ->with(['category:id,name', 'subcategory:id,name'])
             ->orderBy('id')
-            ->get()
-            ->map(fn ($item) => [
-                'ID' => $item->id,
-                'Name' => $item->name,
-                'Slug' => $item->slug,
-                'Category' => $item->category?->name,
-                'Subcategory' => $item->subcategory?->name,
-                'District' => $item->district,
-                'Address' => $item->address,
-                'Phone' => $item->phone,
-                'Avg Rating' => $item->avg_rating,
-                'Review Count' => $item->review_count,
-                'View Count' => $item->view_count,
-                'Status' => $item->status,
-                'Created At' => $item->created_at->format('Y-m-d H:i:s'),
-            ])
-            ->toArray();
+            ->get();
+
+        return $data;
     }
 }

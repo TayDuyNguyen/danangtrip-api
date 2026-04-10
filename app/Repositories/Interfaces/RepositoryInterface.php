@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -138,14 +139,56 @@ interface RepositoryInterface
     public function paginate($page);
 
     /**
+     * Get the first record matching the attributes.
+     * (Lấy bản ghi đầu tiên khớp với các thuộc tính)
+     */
+    public function firstWhere(array $where): ?Model;
+
+    /**
+     * Get all records matching the attributes.
+     * (Lấy tất cả bản ghi khớp với các thuộc tính)
+     */
+    public function getWhere(array $where): Collection;
+
+    /**
+     * Count records matching filters.
+     * (Đếm số bản ghi khớp với bộ lọc)
+     */
+    public function count(array $where = []): int;
+
+    /**
+     * Check if any record matches the filters.
+     * (Kiểm tra xem có bản ghi nào khớp với bộ lọc không)
+     */
+    public function exists(array $where): bool;
+
+    /**
+     * Increment a column value.
+     * (Tăng giá trị của một cột)
+     */
+    public function increment(int $id, string $column, int $amount = 1, array $extraConditions = []): bool;
+
+    /**
+     * Decrement a column value.
+     * (Giảm giá trị của một cột)
+     */
+    public function decrement(int $id, string $column, int $amount = 1, array $extraConditions = []): bool;
+
+    /**
+     * Set the query to lock the selected rows for update.
+     * (Thiết lập truy vấn để khóa các dòng được chọn để cập nhật)
+     */
+    public function lockForUpdate();
+
+    /**
      * Update records by condition.
      */
-    public function updateWhere(array $attributes = [], array $params = []): void;
+    public function updateWhere(array $attributes = [], array $params = []): int;
 
     /**
      * Delete records by condition.
      */
-    public function deleteBy(array $filter): void;
+    public function deleteBy(array $filter): int;
 
     /**
      * Find records where in.
@@ -157,7 +200,7 @@ interface RepositoryInterface
     /**
      * Delete records where in.
      */
-    public function deleteWhereIn(array $filter): void;
+    public function deleteWhereIn(array $filter): int;
 
     /**
      * Update or create a record.
@@ -192,23 +235,26 @@ interface RepositoryInterface
     /**
      * Sync many-to-many.
      *
+     * @param  mixed  $idOrModel
      * @return mixed
      */
-    public function sync(Model $model, string $relation, array $attributes, bool $detaching = true);
+    public function sync($idOrModel, string $relation, array $attributes, bool $detaching = true);
 
     /**
      * Attach many-to-many.
      *
+     * @param  mixed  $idOrModel
      * @return mixed
      */
-    public function attach(Model $model, string $relation, array $attributes);
+    public function attach($idOrModel, string $relation, array $attributes);
 
     /**
      * Detach many-to-many.
      *
+     * @param  mixed  $idOrModel
      * @return mixed
      */
-    public function detach(Model $model, string $relation, array $attributes = []);
+    public function detach($idOrModel, string $relation, array $attributes = []);
 
     /**
      * Generate a unique slug for the model.

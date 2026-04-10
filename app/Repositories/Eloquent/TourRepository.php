@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Enums\Pagination;
 use App\Models\Tour;
+use App\Models\TourSchedule;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -92,11 +93,9 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      */
     public function findBySlug(string $slug): ?Tour
     {
-        return $this->model->where('slug', $slug)
-            ->with(['category', 'schedules' => function ($query) {
-                $query->where('start_date', '>=', now())->orderBy('start_date', 'asc');
-            }])
-            ->first();
+        return $this->with(['category', 'schedules' => function ($query) {
+            $query->where('start_date', '>=', now())->orderBy('start_date', 'asc');
+        }])->firstWhere(['slug' => $slug]);
     }
 
     /**
@@ -166,25 +165,19 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     }
 
     /**
-     * Check availability for a tour schedule.
-     * (Kiểm tra còn chỗ cho ngày cụ thể)
+     * Get a tour schedule for a specific date.
+     * (Lấy lịch khởi hành của tour cho một ngày cụ thể)
      */
-    public function checkAvailability(int $id, string $date): bool
+    public function getScheduleByDate(int $id, string $date): ?TourSchedule
     {
         $tour = $this->find($id);
         if (! $tour) {
-            return false;
+            return null;
         }
 
-        $schedule = $tour->schedules()
+        return $tour->schedules()
             ->whereDate('start_date', $date)
             ->first();
-
-        if (! $schedule) {
-            return false;
-        }
-
-        return ($schedule->max_people - $schedule->current_people) > 0;
     }
 
     /**
@@ -200,12 +193,12 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
 
         $stats = $tour->ratings()
             ->where('status', 'approved')
-            ->select(DB::raw('count(*) as count'), DB::raw('avg(score) as average'))
+            ->selectRaw('count(*) as count, avg(score) as average')
             ->first();
 
         return $tour->update([
             'rating_count' => $stats->count ?? 0,
-            'rating_avg' => round($stats->average ?? 0, 1),
+            'rating_avg' => round(($stats->average ?? 0), 1),
         ]);
     }
 

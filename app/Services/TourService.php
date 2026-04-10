@@ -156,7 +156,9 @@ final class TourService
     public function checkAvailability(int $id, string $date): array
     {
         try {
-            $isAvailable = $this->tourRepository->checkAvailability($id, $date);
+            $schedule = $this->tourRepository->getScheduleByDate($id, $date);
+
+            $isAvailable = $schedule && ($schedule->max_people - $schedule->current_people) > 0;
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

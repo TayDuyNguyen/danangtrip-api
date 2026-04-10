@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Notification\DeleteNotificationRequest;
 use App\Http\Requests\Notification\ListNotificationRequest;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
@@ -69,13 +70,27 @@ final class NotificationController extends Controller
      * Delete a notification.
      * (Xóa một thông báo)
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(DeleteNotificationRequest $request, int $id): JsonResponse
     {
         $userId = $request->user()->id;
         $result = $this->notificationService->deleteNotification($userId, $id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get unread notifications count.
+     * (Lấy số lượng thông báo chưa đọc)
+     */
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $result = $this->notificationService->getUnreadCount($userId);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
 }

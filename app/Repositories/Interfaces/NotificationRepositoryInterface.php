@@ -37,4 +37,16 @@ interface NotificationRepositoryInterface extends RepositoryInterface
      * (Xóa một thông báo cho người dùng)
      */
     public function deleteForUser(int $userId, int $notificationId): bool;
+
+    /**
+     * Get unread notifications count for a user.
+     * (Lấy số lượng thông báo chưa đọc của người dùng)
+     */
+    public function getUnreadCount(int $userId): int;
+
+    /**
+     * Get paginated notifications for admin.
+     * (Lấy danh sách thông báo cho admin có phân trang)
+     */
+    public function getAdminNotifications(array $filters): LengthAwarePaginator;
 }
