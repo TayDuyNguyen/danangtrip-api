@@ -54,7 +54,7 @@ final class TourScheduleService
     public function getScheduleById(int $id): array
     {
         try {
-            $schedule = $this->tourScheduleRepository->findWithTour($id);
+            $schedule = $this->tourScheduleRepository->with('tour')->find($id);
             if (! $schedule) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,

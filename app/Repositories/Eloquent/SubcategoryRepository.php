@@ -24,6 +24,6 @@ final class SubcategoryRepository extends BaseRepository implements SubcategoryR
      */
     public function updateStatus(int $id, string $status): bool
     {
-        return (bool) $this->model->where('id', $id)->update(['status' => $status]);
+        return (bool) $this->update($id, ['status' => $status]);
     }
 }

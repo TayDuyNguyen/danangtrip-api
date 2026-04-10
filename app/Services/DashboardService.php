@@ -34,9 +34,9 @@ final class DashboardService
     {
         try {
             $stats = [
-                'total_users' => $this->userRepository->getTotalCount(),
-                'total_locations' => $this->locationRepository->getTotalCount(),
-                'total_ratings' => $this->ratingRepository->getTotalCount(),
+                'total_users' => $this->userRepository->count(),
+                'total_locations' => $this->locationRepository->count(),
+                'total_ratings' => $this->ratingRepository->count(),
                 'total_views' => $this->locationRepository->getTotalViewCount(),
             ];
 

@@ -125,7 +125,7 @@ final class RatingService
                     $this->ratingImageRepository->createMany($rating->id, $imageUrls);
                 }
 
-                return $this->ratingRepository->findWithRelations($rating->id, ['images', 'location', 'user']);
+                return $this->ratingRepository->with(['images', 'location', 'user'])->find($rating->id);
             });
 
             return [
@@ -199,7 +199,7 @@ final class RatingService
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['images', 'location', 'user']),
+                    'data' => $this->ratingRepository->with(['images', 'location', 'user'])->find($rating->id),
                 ];
             });
 
@@ -277,7 +277,7 @@ final class RatingService
                 ];
             }
 
-            $rating = $this->ratingRepository->findWithRelations($ratingId, ['user', 'location', 'images']);
+            $rating = $this->ratingRepository->with(['user', 'location', 'images'])->find($ratingId);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -362,7 +362,7 @@ final class RatingService
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'tour', 'images', 'approver']),
+                    'data' => $this->ratingRepository->with(['user', 'location', 'tour', 'images', 'approver'])->find($rating->id),
                     'message' => 'Rating approved',
                 ];
             });
@@ -417,7 +417,7 @@ final class RatingService
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $this->ratingRepository->findWithRelations($rating->id, ['user', 'location', 'tour', 'images', 'approver']),
+                    'data' => $this->ratingRepository->with(['user', 'location', 'tour', 'images', 'approver'])->find($rating->id),
                     'message' => 'Rating rejected',
                 ];
             });

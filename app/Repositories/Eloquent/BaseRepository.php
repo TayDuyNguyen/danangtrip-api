@@ -265,6 +265,24 @@ abstract class BaseRepository implements RepositoryInterface
     }
 
     /**
+     * Get the first record matching the attributes.
+     * (Lấy bản ghi đầu tiên khớp với các thuộc tính)
+     */
+    public function firstWhere(array $where): ?Model
+    {
+        return $this->model->newQuery()->where($where)->first();
+    }
+
+    /**
+     * Get all records matching the attributes.
+     * (Lấy tất cả bản ghi khớp với các thuộc tính)
+     */
+    public function getWhere(array $where): Collection
+    {
+        return $this->model->newQuery()->where($where)->get();
+    }
+
+    /**
      * Paginate results.
      * (Phân trang kết quả)
      *
@@ -280,18 +298,18 @@ abstract class BaseRepository implements RepositoryInterface
      * Update records matching filters.
      * (Cập nhật các bản ghi khớp với bộ lọc)
      */
-    public function updateWhere(array $attributes = [], array $params = []): void
+    public function updateWhere(array $attributes = [], array $params = []): int
     {
-        $this->model->where($attributes)->update($params);
+        return $this->model->where($attributes)->update($params);
     }
 
     /**
      * Delete records matching filters.
      * (Xóa các bản ghi khớp với bộ lọc)
      */
-    public function deleteBy(array $filter): void
+    public function deleteBy(array $filter): int
     {
-        $this->model->where($filter)->delete();
+        return $this->model->where($filter)->delete();
     }
 
     /**
@@ -315,9 +333,9 @@ abstract class BaseRepository implements RepositoryInterface
      * Delete records where column is in array of values.
      * (Xóa các bản ghi có cột nằm trong mảng các giá trị)
      */
-    public function deleteWhereIn(array $filter): void
+    public function deleteWhereIn(array $filter): int
     {
-        $this->model->whereIn($filter['column'], $filter['values'])->delete();
+        return $this->model->newQuery()->whereIn($filter['column'], $filter['values'])->delete();
     }
 
     /**
@@ -394,7 +412,7 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function updateWhereIn(string $column, array $values, array $attributes, array $whereConditions = []): void
     {
-        $query = $this->model->whereIn($column, $values);
+        $query = $this->model->newQuery()->whereIn($column, $values);
         if (! empty($whereConditions)) {
             $query->where($whereConditions);
         }
@@ -426,13 +444,79 @@ abstract class BaseRepository implements RepositoryInterface
     }
 
     /**
+     * Count records matching filters.
+     * (Đếm số bản ghi khớp với bộ lọc)
+     */
+    public function count(array $where = []): int
+    {
+        return $this->model->newQuery()->where($where)->count();
+    }
+
+    /**
+     * Check if any record matches the filters.
+     * (Kiểm tra xem có bản ghi nào khớp với bộ lọc không)
+     */
+    public function exists(array $where): bool
+    {
+        return $this->model->newQuery()->where($where)->exists();
+    }
+
+    /**
+     * Increment a column value.
+     * (Tăng giá trị của một cột)
+     */
+    public function increment(int $id, string $column, int $amount = 1, array $extraConditions = []): bool
+    {
+        $query = $this->model->newQuery()->where('id', $id);
+
+        if (! empty($extraConditions)) {
+            $query->where($extraConditions);
+        }
+
+        return (bool) $query->increment($column, $amount);
+    }
+
+    /**
+     * Decrement a column value.
+     * (Giảm giá trị của một cột)
+     */
+    public function decrement(int $id, string $column, int $amount = 1, array $extraConditions = []): bool
+    {
+        $query = $this->model->newQuery()->where('id', $id);
+
+        if (! empty($extraConditions)) {
+            $query->where($extraConditions);
+        }
+
+        return (bool) $query->decrement($column, $amount);
+    }
+
+    /**
+     * Set the query to lock the selected rows for update.
+     * (Thiết lập truy vấn để khóa các dòng được chọn để cập nhật)
+     */
+    public function lockForUpdate(): self
+    {
+        $this->getQuery()->lockForUpdate();
+
+        return $this;
+    }
+
+    /**
      * Sync relationship data.
      * (Đồng bộ dữ liệu mối quan hệ)
      *
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
-    public function sync(Model $model, string $relation, array $attributes, bool $detaching = true)
+    public function sync($idOrModel, string $relation, array $attributes, bool $detaching = true)
     {
+        $model = $idOrModel instanceof Model ? $idOrModel : $this->find($idOrModel);
+
+        if (! $model) {
+            return null;
+        }
+
         return $model->{$relation}()->sync($attributes, $detaching);
     }
 
@@ -440,10 +524,17 @@ abstract class BaseRepository implements RepositoryInterface
      * Attach relationship data.
      * (Gắn dữ liệu mối quan hệ)
      *
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
-    public function attach(Model $model, string $relation, array $attributes)
+    public function attach($idOrModel, string $relation, array $attributes)
     {
+        $model = $idOrModel instanceof Model ? $idOrModel : $this->find($idOrModel);
+
+        if (! $model) {
+            return null;
+        }
+
         return $model->{$relation}()->attach($attributes);
     }
 
@@ -451,10 +542,17 @@ abstract class BaseRepository implements RepositoryInterface
      * Detach relationship data.
      * (Gỡ dữ liệu mối quan hệ)
      *
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
-    public function detach(Model $model, string $relation, array $attributes = [])
+    public function detach($idOrModel, string $relation, array $attributes = [])
     {
+        $model = $idOrModel instanceof Model ? $idOrModel : $this->find($idOrModel);
+
+        if (! $model) {
+            return null;
+        }
+
         return $model->{$relation}()->detach($attributes);
     }
 

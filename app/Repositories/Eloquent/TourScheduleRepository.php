@@ -54,15 +54,6 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
     }
 
     /**
-     * Find a schedule by ID with tour relation.
-     * (Tìm lịch khởi hành theo ID kèm theo quan hệ tour)
-     */
-    public function findWithTour(int $id): ?TourSchedule
-    {
-        return $this->model->with('tour')->find($id);
-    }
-
-    /**
      * Find a schedule by ID and lock for update.
      * (Tìm lịch khởi hành và lock để tránh conflict khi book)
      */

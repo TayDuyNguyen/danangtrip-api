@@ -19,12 +19,6 @@ interface TourScheduleRepositoryInterface extends RepositoryInterface
     public function getSchedules(array $filters = []): LengthAwarePaginator;
 
     /**
-     * Find a schedule by ID with tour relation.
-     * (Tìm lịch khởi hành theo ID kèm theo quan hệ tour)
-     */
-    public function findWithTour(int $id): ?TourSchedule;
-
-    /**
      * Find a schedule by ID for update.
      * (Tìm lịch khởi hành theo ID để cập nhật)
      */

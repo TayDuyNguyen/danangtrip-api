@@ -53,4 +53,10 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Đánh dấu email của người dùng là đã xác minh)
      */
     public function markEmailAsVerified(int $userId): bool;
+
+    /**
+     * Chunk all users.
+     * (Duyệt qua tất cả người dùng theo từng đợt)
+     */
+    public function chunkAll(int $size, callable $callback): bool;
 }

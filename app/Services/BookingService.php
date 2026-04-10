@@ -118,7 +118,7 @@ class BookingService
     {
         try {
             $tour = $this->tourRepository->find($data['tour_id']);
-            $schedule = $this->tourScheduleRepository->findWithTour($data['tour_schedule_id']);
+            $schedule = $this->tourScheduleRepository->with('tour')->find($data['tour_schedule_id']);
 
             if (! $tour || ! $schedule || $schedule->tour_id !== $tour->id) {
                 return [

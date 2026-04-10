@@ -52,8 +52,7 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -94,8 +93,7 @@ class AuthService
                     'user' => $user,
                 ],
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -125,8 +123,7 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Logout successfully',
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -174,7 +171,7 @@ class AuthService
             $storedToken->update(['used_at' => now()]);
 
             // Sinh Access Token JWT mới
-            $newAccessToken = Auth::guard('api')->login($storedToken->user);
+            $newAccessToken = (string) Auth::guard('api')->login($storedToken->user);
 
             // Xoay vòng: Sinh mới Refresh Token cho quy trình mượt mà
             $newRefreshTokenStr = Str::random(64);
@@ -193,8 +190,7 @@ class AuthService
                     'user' => $storedToken->user,
                 ],
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

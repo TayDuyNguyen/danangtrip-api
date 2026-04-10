@@ -78,9 +78,6 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
      */
     public function syncCategories(int $postId, array $categoryIds): void
     {
-        $post = $this->find($postId);
-        if ($post) {
-            $post->categories()->sync($categoryIds);
-        }
+        $this->sync($postId, 'categories', $categoryIds);
     }
 }

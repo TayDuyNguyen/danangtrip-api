@@ -75,7 +75,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function findWithDetails(int $id): ?Booking
     {
-        return $this->model->with(['user', 'items.tour', 'items.tourSchedule'])->find($id);
+        return $this->with(['user', 'items.tour', 'items.tourSchedule'])->find($id);
     }
 
     /**
@@ -84,9 +84,8 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function findByCode(string $code): ?Booking
     {
-        return $this->model->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
-            ->where('booking_code', $code)
-            ->first();
+        return $this->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
+            ->firstWhere(['booking_code' => $code]);
     }
 
     /**
@@ -95,14 +94,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function updateStatus(int $id, string $status): bool
     {
-        $booking = $this->find($id);
-        if ($booking) {
-            $booking->booking_status = $status;
-
-            return $booking->save();
-        }
-
-        return false;
+        return (bool) $this->update($id, ['booking_status' => $status]);
     }
 
     /**
@@ -111,14 +103,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function updatePaymentStatus(int $id, string $paymentStatus): bool
     {
-        $booking = $this->find($id);
-        if ($booking) {
-            $booking->payment_status = $paymentStatus;
-
-            return $booking->save();
-        }
-
-        return false;
+        return (bool) $this->update($id, ['payment_status' => $paymentStatus]);
     }
 
     /**

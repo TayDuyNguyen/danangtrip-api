@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
+use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\PaymentController as AdminPaymentController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
@@ -162,6 +163,7 @@ Route::prefix('v1')->group(function () {
         // Notifications
         // (Thông báo)
         Route::get('/user/notifications', [NotificationController::class, 'index']);
+        Route::get('/user/notifications/unread-count', [NotificationController::class, 'unreadCount']);
         Route::patch('/user/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->whereNumber('id');
         Route::patch('/user/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
         Route::delete('/user/notifications/{id}', [NotificationController::class, 'destroy'])->whereNumber('id');
@@ -305,5 +307,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('/tags/{id}', [AdminTagController::class, 'destroy'])->whereNumber('id');
         Route::post('/amenities', [AdminAmenityController::class, 'store']);
         Route::delete('/amenities/{id}', [AdminAmenityController::class, 'destroy'])->whereNumber('id');
+
+        // Notifications Management
+        // (Quản lý Thông báo)
+        Route::get('/notifications', [AdminNotificationController::class, 'index']);
+        Route::post('/notifications/send', [AdminNotificationController::class, 'send']);
+        Route::post('/notifications/send-all', [AdminNotificationController::class, 'sendAll']);
+        Route::delete('/notifications/{id}', [AdminNotificationController::class, 'destroy'])->whereNumber('id');
     });
 });

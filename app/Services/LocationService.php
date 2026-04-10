@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Location;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -210,7 +211,6 @@ final class LocationService
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $ratings];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location ratings'];
         }
@@ -226,8 +226,7 @@ final class LocationService
             $districts = $this->locationRepository->getDistrictsWithLocations();
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $districts];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get districts'];
         }
@@ -246,8 +245,7 @@ final class LocationService
             }
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => ['images' => $location->images ?? []]];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location images'];
         }
@@ -263,8 +261,7 @@ final class LocationService
             $stats = $this->locationRepository->getRatingStats($id);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $stats];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get rating stats'];
         }
@@ -280,8 +277,7 @@ final class LocationService
             $locations = $this->locationRepository->getNearbyLocationsById($id, $limit);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $locations];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get nearby locations'];
         }
@@ -297,8 +293,7 @@ final class LocationService
             $this->locationRepository->attachTags($id, $tagIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tags attached successfully'];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach tags'];
         }
@@ -314,8 +309,7 @@ final class LocationService
             $this->locationRepository->detachTag($id, $tagId);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tag detached successfully'];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach tag'];
         }
@@ -331,8 +325,7 @@ final class LocationService
             $this->locationRepository->attachAmenities($id, $amenityIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenities attached successfully'];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to attach amenities'];
         }
@@ -348,8 +341,7 @@ final class LocationService
             $this->locationRepository->detachAmenity($id, $amenityId);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenity detached successfully'];
-        } catch (\Exception $e) {
-            Log::error($e);
+        } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to detach amenity'];
         }
@@ -364,7 +356,23 @@ final class LocationService
         try {
             $data = $this->locationRepository->getExportData();
 
-            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $data];
+            $formattedData = $data->map(fn (Location $item) => [
+                'ID' => $item->id,
+                'Name' => $item->name,
+                'Slug' => $item->slug,
+                'Category' => $item->category?->name,
+                'Subcategory' => $item->subcategory?->name,
+                'District' => $item->district,
+                'Address' => $item->address,
+                'Phone' => $item->phone,
+                'Avg Rating' => $item->avg_rating,
+                'Review Count' => $item->review_count,
+                'View Count' => $item->view_count,
+                'Status' => $item->status,
+                'Created At' => $item->created_at->format('Y-m-d H:i:s'),
+            ])->toArray();
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $formattedData];
         } catch (\Exception $e) {
             Log::error($e);
 
