@@ -144,9 +144,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/ratings/{id}', [RatingController::class, 'destroy'])->whereNumber('id');
         Route::post('/ratings/{id}/helpful', [RatingController::class, 'helpful'])->whereNumber('id');
 
-        // Favorites: List / Add / Remove
-        // (Yêu thích: Danh sách / Thêm / Xóa)
+        // Favorites: List / Add / Remove / Check
+        // (Yêu thích: Danh sách / Thêm / Xóa / Kiểm tra)
         Route::get('/user/favorites', [FavoriteController::class, 'index']);
+        Route::get('/user/favorites/check/{location_id}', [FavoriteController::class, 'check'])->whereNumber('location_id');
         Route::post('/user/favorites', [FavoriteController::class, 'store']);
         Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
 

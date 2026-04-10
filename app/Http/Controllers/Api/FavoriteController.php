@@ -42,6 +42,22 @@ final class FavoriteController extends Controller
     }
 
     /**
+     * Check if a location is favorited.
+     * (Kiểm tra xem một địa điểm có được yêu thích hay không)
+     */
+    public function check(int $locationId, Request $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $result = $this->favoriteService->checkFavorite($userId, $locationId);
+
+        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
+            return $this->success($result['data']);
+        }
+
+        return $this->server_error($result['message']);
+    }
+
+    /**
      * Add a location to favorites.
      * (Thêm địa điểm vào danh sách yêu thích)
      */
