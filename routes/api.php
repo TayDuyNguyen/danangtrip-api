@@ -258,12 +258,21 @@ Route::prefix('v1')->group(function () {
         Route::patch('/ratings/{id}/reject', [AdminRatingController::class, 'reject'])->whereNumber('id');
         Route::delete('/ratings/{id}', [AdminRatingController::class, 'destroy'])->whereNumber('id');
 
-        // Blog Management
-        // (Quản lý Blog)
-        Route::post('/blog', [AdminBlogController::class, 'store']);
-        Route::put('/blog/{id}', [AdminBlogController::class, 'update'])->whereNumber('id');
-        Route::delete('/blog/{id}', [AdminBlogController::class, 'destroy'])->whereNumber('id');
-        Route::patch('/blog/{id}/publish', [AdminBlogController::class, 'publish'])->whereNumber('id');
+        // Blog Posts Management
+        // (Quản lý Bài viết Blog)
+        Route::get('/blog-posts', [AdminBlogController::class, 'index']);
+        Route::get('/blog-posts/{id}', [AdminBlogController::class, 'show'])->whereNumber('id');
+        Route::post('/blog-posts', [AdminBlogController::class, 'store']);
+        Route::put('/blog-posts/{id}', [AdminBlogController::class, 'update'])->whereNumber('id');
+        Route::delete('/blog-posts/{id}', [AdminBlogController::class, 'destroy'])->whereNumber('id');
+        Route::patch('/blog-posts/{id}/status', [AdminBlogController::class, 'updateStatus'])->whereNumber('id');
+
+        // Blog Categories Management
+        // (Quản lý Danh mục Blog)
+        Route::get('/blog-categories', [AdminBlogController::class, 'indexCategories']);
+        Route::post('/blog-categories', [AdminBlogController::class, 'storeCategory']);
+        Route::put('/blog-categories/{id}', [AdminBlogController::class, 'updateCategory'])->whereNumber('id');
+        Route::delete('/blog-categories/{id}', [AdminBlogController::class, 'destroyCategory'])->whereNumber('id');
 
         // Tours Management
         // (Quản lý Tour)

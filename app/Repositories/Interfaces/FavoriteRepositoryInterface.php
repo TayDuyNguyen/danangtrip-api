@@ -30,4 +30,12 @@ interface FavoriteRepositoryInterface extends RepositoryInterface
      * @return int[]
      */
     public function getRecentLocationIds(int $userId, int $limit = 10): array;
+
+    /**
+     * Get recent favorited tour IDs by user.
+     * (Lấy danh sách ID tour yêu thích gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentTourIds(int $userId, int $limit = 10): array;
 }

@@ -202,12 +202,15 @@ final class SearchService
 
             $viewedLocationIds = $this->viewRepository->getRecentLocationIds($userId, $limit);
             $favoritedLocationIds = $this->favoriteRepository->getRecentLocationIds($userId, $limit);
+            $viewedTourIds = $this->viewRepository->getRecentTourIds($userId, $limit);
+            $favoritedTourIds = $this->favoriteRepository->getRecentTourIds($userId, $limit);
             $bookedTourIds = $this->bookingRepository->getRecentTourIds($userId, $limit);
 
             $locationIds = collect($viewedLocationIds)->merge($favoritedLocationIds)->unique()->take($limit)->all();
+            $tourIds = collect($viewedTourIds)->merge($favoritedTourIds)->merge($bookedTourIds)->unique()->take($limit)->all();
 
             $locations = $this->locationRepository->getByIds($locationIds);
-            $tours = $this->tourRepository->getByIds($bookedTourIds);
+            $tours = $this->tourRepository->getByIds($tourIds);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

@@ -17,7 +17,7 @@ class StoreBlogRequest extends FormRequest
             'title' => [
                 'required',
                 'string',
-                'max:200',
+                'max:255',
             ],
             'content' => [
                 'required',
@@ -39,9 +39,14 @@ class StoreBlogRequest extends FormRequest
                 'required',
                 'array',
             ],
+            'category_ids.*' => [
+                'required',
+                'integer',
+                'exists:blog_categories,id',
+            ],
             'status' => [
                 'sometimes',
-                'in:draft,published',
+                'in:draft,published,archived',
             ],
             'published_at' => [
                 'sometimes',
@@ -55,11 +60,12 @@ class StoreBlogRequest extends FormRequest
     {
         return [
             'title.required' => 'The blog title is required.',
+            'title.max' => 'The title may not be greater than 255 characters.',
             'content.required' => 'The blog content is required.',
             'category_ids.required' => 'At least one category is required.',
             'category_ids.*.exists' => 'One or more selected categories are invalid.',
             'status.in' => 'The selected status is invalid.',
-            'published_at.date' => 'The published date is not a valid date.',
+            'published_at.date_format' => 'The published date format must be Y-m-d H:i:s.',
         ];
     }
 }

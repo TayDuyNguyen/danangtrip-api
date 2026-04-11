@@ -58,9 +58,28 @@ final class FavoriteRepository extends BaseRepository implements FavoriteReposit
     {
         return $this->model->newQuery()
             ->where('user_id', $userId)
+            ->whereNotNull('location_id')
             ->orderByDesc('created_at')
             ->limit($limit)
             ->pluck('location_id')
+            ->unique()
+            ->all();
+    }
+
+    /**
+     * Get recent favorited tour IDs by user.
+     * (Lấy danh sách ID tour yêu thích gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentTourIds(int $userId, int $limit = 10): array
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->whereNotNull('tour_id')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->pluck('tour_id')
             ->unique()
             ->all();
     }

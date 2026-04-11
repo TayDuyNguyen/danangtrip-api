@@ -17,7 +17,7 @@ class UpdateBlogRequest extends FormRequest
             'title' => [
                 'sometimes',
                 'string',
-                'max:200',
+                'max:255',
             ],
             'content' => [
                 'sometimes',
@@ -39,9 +39,14 @@ class UpdateBlogRequest extends FormRequest
                 'sometimes',
                 'array',
             ],
+            'category_ids.*' => [
+                'sometimes',
+                'integer',
+                'exists:blog_categories,id',
+            ],
             'status' => [
                 'sometimes',
-                'in:draft,published',
+                'in:draft,published,archived',
             ],
             'published_at' => [
                 'sometimes',
@@ -54,12 +59,11 @@ class UpdateBlogRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'title.required' => 'The blog title is required.',
-            'content.required' => 'The blog content is required.',
-            'category_ids.required' => 'At least one category is required.',
-            'category_ids.*.exists' => 'One or more selected categories are invalid.',
+            'title.max' => 'The title may not be greater than 255 characters.',
+            'category_ids.required' => 'At least one category is required. (Cần ít nhất một danh mục.)',
+            'category_ids.*.exists' => 'One or more selected categories are invalid. (Một hoặc nhiều danh mục không hợp lệ.)',
             'status.in' => 'The selected status is invalid.',
-            'published_at.date' => 'The published date is not a valid date.',
+            'published_at.date_format' => 'The published date format must be Y-m-d H:i:s.',
         ];
     }
 }

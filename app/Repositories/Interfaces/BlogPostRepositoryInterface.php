@@ -35,4 +35,18 @@ interface BlogPostRepositoryInterface extends RepositoryInterface
      * (Đồng bộ danh mục cho bài viết Blog)
      */
     public function syncCategories(int $postId, array $categoryIds): void;
+
+    /**
+     * Get paginated blog posts for admin view (including drafts).
+     * (Lấy danh sách bài viết Blog có phân trang cho admin - bao gồm cả draft)
+     */
+    public function getAdminPosts(array $filters): LengthAwarePaginator;
+
+    /**
+     * Find a blog post by ID with categories and author.
+     * (Tìm bài viết Blog theo ID với danh mục và tác giả)
+     *
+     * @return mixed
+     */
+    public function findWithCategories(int $id);
 }
