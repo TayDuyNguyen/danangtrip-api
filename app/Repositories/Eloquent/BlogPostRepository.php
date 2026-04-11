@@ -80,4 +80,43 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
     {
         $this->sync($postId, 'categories', $categoryIds);
     }
+
+    /**
+     * Get paginated blog posts for admin view (including drafts).
+     * (Lấy danh sách bài viết Blog có phân trang cho admin - bao gồm cả draft)
+     */
+    public function getAdminPosts(array $filters): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery()
+            ->with(['author:id,full_name,avatar', 'categories']);
+
+        // Filter by status if provided
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Filter by category if provided
+        if (! empty($filters['category_id'])) {
+            $query->whereHas('categories', function ($q) use ($filters) {
+                $q->where('blog_categories.id', $filters['category_id']);
+            });
+        }
+
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+
+        return $query->orderByDesc('created_at')->paginate($perPage);
+    }
+
+    /**
+     * Find a blog post by ID with categories and author.
+     * (Tìm bài viết Blog theo ID với danh mục và tác giả)
+     *
+     * @return mixed
+     */
+    public function findWithCategories(int $id)
+    {
+        return $this->model->newQuery()
+            ->with(['author:id,full_name,avatar', 'categories'])
+            ->find($id);
+    }
 }

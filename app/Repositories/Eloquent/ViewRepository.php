@@ -38,4 +38,22 @@ final class ViewRepository extends BaseRepository implements ViewRepositoryInter
             ->unique()
             ->all();
     }
+
+    /**
+     * Get recent viewed tour IDs by user.
+     * (Lấy danh sách ID tour đã xem gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentTourIds(int $userId, int $limit = 10): array
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->whereNotNull('tour_id')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->pluck('tour_id')
+            ->unique()
+            ->all();
+    }
 }
