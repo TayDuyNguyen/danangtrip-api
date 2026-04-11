@@ -5,11 +5,11 @@ namespace App\Http\Requests\Search;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Class PopularSearchRequest
- * Validates popular query requests.
- * (Xác thực yêu cầu từ khóa phổ biến)
+ * Class TrendingSearchRequest
+ * Validates trending query requests.
+ * (Xác thực yêu cầu từ khóa xu hướng)
  */
-class PopularSearchRequest extends FormRequest
+class TrendingSearchRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -33,12 +33,6 @@ class PopularSearchRequest extends FormRequest
                 'min:1',
                 'max:50',
             ],
-            'days' => [
-                'sometimes',
-                'integer',
-                'min:1',
-                'max:365',
-            ],
         ];
     }
 
@@ -49,7 +43,8 @@ class PopularSearchRequest extends FormRequest
     {
         return [
             'limit.integer' => 'The limit must be an integer. (Giới hạn phải là số nguyên.)',
-            'days.integer' => 'The days must be an integer. (Số ngày phải là số nguyên.)',
+            'limit.min' => 'The limit must be at least 1. (Giới hạn phải ít nhất là 1.)',
+            'limit.max' => 'The limit must not exceed 50. (Giới hạn không được vượt quá 50.)',
         ];
     }
 }

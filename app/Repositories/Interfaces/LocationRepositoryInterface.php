@@ -94,10 +94,12 @@ interface LocationRepositoryInterface extends RepositoryInterface
     public function incrementViewCount(int $id): bool;
 
     /**
-     * Get total location count.
-     * (Lấy tổng số địa điểm)
+     * Get locations by IDs.
+     * (Lấy danh sách địa điểm theo mảng ID)
+     *
+     * @param  int[]  $ids
      */
-    public function getTotalCount(): int;
+    public function getByIds(array $ids): Collection;
 
     /**
      * Get total view count across all locations.

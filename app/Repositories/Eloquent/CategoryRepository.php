@@ -26,13 +26,15 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
      */
     public function getPublicCategories(): Collection
     {
-        return $this->with([
-            'subcategories' => function ($query): void {
-                $query->where('status', 'active')->orderBy('sort_order');
-            },
-        ])
+        return $this->model->newQuery()
+            ->with([
+                'subcategories' => function ($query): void {
+                    $query->where('status', 'active')->orderBy('sort_order');
+                },
+            ])
+            ->where('status', 'active')
             ->orderBy('sort_order')
-            ->getWhere(['status' => 'active']);
+            ->get();
     }
 
     /**
@@ -41,11 +43,15 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
      */
     public function getPublicCategoryById(int $id): ?Category
     {
-        return $this->with([
-            'subcategories' => function ($query): void {
-                $query->where('status', 'active')->orderBy('sort_order');
-            },
-        ])->firstWhere(['id' => $id, 'status' => 'active']);
+        return $this->model->newQuery()
+            ->with([
+                'subcategories' => function ($query): void {
+                    $query->where('status', 'active')->orderBy('sort_order');
+                },
+            ])
+            ->where('id', $id)
+            ->where('status', 'active')
+            ->first();
     }
 
     /**

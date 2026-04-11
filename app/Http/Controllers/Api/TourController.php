@@ -34,7 +34,7 @@ final class TourController extends Controller
      */
     public function index(IndexTourRequest $request): JsonResponse
     {
-        $result = $this->tourService->getTours($request->all());
+        $result = $this->tourService->getTours($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -99,7 +99,7 @@ final class TourController extends Controller
      */
     public function ratings(RatingsTourRequest $request, int $id): JsonResponse
     {
-        $result = $this->tourService->getRatings($id, $request->all());
+        $result = $this->tourService->getRatings($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

@@ -9,5 +9,11 @@ namespace App\Repositories\Interfaces;
  */
 interface ViewRepositoryInterface extends RepositoryInterface
 {
-    //
+    /**
+     * Get recent viewed location IDs by user.
+     * (Lấy danh sách ID địa điểm đã xem gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentLocationIds(int $userId, int $limit = 10): array;
 }

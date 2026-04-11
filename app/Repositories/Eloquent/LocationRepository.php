@@ -43,63 +43,12 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     /**
      * Get locations with filters and pagination.
      * (Lấy danh sách địa điểm với bộ lọc và phân trang)
-     *
-     * @param  array  $filters  Query filters.
-     * @return LengthAwarePaginator Paginated locations list.
      */
     public function getLocations(array $filters = []): LengthAwarePaginator
     {
         $query = $this->model->newQuery()
             ->where('status', 'active')
             ->with(['category', 'subcategory', 'tags']);
-
-        if (isset($filters['q']) && ! isset($filters['search'])) {
-            $filters['search'] = $filters['q'];
-        }
-
-        if (isset($filters['category_id'])) {
-            $query->where('category_id', $filters['category_id']);
-        }
-
-        if (isset($filters['subcategory_id'])) {
-            $query->where('subcategory_id', $filters['subcategory_id']);
-        }
-
-        if (isset($filters['district'])) {
-            $query->where('district', $filters['district']);
-        }
-
-        if (isset($filters['price_level'])) {
-            $query->where('price_level', $filters['price_level']);
-        }
-
-        if (isset($filters['price_min'])) {
-            $query->where('price_min', '>=', $filters['price_min']);
-        }
-
-        if (isset($filters['price_max'])) {
-            $query->where('price_max', '<=', $filters['price_max']);
-        }
-
-        if (isset($filters['is_featured'])) {
-            $query->where('is_featured', $filters['is_featured']);
-        }
-
-        if (isset($filters['rating_min'])) {
-            $query->where('avg_rating', '>=', $filters['rating_min']);
-        }
-
-        if (isset($filters['tag'])) {
-            $tags = is_array($filters['tag'])
-                ? $filters['tag']
-                : array_filter(array_map('trim', explode(',', (string) $filters['tag'])));
-
-            if (count($tags) > 0) {
-                $query->whereHas('tags', function ($q) use ($tags) {
-                    $q->whereIn('slug', $tags)->orWhereIn('name', $tags);
-                });
-            }
-        }
 
         if (isset($filters['search'])) {
             $searchTerm = $filters['search'];
@@ -115,16 +64,49 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             }
         }
 
-        if (isset($filters['sort']) && ! isset($filters['sort_by'])) {
-            $filters['sort_by'] = $filters['sort'];
+        if (isset($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
         }
 
-        if (isset($filters['order']) && ! isset($filters['sort_order'])) {
-            $filters['sort_order'] = $filters['order'];
+        if (isset($filters['subcategory_id'])) {
+            $query->where('subcategory_id', $filters['subcategory_id']);
         }
 
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortOrder = $filters['sort_order'] ?? 'desc';
+        if (isset($filters['district'])) {
+            $query->where('district', $filters['district']);
+        }
+
+        if (isset($filters['price_min'])) {
+            $query->where('price_min', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_max', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['is_featured'])) {
+            $query->where('is_featured', $filters['is_featured']);
+        }
+
+        if (isset($filters['price_level'])) {
+            $query->where('price_level', $filters['price_level']);
+        }
+
+        if (isset($filters['tag'])) {
+            $tags = is_array($filters['tag'])
+                ? $filters['tag']
+                : array_filter(array_map('trim', explode(',', (string) $filters['tag'])));
+
+            if (count($tags) > 0) {
+                $query->whereHas('tags', function ($q) use ($tags) {
+                    $q->whereIn('slug', $tags)->orWhereIn('name', $tags);
+                });
+            }
+        }
+
+        $validSortFields = ['created_at', 'avg_rating', 'review_count', 'view_count', 'price_min'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
+        $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
@@ -166,7 +148,8 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     {
         $limit = $limit ?? Constants::LIMIT;
 
-        return $this->model->where('status', 'active')
+        return $this->model->newQuery()
+            ->where('status', 'active')
             ->where('is_featured', true)
             ->orderBy('avg_rating', 'desc')
             ->limit($limit)
@@ -210,7 +193,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function findBySlug(string $slug): ?Location
     {
-        return $this->firstWhere(['slug' => $slug]);
+        return $this->model->newQuery()->where('slug', $slug)->first();
     }
 
     /**
@@ -270,6 +253,25 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     public function getTotalCount(): int
     {
         return $this->count();
+    }
+
+    /**
+     * Get locations by IDs.
+     * (Lấy danh sách địa điểm theo mảng ID)
+     *
+     * @param  int[]  $ids
+     */
+    public function getByIds(array $ids): Collection
+    {
+        if (empty($ids)) {
+            return new Collection;
+        }
+
+        return $this->model->newQuery()
+            ->whereIn('id', $ids)
+            ->where('status', 'active')
+            ->with(['category', 'subcategory', 'tags'])
+            ->get();
     }
 
     /**

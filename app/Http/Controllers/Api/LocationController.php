@@ -28,7 +28,7 @@ final class LocationController extends Controller
      */
     public function index(IndexLocationRequest $request): JsonResponse
     {
-        $result = $this->locationService->getLocations($request->all());
+        $result = $this->locationService->getLocations($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -67,7 +67,7 @@ final class LocationController extends Controller
      */
     public function nearby(NearbyLocationRequest $request): JsonResponse
     {
-        $result = $this->locationService->getNearbyLocations($request->all());
+        $result = $this->locationService->getNearbyLocations($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -80,7 +80,7 @@ final class LocationController extends Controller
      */
     public function ratings(RatingsLocationRequest $request, int $id): JsonResponse
     {
-        $result = $this->locationService->getLocationRatings($id, $request->all());
+        $result = $this->locationService->getLocationRatings($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

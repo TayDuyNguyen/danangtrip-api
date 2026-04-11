@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TourCategory\IndexTourCategoryRequest;
 use App\Http\Requests\TourCategory\ShowTourCategoryRequest;
 use App\Http\Requests\TourCategory\StoreTourCategoryRequest;
 use App\Http\Requests\TourCategory\UpdateStatusTourCategoryRequest;
 use App\Http\Requests\TourCategory\UpdateTourCategoryRequest;
 use App\Services\TourCategoryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class TourCategoryController
@@ -31,9 +31,9 @@ final class TourCategoryController extends Controller
      * Display a listing of tour categories (Admin).
      * (Danh sách danh mục tour - Admin)
      */
-    public function index(Request $request): JsonResponse
+    public function index(IndexTourCategoryRequest $request): JsonResponse
     {
-        $result = $this->tourCategoryService->getCategories($request->all());
+        $result = $this->tourCategoryService->getCategories($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

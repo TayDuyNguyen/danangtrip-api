@@ -27,7 +27,8 @@ final class FavoriteRepository extends BaseRepository implements FavoriteReposit
      */
     public function getPaginatedByUser(int $userId, int $perPage): LengthAwarePaginator
     {
-        return $this->model->where('user_id', $userId)
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
             ->with(['location' => function ($query) {
                 $query->with(['category']);
             }])
@@ -41,8 +42,26 @@ final class FavoriteRepository extends BaseRepository implements FavoriteReposit
      */
     public function findByUserAndLocation(int $userId, int $locationId): ?Favorite
     {
-        return $this->model->where('user_id', $userId)
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
             ->where('location_id', $locationId)
             ->first();
+    }
+
+    /**
+     * Get recent favorited location IDs by user.
+     * (Lấy danh sách ID địa điểm yêu thích gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentLocationIds(int $userId, int $limit = 10): array
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->pluck('location_id')
+            ->unique()
+            ->all();
     }
 }

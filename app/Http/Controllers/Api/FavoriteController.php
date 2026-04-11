@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Favorite\IndexFavoriteRequest;
 use App\Http\Requests\Favorite\StoreFavoriteRequest;
 use App\Services\FavoriteService;
 use Illuminate\Http\JsonResponse;
@@ -29,10 +30,10 @@ final class FavoriteController extends Controller
      * Get list of favorite locations.
      * (Lấy danh sách địa điểm yêu thích)
      */
-    public function index(Request $request): JsonResponse
+    public function index(IndexFavoriteRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $result = $this->favoriteService->getFavorites($userId, $request->all());
+        $result = $this->favoriteService->getFavorites($userId, $request->validated());
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data']);

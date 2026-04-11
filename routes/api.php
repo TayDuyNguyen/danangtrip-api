@@ -82,12 +82,16 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations/{id}/nearby', [LocationController::class, 'nearbyLocations'])->whereNumber('id');
     Route::post('/locations/{id}/view', [LocationController::class, 'recordView'])->whereNumber('id')->middleware('throttle:api.standard');
 
-    // Search: Locations Search & Suggestions & Popular Queries
-    // (Tìm kiếm: Tìm kiếm địa điểm & Gợi ý & Từ khóa phổ biến)
-    Route::get('/search', [SearchController::class, 'search'])->middleware('throttle:api.standard');
+    // Search: Locations & Tours Search & Suggestions & Popular & Trending
+    // (Tìm kiếm: Tìm kiếm địa điểm & tour & Gợi ý & Từ khóa phổ biến & Xu hướng)
+    Route::get('/search', [SearchController::class, 'index'])->middleware('throttle:api.standard');
     Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:api.standard');
     Route::get('/search/popular', [SearchController::class, 'popular'])->middleware('throttle:api.standard');
-    Route::get('/search/popular-with-filters', [SearchController::class, 'popularWithFilters'])->middleware('throttle:api.standard');
+    Route::get('/search/trending', [SearchController::class, 'trending'])->middleware('throttle:api.standard');
+
+    // Statistics: Public overview
+    // (Thống kê: Tổng quan công khai)
+    Route::get('/statistics', [AdminDashboardController::class, 'overview'])->middleware('throttle:api.standard');
 
     // Ratings: Public access
     // (Đánh giá: Truy cập công khai)
@@ -151,6 +155,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/favorites/check/{location_id}', [FavoriteController::class, 'check'])->whereNumber('location_id');
         Route::post('/user/favorites', [FavoriteController::class, 'store']);
         Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
+
+        // Recommendations
+        // (Gợi ý)
+        Route::get('/recommendations', [SearchController::class, 'recommendations']);
 
         // User Profile & History
         // (Thông tin cá nhân & Lịch sử)

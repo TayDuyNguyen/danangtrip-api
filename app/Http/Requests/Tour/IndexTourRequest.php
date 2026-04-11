@@ -38,7 +38,7 @@ class IndexTourRequest extends FormRequest
             ],
             'order_by' => [
                 'sometimes',
-                'in:created_at,price_adult,rating_avg',
+                'in:created_at,price_adult,view_count,name,rating_avg',
             ],
             'order_dir' => [
                 'sometimes',

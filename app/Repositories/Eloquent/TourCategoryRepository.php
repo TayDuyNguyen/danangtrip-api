@@ -31,7 +31,8 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
      */
     public function getActiveCategories(): Collection
     {
-        return $this->model->where('status', 'active')
+        return $this->model->newQuery()
+            ->where('status', 'active')
             ->orderBy('sort_order')
             ->get();
     }
@@ -42,7 +43,10 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
      */
     public function getToursBySlug(string $slug, array $filters = []): ?LengthAwarePaginator
     {
-        $category = $this->model->where('slug', $slug)->where('status', 'active')->first();
+        $category = $this->model->newQuery()
+            ->where('slug', $slug)
+            ->where('status', 'active')
+            ->first();
 
         if (! ($category instanceof TourCategory)) {
             return null;

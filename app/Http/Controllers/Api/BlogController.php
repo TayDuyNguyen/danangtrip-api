@@ -28,7 +28,7 @@ final class BlogController extends Controller
      */
     public function index(IndexBlogRequest $request): JsonResponse
     {
-        $result = $this->blogService->getPublicPosts($request->all());
+        $result = $this->blogService->getPublicPosts($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
