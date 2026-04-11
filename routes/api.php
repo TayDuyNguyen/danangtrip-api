@@ -242,8 +242,11 @@ Route::prefix('v1')->group(function () {
 
         // User Management
         // (Quản lý Người dùng)
+        Route::get('/users/export', [AdminUserController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/users', [AdminUserController::class, 'index']);
         Route::get('/users/{id}', [AdminUserController::class, 'show'])->whereNumber('id');
+        Route::get('/users/{id}/bookings', [AdminUserController::class, 'bookings'])->whereNumber('id');
+        Route::get('/users/{id}/ratings', [AdminUserController::class, 'ratings'])->whereNumber('id');
         Route::patch('/users/{id}/status', [AdminUserController::class, 'updateStatus'])->whereNumber('id');
         Route::patch('/users/{id}/role', [AdminUserController::class, 'updateRole'])->whereNumber('id');
         Route::delete('/users/{id}', [AdminUserController::class, 'destroy'])->whereNumber('id');

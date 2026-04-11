@@ -40,6 +40,16 @@ class IndexUserRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'sort' => [
+                'sometimes',
+                'string',
+                'in:id,full_name,email,created_at',
+            ],
+            'order' => [
+                'sometimes',
+                'string',
+                'in:asc,desc',
+            ],
         ];
     }
 
@@ -47,6 +57,8 @@ class IndexUserRequest extends FormRequest
     {
         return [
             'role.in' => 'The selected role is invalid. (Vai trò được chọn không hợp lệ.)',
+            'sort.in' => 'The sort field is invalid. (Trường sắp xếp không hợp lệ.)',
+            'order.in' => 'The order must be asc or desc. (Thứ tự phải là asc hoặc desc.)',
         ];
     }
 }

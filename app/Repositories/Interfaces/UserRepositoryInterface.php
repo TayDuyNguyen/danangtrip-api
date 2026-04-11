@@ -4,6 +4,7 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Interface UserRepositoryInterface
@@ -59,4 +60,22 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Duyệt qua tất cả người dùng theo từng đợt)
      */
     public function chunkAll(int $size, callable $callback): bool;
+
+    /**
+     * Get paginated bookings for a specific user.
+     * (Lấy danh sách đặt tour có phân trang của một người dùng)
+     */
+    public function getUserBookingsPaginated(int $userId, array $filters): LengthAwarePaginator;
+
+    /**
+     * Get paginated ratings for a specific user.
+     * (Lấy danh sách đánh giá có phân trang của một người dùng)
+     */
+    public function getUserRatingsPaginated(int $userId, array $filters): LengthAwarePaginator;
+
+    /**
+     * Get all users for export with optional filters.
+     * (Lấy tất cả người dùng để export với bộ lọc tùy chọn)
+     */
+    public function getAllForExport(array $filters): Collection;
 }
