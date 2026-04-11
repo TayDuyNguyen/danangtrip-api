@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Requests\Search;
+namespace App\Http\Requests\Favorite;
 
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Class PopularSearchRequest
- * Validates popular query requests.
- * (Xác thực yêu cầu từ khóa phổ biến)
+ * Class IndexFavoriteRequest
+ * Validates query parameters for listing favorite locations.
+ * (Xác thực tham số truy vấn cho danh sách địa điểm yêu thích)
  */
-class PopularSearchRequest extends FormRequest
+class IndexFavoriteRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -27,17 +27,11 @@ class PopularSearchRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'limit' => [
+            'per_page' => [
                 'sometimes',
                 'integer',
                 'min:1',
-                'max:50',
-            ],
-            'days' => [
-                'sometimes',
-                'integer',
-                'min:1',
-                'max:365',
+                'max:100',
             ],
         ];
     }
@@ -48,8 +42,9 @@ class PopularSearchRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'limit.integer' => 'The limit must be an integer. (Giới hạn phải là số nguyên.)',
-            'days.integer' => 'The days must be an integer. (Số ngày phải là số nguyên.)',
+            'per_page.integer' => 'The per_page must be an integer. (per_page phải là số nguyên.)',
+            'per_page.min' => 'The per_page must be at least 1. (per_page phải ít nhất là 1.)',
+            'per_page.max' => 'The per_page must not exceed 100. (per_page không được vượt quá 100.)',
         ];
     }
 }

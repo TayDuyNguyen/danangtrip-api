@@ -42,7 +42,7 @@ final class TourCategoryController extends Controller
      */
     public function toursBySlug(ToursBySlugTourCategoryRequest $request, string $slug): JsonResponse
     {
-        $result = $this->tourCategoryService->getToursBySlug($slug, $request->all());
+        $result = $this->tourCategoryService->getToursBySlug($slug, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

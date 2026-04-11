@@ -11,8 +11,8 @@ use App\Http\Requests\Rating\ApproveRatingRequest;
 use App\Http\Requests\Rating\RejectRatingRequest;
 use App\Services\RatingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Class RatingController
@@ -85,7 +85,7 @@ final class RatingController extends Controller
      * Export ratings to Excel.
      * (Xuất danh sách đánh giá ra file Excel)
      */
-    public function export(AdminIndexRatingRequest $request)
+    public function export(AdminIndexRatingRequest $request): BinaryFileResponse|JsonResponse
     {
         $result = $this->ratingService->exportRatings($request->validated());
 

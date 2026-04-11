@@ -41,4 +41,12 @@ interface BookingRepositoryInterface extends RepositoryInterface
      * Check if a tour schedule has any associated bookings.
      */
     public function hasBookings(int $tourScheduleId): bool;
+
+    /**
+     * Get recent booked tour IDs by user.
+     * (Lấy danh sách ID tour đã đặt gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentTourIds(int $userId, int $limit = 10): array;
 }

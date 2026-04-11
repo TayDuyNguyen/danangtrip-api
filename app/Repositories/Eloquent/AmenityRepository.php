@@ -27,7 +27,9 @@ final class AmenityRepository extends BaseRepository implements AmenityRepositor
      */
     public function getAll(?string $category = null): Collection
     {
-        return $this->orderBy('name')
-            ->getWhere($category ? ['category' => $category] : []);
+        return $this->model->newQuery()
+            ->when($category, fn ($q) => $q->where('category', $category))
+            ->orderBy('name')
+            ->get();
     }
 }

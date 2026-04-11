@@ -75,7 +75,9 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function findWithDetails(int $id): ?Booking
     {
-        return $this->with(['user', 'items.tour', 'items.tourSchedule'])->find($id);
+        return $this->model->newQuery()
+            ->with(['user', 'items.tour', 'items.tourSchedule'])
+            ->find($id);
     }
 
     /**
@@ -84,8 +86,10 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function findByCode(string $code): ?Booking
     {
-        return $this->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
-            ->firstWhere(['booking_code' => $code]);
+        return $this->model->newQuery()
+            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
+            ->where('booking_code', $code)
+            ->first();
     }
 
     /**
@@ -142,5 +146,28 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         })
             ->whereIn('booking_status', [BookingStatus::PENDING->value, BookingStatus::CONFIRMED->value])
             ->exists();
+    }
+
+    /**
+     * Get recent booked tour IDs by user.
+     * (Lấy danh sách ID tour đã đặt gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentTourIds(int $userId, int $limit = 10): array
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->whereHas('items', function ($q) {
+                $q->whereNotNull('tour_id');
+            })
+            ->with('items')
+            ->orderByDesc('created_at')
+            ->limit($limit)
+            ->get()
+            ->pluck('items.*.tour_id')
+            ->flatten()
+            ->unique()
+            ->all();
     }
 }

@@ -29,7 +29,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      */
     public function getPayments(array $filters): LengthAwarePaginator
     {
-        $query = $this->model->with('booking.user');
+        $query = $this->model->newQuery()->with('booking.user');
 
         if (! empty($filters['payment_status'])) {
             $query->where('payment_status', $filters['payment_status']);
@@ -67,7 +67,9 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      */
     public function findByTransactionCode(string $transactionCode): ?Payment
     {
-        return $this->model->where('transaction_code', $transactionCode)->first();
+        return $this->model->newQuery()
+            ->where('transaction_code', $transactionCode)
+            ->first();
     }
 
     /**
@@ -88,7 +90,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      */
     public function getExportPayments(array $filters): Collection
     {
-        $query = $this->model->with('booking.user');
+        $query = $this->model->newQuery()->with('booking.user');
 
         if (! empty($filters['payment_status'])) {
             $query->where('payment_status', $filters['payment_status']);

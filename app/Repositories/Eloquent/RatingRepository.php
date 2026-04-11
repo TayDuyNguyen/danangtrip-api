@@ -66,7 +66,10 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
      */
     public function findForUpdate(int $id, array $relations = []): ?Rating
     {
-        return $this->lockForUpdate()->with($relations)->find($id);
+        return $this->model->newQuery()
+            ->lockForUpdate()
+            ->with($relations)
+            ->find($id);
     }
 
     /**

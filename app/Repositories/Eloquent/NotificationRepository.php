@@ -49,7 +49,10 @@ final class NotificationRepository extends BaseRepository implements Notificatio
     public function markAsRead(int $userId, int $notificationId): ?Notification
     {
         /** @var Notification|null $notification */
-        $notification = $this->firstWhere(['user_id' => $userId, 'id' => $notificationId]);
+        $notification = $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->where('id', $notificationId)
+            ->first();
 
         if (! $notification || $notification->is_read) {
             return $notification;

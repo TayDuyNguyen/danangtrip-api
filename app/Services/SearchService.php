@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Repositories\Interfaces\BookingRepositoryInterface;
+use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
+use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class SearchService
@@ -22,28 +25,37 @@ final class SearchService
      */
     public function __construct(
         protected LocationRepositoryInterface $locationRepository,
-        protected SearchLogRepositoryInterface $searchLogRepository
+        protected TourRepositoryInterface $tourRepository,
+        protected SearchLogRepositoryInterface $searchLogRepository,
+        protected ViewRepositoryInterface $viewRepository,
+        protected FavoriteRepositoryInterface $favoriteRepository,
+        protected BookingRepositoryInterface $bookingRepository
     ) {}
 
     /**
-     * Search locations by query and filters.
-     * (Tìm kiếm địa điểm theo từ khóa và bộ lọc)
+     * Search locations or tours by query and filters.
+     * (Tìm kiếm địa điểm hoặc tour theo từ khóa và bộ lọc)
      */
     public function search(array $data, Request $request): array
     {
         try {
             $q = trim((string) ($data['q'] ?? ''));
-            $filters = $data;
-            unset($filters['q']);
+            $type = $data['type'] ?? 'location';
 
-            $paginator = $this->locationRepository->getLocations(array_merge($filters, ['q' => $q]));
+            if ($type === 'tour') {
+                $paginator = $this->tourRepository->getTours($this->mapTourFilters($data, $q));
+                $logFilters = array_merge($this->mapTourFilters($data, $q), ['type' => $type]);
+            } else {
+                $paginator = $this->locationRepository->getLocations($this->mapLocationFilters($data, $q));
+                $logFilters = array_merge($this->mapLocationFilters($data, $q), ['type' => $type]);
+            }
 
             $this->searchLogRepository->logSearch([
                 'user_id' => $request->user()?->id,
                 'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
                 'query' => $q,
                 'results_count' => $this->resolveResultsCount($paginator),
-                'filters' => $this->normalizeFiltersForLog($filters),
+                'filters' => $this->normalizeFiltersForLog($logFilters),
                 'created_at' => now(),
             ]);
 
@@ -51,17 +63,50 @@ final class SearchService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'query' => $q,
+                    'type' => $type,
                     'results' => $paginator,
                 ],
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to search locations',
+                'message' => 'Failed to search',
             ];
         }
+    }
+
+    /**
+     * Build location filter array from validated request data.
+     * (Xây dựng mảng filter cho địa điểm từ dữ liệu request đã xác thực)
+     */
+    private function mapLocationFilters(array $data, string $q): array
+    {
+        $filters = ['search' => $q];
+
+        foreach (['category_id', 'subcategory_id', 'district', 'price_min', 'price_max', 'is_featured', 'sort_by', 'sort_order', 'page', 'per_page'] as $key) {
+            if (isset($data[$key])) {
+                $filters[$key] = $data[$key];
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Build tour filter array from validated request data.
+     * (Xây dựng mảng filter cho tour từ dữ liệu request đã xác thực)
+     */
+    private function mapTourFilters(array $data, string $q): array
+    {
+        $filters = ['search' => $q];
+
+        foreach (['tour_category_id', 'price_min', 'price_max', 'is_featured', 'is_hot', 'order_by', 'order_dir', 'page', 'per_page'] as $key) {
+            if (isset($data[$key])) {
+                $filters[$key] = $data[$key];
+            }
+        }
+
+        return $filters;
     }
 
     /**
@@ -74,21 +119,27 @@ final class SearchService
             $q = trim((string) ($data['q'] ?? ''));
             $limit = (int) ($data['limit'] ?? 5);
 
-            $fromLocations = $this->locationRepository->getNameSuggestions($q, $limit);
+            $locationSuggestions = $this->locationRepository->getNameSuggestions($q, $limit);
+            $tourSuggestions = $this->tourRepository->getNameSuggestions($q, $limit);
+
+            $suggestions = collect($locationSuggestions)
+                ->merge($tourSuggestions)
+                ->unique()
+                ->take($limit)
+                ->values()
+                ->all();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'query' => $q,
-                    'suggestions' => $fromLocations,
+                    'suggestions' => $suggestions,
                 ],
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
-
+        } catch (\Exception $_) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to get suggestions',
+                'message' => 'Failed to get search suggestions',
             ];
         }
     }
@@ -109,37 +160,66 @@ final class SearchService
                     'popular' => $this->searchLogRepository->getPopularQueries($limit, $days),
                 ],
             ];
-        } catch (\Exception $e) {
-            Log::error($e);
-
+        } catch (\Exception $_) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to get popular queries',
+                'message' => 'Failed to get popular searches',
             ];
         }
     }
 
     /**
-     * Get popular search queries with optional filters.
-     * (Lấy danh sách từ khóa tìm kiếm phổ biến với bộ lọc tùy chọn)
+     * Get trending search queries (last 24h).
+     * (Lấy danh sách từ khóa tìm kiếm xu hướng - 24h qua)
      */
-    public function popularWithFilters(array $data): array
+    public function trending(array $data): array
     {
         try {
             $limit = (int) ($data['limit'] ?? 10);
-            $days = (int) ($data['days'] ?? 30);
-            $filters = $data['filters'] ?? [];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
-                    'popular' => $this->searchLogRepository->getPopularQueriesByFilters($filters, $limit, $days),
+                    'trending' => $this->searchLogRepository->getPopularQueries($limit, 1),
                 ],
             ];
         } catch (\Exception $_) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to get popular queries with filters',
+                'message' => 'Failed to get trending searches',
+            ];
+        }
+    }
+
+    /**
+     * Get recommendations based on user history.
+     * (Lấy gợi ý dựa trên lịch sử của người dùng)
+     */
+    public function recommendations(int $userId, array $data): array
+    {
+        try {
+            $limit = (int) ($data['limit'] ?? 10);
+
+            $viewedLocationIds = $this->viewRepository->getRecentLocationIds($userId, $limit);
+            $favoritedLocationIds = $this->favoriteRepository->getRecentLocationIds($userId, $limit);
+            $bookedTourIds = $this->bookingRepository->getRecentTourIds($userId, $limit);
+
+            $locationIds = collect($viewedLocationIds)->merge($favoritedLocationIds)->unique()->take($limit)->all();
+
+            $locations = $this->locationRepository->getByIds($locationIds);
+            $tours = $this->tourRepository->getByIds($bookedTourIds);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'locations' => $locations,
+                    'tours' => $tours,
+                ],
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get recommendations',
             ];
         }
     }

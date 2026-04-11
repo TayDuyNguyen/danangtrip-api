@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class DashboardService
@@ -23,7 +24,9 @@ final class DashboardService
     public function __construct(
         protected UserRepositoryInterface $userRepository,
         protected LocationRepositoryInterface $locationRepository,
+        protected TourRepositoryInterface $tourRepository,
         protected RatingRepositoryInterface $ratingRepository,
+        protected BlogPostRepositoryInterface $blogPostRepository,
     ) {}
 
     /**
@@ -36,8 +39,10 @@ final class DashboardService
             $stats = [
                 'total_users' => $this->userRepository->count(),
                 'total_locations' => $this->locationRepository->count(),
+                'total_tours' => $this->tourRepository->count(),
                 'total_ratings' => $this->ratingRepository->count(),
                 'total_views' => $this->locationRepository->getTotalViewCount(),
+                'total_blog_posts' => $this->blogPostRepository->count(),
             ];
 
             return [
@@ -45,8 +50,6 @@ final class DashboardService
                 'data' => $stats,
             ];
         } catch (Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve overview statistics.',
@@ -71,8 +74,6 @@ final class DashboardService
                 'data' => $data,
             ];
         } catch (Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve location reports.',
@@ -98,8 +99,6 @@ final class DashboardService
                 'data' => $data,
             ];
         } catch (Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve rating reports.',

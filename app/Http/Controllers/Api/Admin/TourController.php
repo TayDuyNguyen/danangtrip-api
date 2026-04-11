@@ -12,6 +12,7 @@ use App\Http\Requests\Tour\UpdateTourRequest;
 use App\Services\TourService;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Class TourController
@@ -110,7 +111,7 @@ final class TourController extends Controller
      * Export tours to Excel.
      * (Export danh sách tour ra Excel)
      */
-    public function export()
+    public function export(): BinaryFileResponse|JsonResponse
     {
         $result = $this->tourService->exportTours();
 

@@ -28,7 +28,10 @@ class RefreshTokenRepository extends BaseRepository implements RefreshTokenRepos
      */
     public function findByToken(string $hashedToken)
     {
-        return $this->model->where('token', $hashedToken)->with('user')->first();
+        return $this->model->newQuery()
+            ->where('token', $hashedToken)
+            ->with('user')
+            ->first();
     }
 
     /**
@@ -38,7 +41,7 @@ class RefreshTokenRepository extends BaseRepository implements RefreshTokenRepos
      */
     public function deleteByToken(string $hashedToken)
     {
-        $this->model->where('token', $hashedToken)->delete();
+        $this->model->newQuery()->where('token', $hashedToken)->delete();
     }
 
     /**
@@ -48,6 +51,6 @@ class RefreshTokenRepository extends BaseRepository implements RefreshTokenRepos
      */
     public function deleteAllByUserId(int $userId)
     {
-        $this->model->where('user_id', $userId)->delete();
+        $this->model->newQuery()->where('user_id', $userId)->delete();
     }
 }

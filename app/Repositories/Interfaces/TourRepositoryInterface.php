@@ -73,4 +73,20 @@ interface TourRepositoryInterface extends RepositoryInterface
      * (Lấy dữ liệu tour để xuất)
      */
     public function getExportCollection(): Collection;
+
+    /**
+     * Get tour name suggestions by prefix.
+     * (Lấy gợi ý tên tour theo tiền tố)
+     *
+     * @return string[]
+     */
+    public function getNameSuggestions(string $q, int $limit = 5): array;
+
+    /**
+     * Get tours by IDs.
+     * (Lấy danh sách tour theo mảng ID)
+     *
+     * @param  int[]  $ids
+     */
+    public function getByIds(array $ids): Collection;
 }

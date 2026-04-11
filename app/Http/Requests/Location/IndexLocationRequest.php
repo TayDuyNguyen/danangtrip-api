@@ -63,18 +63,15 @@ class IndexLocationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'category_id.required' => 'The primary category ID is required. (Mã danh mục chính là bắt buộc.)',
             'category_id.integer' => 'The category ID must be an integer. (Mã danh mục phải là số nguyên.)',
             'category_id.exists' => 'The category ID does not exist. (Mã danh mục không tồn tại.)',
             'subcategory_id.integer' => 'The subcategory ID must be an integer. (Mã danh mục con phải là số nguyên.)',
             'subcategory_id.exists' => 'The subcategory ID does not exist. (Mã danh mục con không tồn tại.)',
-            'district.required' => 'The district is required. (Quận/Huyện là bắt buộc.)',
             'district.max' => 'The district must not exceed 50 characters. (Quận/Huyện không được vượt quá 50 ký tự.)',
             'search.max' => 'The search term must not exceed 100 characters. (Từ khóa tìm kiếm không được vượt quá 100 ký tự.)',
             'price_level.integer' => 'The price level must be an integer. (Mức giá phải là số nguyên.)',
             'price_level.between' => 'The price level must be between 1 and 4. (Mức giá phải nằm trong khoảng từ 1 đến 4.)',
             'is_featured.boolean' => 'The is_featured field must be true or false. (Trường nổi bật phải là true hoặc false.)',
-            'is_featured.required' => 'The is_featured field is required. (Trường nổi bật là bắt buộc.)',
             'sort_by.in' => 'The selected sort field is invalid. (Trường sắp xếp không hợp lệ.)',
             'sort_order.in' => 'The selected sort order is invalid. (Thứ tự sắp xếp không hợp lệ.)',
             'per_page.integer' => 'The items per page must be an integer. (Số lượng mỗi trang phải là số nguyên.)',

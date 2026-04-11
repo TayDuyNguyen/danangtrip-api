@@ -44,14 +44,31 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('tour_category_id', $filters['tour_category_id']);
         }
 
+        if (isset($filters['price_min'])) {
+            $query->where('price_adult', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_adult', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['is_featured'])) {
+            $query->where('is_featured', (bool) $filters['is_featured']);
+        }
+
+        if (isset($filters['is_hot'])) {
+            $query->where('is_hot', (bool) $filters['is_hot']);
+        }
+
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         } else {
             $query->where('status', 'available');
         }
 
-        $orderBy = $filters['order_by'] ?? 'created_at';
-        $orderDir = $filters['order_dir'] ?? 'desc';
+        $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'];
+        $orderBy = in_array($filters['order_by'] ?? '', $validSortFields) ? $filters['order_by'] : 'created_at';
+        $orderDir = in_array($filters['order_dir'] ?? '', ['asc', 'desc']) ? $filters['order_dir'] : 'desc';
         $query->orderBy($orderBy, $orderDir);
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
@@ -65,7 +82,10 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      */
     public function getFeaturedTours(?int $limit = null): Collection
     {
-        $query = $this->model->where('status', 'available')->where('is_featured', true);
+        $query = $this->model->newQuery()
+            ->where('status', 'available')
+            ->where('is_featured', true);
+
         if ($limit) {
             $query->limit($limit);
         }
@@ -79,7 +99,10 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      */
     public function getHotTours(?int $limit = null): Collection
     {
-        $query = $this->model->where('status', 'available')->where('is_hot', true);
+        $query = $this->model->newQuery()
+            ->where('status', 'available')
+            ->where('is_hot', true);
+
         if ($limit) {
             $query->limit($limit);
         }
@@ -93,9 +116,12 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      */
     public function findBySlug(string $slug): ?Tour
     {
-        return $this->with(['category', 'schedules' => function ($query) {
-            $query->where('start_date', '>=', now())->orderBy('start_date', 'asc');
-        }])->firstWhere(['slug' => $slug]);
+        return $this->model->newQuery()
+            ->with(['category', 'schedules' => function ($query) {
+                $query->where('start_date', '>=', now())->orderBy('start_date', 'asc');
+            }])
+            ->where('slug', $slug)
+            ->first();
     }
 
     /**
@@ -121,17 +147,16 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      */
     public function getRatings(int $id, array $request): LengthAwarePaginator
     {
+        $perPage = $request['per_page'] ?? Pagination::PER_PAGE->value;
         $tour = $this->find($id);
+
         if (! $tour) {
-            // Standard empty paginator if tour not found, or could throw exception based on project preference
-            return $this->model->ratings()->where('id', 0)->paginate();
+            return $this->model->newQuery()->whereRaw('1 = 0')->paginate($perPage);
         }
 
         $query = $tour->ratings()
             ->where('status', 'approved')
             ->with(['user', 'images']);
-
-        $perPage = $request['per_page'] ?? Pagination::PER_PAGE->value;
 
         return $query->latest()->paginate($perPage);
     }
@@ -209,5 +234,47 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     public function getExportCollection(): Collection
     {
         return $this->model->with('category')->latest()->get();
+    }
+
+    /**
+     * Get tour name suggestions by prefix.
+     * (Lấy gợi ý tên tour theo tiền tố)
+     *
+     * @return string[]
+     */
+    public function getNameSuggestions(string $q, int $limit = 5): array
+    {
+        $q = trim($q);
+        if ($q === '') {
+            return [];
+        }
+
+        return $this->model->newQuery()
+            ->where('status', 'available')
+            ->where('name', 'like', $q.'%')
+            ->orderBy('view_count', 'desc')
+            ->limit($limit)
+            ->pluck('name')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Get tours by IDs.
+     * (Lấy danh sách tour theo mảng ID)
+     *
+     * @param  int[]  $ids
+     */
+    public function getByIds(array $ids): Collection
+    {
+        if (empty($ids)) {
+            return new Collection;
+        }
+
+        return $this->model->newQuery()
+            ->whereIn('id', $ids)
+            ->where('status', 'available')
+            ->with(['category'])
+            ->get();
     }
 }

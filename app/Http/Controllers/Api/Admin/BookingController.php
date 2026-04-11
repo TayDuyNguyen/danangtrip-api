@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
+use App\Exports\BookingsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\CancelBookingRequest;
 use App\Http\Requests\Booking\IndexBookingRequest;
@@ -10,6 +11,8 @@ use App\Http\Requests\Booking\UpdateBookingStatusRequest;
 use App\Services\BookingService;
 use App\Traits\ApiResponser;
 use Illuminate\Http\JsonResponse;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BookingController extends Controller
 {
@@ -31,15 +34,16 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function export(IndexBookingRequest $request): JsonResponse
+    public function export(IndexBookingRequest $request): BinaryFileResponse|JsonResponse
     {
         $result = $this->bookingService->getBookings($request->validated());
 
-        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
-            return $this->success($result['data'], 'Export data retrieved successfully. Excel file generation is not yet implemented.');
+        if ($result['status'] !== HttpStatusCode::SUCCESS->value) {
+            return $this->error($result['message'], $result['status']);
         }
 
-        return $this->error($result['message'], $result['status']);
+        // Return Excel download response
+        return Excel::download(new BookingsExport($result['data']), 'bookings.xlsx');
     }
 
     public function show(int $id): JsonResponse

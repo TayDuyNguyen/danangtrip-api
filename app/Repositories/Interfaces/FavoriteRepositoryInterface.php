@@ -22,4 +22,12 @@ interface FavoriteRepositoryInterface extends RepositoryInterface
      * (Tìm yêu thích theo người dùng và địa điểm)
      */
     public function findByUserAndLocation(int $userId, int $locationId): ?Favorite;
+
+    /**
+     * Get recent favorited location IDs by user.
+     * (Lấy danh sách ID địa điểm yêu thích gần đây của người dùng)
+     *
+     * @return int[]
+     */
+    public function getRecentLocationIds(int $userId, int $limit = 10): array;
 }

@@ -69,7 +69,7 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
      */
     public function incrementViewCount(int $id): int
     {
-        return $this->model->where('id', $id)->increment('view_count');
+        return (int) $this->increment($id, 'view_count');
     }
 
     /**

@@ -7,251 +7,139 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Interface RepositoryInterface
- * Generic repository interface defining standard and advanced CRUD operations.
- * (Interface tổng quát định nghĩa các hoạt động CRUD cơ bản và nâng cao)
+ * Base contract defining essential CRUD operations for all repositories.
+ * (Interface cơ sở định nghĩa các thao tác CRUD thiết yếu cho tất cả repository)
  */
 interface RepositoryInterface
 {
     /**
      * Get all records.
+     * (Lấy tất cả bản ghi)
      *
-     * @return mixed
+     * @return Collection
      */
     public function all();
 
     /**
      * Create a new record.
+     * (Tạo bản ghi mới)
      *
-     * @return mixed
+     * @return Model
      */
     public function create(array $attributes = []);
 
     /**
-     * Insert multiple records.
+     * Insert multiple records at once.
+     * (Chèn nhiều bản ghi cùng lúc)
      *
-     * @return mixed
+     * @return bool
      */
     public function insert(array $attributes);
 
     /**
      * Update a record by ID.
+     * (Cập nhật bản ghi theo ID)
      *
      * @param  mixed  $id
-     * @return mixed
+     * @return bool
      */
     public function update($id, array $attributes = []);
 
     /**
      * Delete a record by ID.
+     * (Xóa bản ghi theo ID)
      *
      * @param  mixed  $id
-     * @return mixed
+     * @return int
      */
     public function delete($id);
 
     /**
      * Find a record by ID or throw exception.
+     * (Tìm bản ghi theo ID hoặc ném ngoại lệ)
      *
      * @param  mixed  $id
-     * @return mixed
+     * @return Model
      */
     public function show($id);
 
     /**
      * Find a record by ID.
+     * (Tìm bản ghi theo ID)
      *
      * @param  mixed  $id
-     * @return mixed
+     * @return Model|null
      */
     public function find($id);
 
     /**
-     * Find a record by ID with specific columns.
+     * Find a record by ID with specific columns only.
+     * (Tìm bản ghi theo ID với các cột cụ thể)
      *
      * @param  mixed  $id
-     * @return mixed
+     * @return Model|null
      */
     public function findOnlyColumn($id, array $columns = ['*']);
 
     /**
-     * Get the first record.
-     *
-     * @return mixed
-     */
-    public function first();
-
-    /**
-     * Eager load relations.
-     *
-     * @param  mixed  $relations
-     * @return $this
-     */
-    public function with($relations);
-
-    /**
-     * Order by column.
-     *
-     * @return $this
-     */
-    public function orderBy(string $column, string $direction = 'asc');
-
-    /**
-     * Limit results.
-     *
-     * @return $this
-     */
-    public function limit(int $limit);
-
-    /**
-     * Get the query builder.
-     *
-     * @return mixed
-     */
-    public function getQuery();
-
-    /**
-     * Clear the query builder.
-     *
-     * @return mixed
-     */
-    public function clearQuery();
-
-    /**
-     * Find records by filter.
-     *
-     * @return mixed
-     */
-    public function findBy(array $filter, bool $toArray = true);
-
-    /**
-     * Find one record by filter.
-     *
-     * @return mixed
-     */
-    public function findOneBy(array $filter, bool $toArray = true);
-
-    /**
-     * Paginate results.
-     *
-     * @param  int  $page
-     * @return mixed
-     */
-    public function paginate($page);
-
-    /**
-     * Get the first record matching the attributes.
+     * Get the first record matching the given attributes.
      * (Lấy bản ghi đầu tiên khớp với các thuộc tính)
      */
     public function firstWhere(array $where): ?Model;
 
     /**
-     * Get all records matching the attributes.
+     * Get all records matching the given attributes.
      * (Lấy tất cả bản ghi khớp với các thuộc tính)
      */
     public function getWhere(array $where): Collection;
 
     /**
-     * Count records matching filters.
-     * (Đếm số bản ghi khớp với bộ lọc)
+     * Count records, optionally filtered by conditions.
+     * (Đếm số bản ghi, có thể lọc theo điều kiện)
      */
     public function count(array $where = []): int;
 
     /**
-     * Check if any record matches the filters.
-     * (Kiểm tra xem có bản ghi nào khớp với bộ lọc không)
+     * Check if any record matches the given conditions.
+     * (Kiểm tra xem có bản ghi nào khớp với điều kiện không)
      */
     public function exists(array $where): bool;
 
     /**
-     * Increment a column value.
-     * (Tăng giá trị của một cột)
+     * Increment a column value for a record.
+     * (Tăng giá trị cột của một bản ghi)
      */
     public function increment(int $id, string $column, int $amount = 1, array $extraConditions = []): bool;
 
     /**
-     * Decrement a column value.
-     * (Giảm giá trị của một cột)
+     * Decrement a column value for a record.
+     * (Giảm giá trị cột của một bản ghi)
      */
     public function decrement(int $id, string $column, int $amount = 1, array $extraConditions = []): bool;
 
     /**
-     * Set the query to lock the selected rows for update.
-     * (Thiết lập truy vấn để khóa các dòng được chọn để cập nhật)
-     */
-    public function lockForUpdate();
-
-    /**
-     * Update records by condition.
-     */
-    public function updateWhere(array $attributes = [], array $params = []): int;
-
-    /**
-     * Delete records by condition.
-     */
-    public function deleteBy(array $filter): int;
-
-    /**
-     * Find records where in.
+     * Sync a many-to-many relationship.
+     * (Đồng bộ quan hệ nhiều-nhiều)
      *
-     * @return mixed
-     */
-    public function findWhereIn(array $filter, bool $toArray = true);
-
-    /**
-     * Delete records where in.
-     */
-    public function deleteWhereIn(array $filter): int;
-
-    /**
-     * Update or create a record.
-     */
-    public function updateOrCreate(array $attributes = [], array $params = []): void;
-
-    /**
-     * Count records.
-     */
-    public function countRecord(array $filter = []): int;
-
-    /**
-     * Find records by IDs.
-     */
-    public function findByIds(array $ids, array $filter = [], bool $returnOnlyIds = false): array;
-
-    /**
-     * Update where in.
-     */
-    public function updateWhereIn(string $column, array $values, array $attributes, array $whereConditions = []): void;
-
-    /**
-     * Update where not in.
-     */
-    public function updateWhereNotIn(string $column, array $values, array $attributes, array $whereConditions = []): void;
-
-    /**
-     * Delete not in IDs.
-     */
-    public function deleteNotInIds(string $columnName, int $value, array $ids, string $primaryKey = 'id'): void;
-
-    /**
-     * Sync many-to-many.
-     *
-     * @param  mixed  $idOrModel
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
     public function sync($idOrModel, string $relation, array $attributes, bool $detaching = true);
 
     /**
-     * Attach many-to-many.
+     * Attach records to a many-to-many relationship.
+     * (Gắn bản ghi vào quan hệ nhiều-nhiều)
      *
-     * @param  mixed  $idOrModel
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
     public function attach($idOrModel, string $relation, array $attributes);
 
     /**
-     * Detach many-to-many.
+     * Detach records from a many-to-many relationship.
+     * (Gỡ bản ghi khỏi quan hệ nhiều-nhiều)
      *
-     * @param  mixed  $idOrModel
+     * @param  Model|int  $idOrModel
      * @return mixed
      */
     public function detach($idOrModel, string $relation, array $attributes = []);
