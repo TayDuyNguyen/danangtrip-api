@@ -236,8 +236,6 @@ class UserService
     public function updateUser(int $id, array $data, ?int $currentAdminId = null): array
     {
         try {
-            // Safety check: Prevent admin from downgrading their own role/status via generic update
-            // (Kiểm tra an toàn: Ngăn admin tự hạ quyền/trạng thái của mình qua cập nhật chung)
             if ($currentAdminId && $id === $currentAdminId) {
                 if (isset($data['role']) || isset($data['status'])) {
                     return [
@@ -284,8 +282,6 @@ class UserService
     public function deleteUser(int $id, int $currentAdminId): array
     {
         try {
-            // Safety check: Prevent admin from deleting their own account (TC35 protection)
-            // (Kiểm tra an toàn: Ngăn admin tự xóa tài khoản của mình)
             if ($id === $currentAdminId) {
                 return [
                     'status' => HttpStatusCode::FORBIDDEN->value,
@@ -311,6 +307,85 @@ class UserService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete user',
+            ];
+        }
+    }
+
+    /**
+     * Get paginated bookings for a specific user.
+     * (Lấy danh sách đặt tour có phân trang của một người dùng)
+     */
+    public function getUserBookings(int $id, array $filters): array
+    {
+        try {
+            $user = $this->userRepository->find($id);
+            if (! $user) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'User not found',
+                ];
+            }
+
+            $bookings = $this->userRepository->getUserBookingsPaginated($id, $filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $bookings,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get user bookings',
+            ];
+        }
+    }
+
+    /**
+     * Get paginated ratings for a specific user.
+     * (Lấy danh sách đánh giá có phân trang của một người dùng)
+     */
+    public function getUserRatings(int $id, array $filters): array
+    {
+        try {
+            $user = $this->userRepository->find($id);
+            if (! $user) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'User not found',
+                ];
+            }
+
+            $ratings = $this->userRepository->getUserRatingsPaginated($id, $filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $ratings,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get user ratings',
+            ];
+        }
+    }
+
+    /**
+     * Export users list to Excel.
+     * (Xuất danh sách người dùng ra Excel)
+     */
+    public function exportUsers(array $filters): array
+    {
+        try {
+            $users = $this->userRepository->getAllForExport($filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $users,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to export users',
             ];
         }
     }

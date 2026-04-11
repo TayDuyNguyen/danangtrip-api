@@ -3,9 +3,12 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\Pagination;
+use App\Models\Booking;
+use App\Models\Rating;
 use App\Models\User;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Class UserRepository
@@ -70,8 +73,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
+        $sort = $filters['sort'] ?? 'created_at';
+        $order = $filters['order'] ?? 'desc';
 
-        return $query->orderBy('created_at', 'desc')->paginate($perPage, ['*'], 'page', $page);
+        return $query->orderBy($sort, $order)->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
@@ -130,5 +135,56 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function chunkAll(int $size, callable $callback): bool
     {
         return $this->model->newQuery()->select('id')->chunk($size, $callback);
+    }
+
+    /**
+     * Get paginated bookings for a specific user.
+     * (Lấy danh sách đặt tour có phân trang của một người dùng)
+     */
+    public function getUserBookingsPaginated(int $userId, array $filters): LengthAwarePaginator
+    {
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
+
+        return Booking::query()
+            ->with(['tourSchedule.tour'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Get paginated ratings for a specific user.
+     * (Lấy danh sách đánh giá có phân trang của một người dùng)
+     */
+    public function getUserRatingsPaginated(int $userId, array $filters): LengthAwarePaginator
+    {
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
+
+        return Rating::query()
+            ->with(['location:id,name', 'tour:id,name'])
+            ->where('user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * Get all users for export with optional filters.
+     * (Lấy tất cả người dùng để export với bộ lọc tùy chọn)
+     */
+    public function getAllForExport(array $filters): Collection
+    {
+        $query = $this->model->newQuery();
+
+        if (! empty($filters['role'])) {
+            $query->where('role', $filters['role']);
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        return $query->orderBy('created_at', 'desc')->get();
     }
 }

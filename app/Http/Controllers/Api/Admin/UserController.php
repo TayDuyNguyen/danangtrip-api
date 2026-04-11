@@ -3,16 +3,22 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
+use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\DeleteUserRequest;
+use App\Http\Requests\User\ExportUserRequest;
 use App\Http\Requests\User\IndexUserRequest;
 use App\Http\Requests\User\ShowUserRequest;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateRoleUserRequest;
 use App\Http\Requests\User\UpdateStatusUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Requests\User\UserBookingsRequest;
+use App\Http\Requests\User\UserRatingsRequest;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Class UserController
@@ -118,5 +124,50 @@ final class UserController extends Controller
         return $result['status'] == HttpStatusCode::SUCCESS->value
             ? $this->success(['user' => $result['data']], 'User updated successfully')
             : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get booking history for a specific user.
+     * (Lấy lịch sử đặt tour của một người dùng)
+     */
+    public function bookings(UserBookingsRequest $request, int $id): JsonResponse
+    {
+        $result = $this->userService->getUserBookings($id, $request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get ratings for a specific user.
+     * (Lấy danh sách đánh giá của một người dùng)
+     */
+    public function ratings(UserRatingsRequest $request, int $id): JsonResponse
+    {
+        $result = $this->userService->getUserRatings($id, $request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Export users list to Excel.
+     * (Xuất danh sách người dùng ra Excel)
+     *
+     * @return BinaryFileResponse|JsonResponse
+     */
+    public function export(ExportUserRequest $request)
+    {
+        $result = $this->userService->exportUsers($request->validated());
+
+        if ($result['status'] !== HttpStatusCode::SUCCESS->value) {
+            return $this->error($result['message'], $result['status']);
+        }
+
+        $export = new UsersExport($result['data']);
+
+        return Excel::download($export, 'users_'.now()->format('Ymd_His').'.xlsx');
     }
 }

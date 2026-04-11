@@ -161,3 +161,101 @@
  *
  * @apiSampleRequest /api/v1/admin/users/1
  */
+
+/**
+ * @api {get} /api/v1/admin/users/:id/bookings Get User Booking History
+ * @apiName GetAdminUserBookings
+ * @apiGroup Admin User
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns paginated booking history for a specific user.
+ *
+ * @apiParam {Number} id User id
+ * @apiParam (Query) {Number{1..}} [page=1] Page number.
+ * @apiParam (Query) {Number{1-100}} [per_page=15] Items per page.
+ *
+ * @apiSampleRequest /api/v1/admin/users/1/bookings
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "current_page": 1,
+ *     "data": [
+ *       {
+ *         "id": 1,
+ *         "booking_code": "BK-20240101-001",
+ *         "status": "confirmed",
+ *         "total_price": 500000,
+ *         "created_at": "2024-01-01T00:00:00.000000Z"
+ *       }
+ *     ],
+ *     "total": 1
+ *   }
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/admin/users/:id/ratings Get User Ratings
+ * @apiName GetAdminUserRatings
+ * @apiGroup Admin User
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns paginated ratings submitted by a specific user.
+ *
+ * @apiParam {Number} id User id
+ * @apiParam (Query) {Number{1..}} [page=1] Page number.
+ * @apiParam (Query) {Number{1-100}} [per_page=15] Items per page.
+ *
+ * @apiSampleRequest /api/v1/admin/users/1/ratings
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "current_page": 1,
+ *     "data": [
+ *       {
+ *         "id": 1,
+ *         "score": 5,
+ *         "comment": "Great place!",
+ *         "status": "approved",
+ *         "created_at": "2024-01-01T00:00:00.000000Z"
+ *       }
+ *     ],
+ *     "total": 1
+ *   }
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/admin/users/export Export Users to Excel
+ * @apiName ExportAdminUsers
+ * @apiGroup Admin User
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Exports the users list as an Excel (.xlsx) file.
+ *
+ * @apiParam (Query) {String="admin","staff","user"} [role] Filter by role.
+ * @apiParam (Query) {String="active","banned"} [status] Filter by status.
+ *
+ * @apiSampleRequest /api/v1/admin/users/export
+ *
+ * @apiSuccessExample {binary} Success-Response:
+ * HTTP/1.1 200 OK
+ * Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+ * Content-Disposition: attachment; filename="users_20240101_120000.xlsx"
+ */
