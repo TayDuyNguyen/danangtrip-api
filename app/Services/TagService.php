@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Class TagService
@@ -52,6 +53,10 @@ final class TagService
     public function createTag(array $data): array
     {
         try {
+            if (empty($data['slug']) && ! empty($data['name'])) {
+                $data['slug'] = Str::slug($data['name']);
+            }
+
             $tag = $this->tagRepository->create($data);
 
             return [
@@ -65,6 +70,39 @@ final class TagService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to create tag.',
+            ];
+        }
+    }
+
+    /**
+     * Update an existing tag (Admin).
+     * (Cập nhật tag - Admin)
+     */
+    public function updateTag(int $id, array $data): array
+    {
+        try {
+            $tag = $this->tagRepository->find($id);
+
+            if (! $tag) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tag not found.',
+                ];
+            }
+
+            $this->tagRepository->update($id, $data);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->tagRepository->find($id),
+                'message' => 'Tag updated successfully.',
+            ];
+        } catch (Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update tag.',
             ];
         }
     }
@@ -92,6 +130,8 @@ final class TagService
                 'message' => 'Tag deleted successfully.',
             ];
         } catch (Exception $e) {
+            Log::error($e);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete tag.',

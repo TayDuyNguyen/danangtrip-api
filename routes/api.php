@@ -331,8 +331,10 @@ Route::prefix('v1')->group(function () {
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)
         Route::post('/tags', [AdminTagController::class, 'store']);
+        Route::patch('/tags/{id}', [AdminTagController::class, 'update'])->whereNumber('id');
         Route::delete('/tags/{id}', [AdminTagController::class, 'destroy'])->whereNumber('id');
         Route::post('/amenities', [AdminAmenityController::class, 'store']);
+        Route::patch('/amenities/{id}', [AdminAmenityController::class, 'update'])->whereNumber('id');
         Route::delete('/amenities/{id}', [AdminAmenityController::class, 'destroy'])->whereNumber('id');
 
         // Notifications Management
