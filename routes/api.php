@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PublicStatisticsController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\TagController;
@@ -55,7 +56,7 @@ Route::prefix('v1')->group(function () {
     // (Xác thực: Đăng ký & Đăng nhập & Quên mật khẩu)
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:api.strict');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:api.auth');
-    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh'])->middleware('throttle:api.auth');
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:api.strict');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:api.strict');
 
@@ -91,7 +92,7 @@ Route::prefix('v1')->group(function () {
 
     // Statistics: Public overview
     // (Thống kê: Tổng quan công khai)
-    Route::get('/statistics', [AdminDashboardController::class, 'overview'])->middleware('throttle:api.standard');
+    Route::get('/statistics', [PublicStatisticsController::class, 'overview'])->middleware('throttle:api.standard');
 
     // Ratings: Public access
     // (Đánh giá: Truy cập công khai)
@@ -138,7 +139,7 @@ Route::prefix('v1')->group(function () {
         // (Xác thực: Đăng xuất & Thông tin cá nhân)
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
-        Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:api.auth');
+        Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:api.strict');
         Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification'])->middleware('throttle:api.resend');
 
         // Ratings: Create / Update / Delete / Helpful / Check
@@ -209,9 +210,17 @@ Route::prefix('v1')->group(function () {
         // Dashboard & Reports
         // (Bảng điều khiển & Báo cáo)
         Route::get('/dashboard', [AdminDashboardController::class, 'overview'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/top-tours', [AdminDashboardController::class, 'topTours'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/top-locations', [AdminDashboardController::class, 'topLocations'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/user-growth', [AdminDashboardController::class, 'userGrowth'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/booking-trend', [AdminDashboardController::class, 'bookingTrend'])->middleware('throttle:api.admin');
         Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports'])->middleware('throttle:api.admin');
         Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports'])->middleware('throttle:api.admin');
         Route::get('/reports/users', [AdminDashboardController::class, 'userReports'])->middleware('throttle:api.admin');
+        Route::get('/reports/bookings', [AdminDashboardController::class, 'bookingReports'])->middleware('throttle:api.admin');
+        Route::get('/reports/revenue-detail', [AdminDashboardController::class, 'revenueDetail'])->middleware('throttle:api.admin');
 
         // Categories Management
         // (Quản lý Danh mục)
@@ -310,9 +319,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
-        Route::post('/bookings/{id}/confirm', [AdminBookingController::class, 'confirm'])->whereNumber('id');
-        Route::post('/bookings/{id}/cancel', [AdminBookingController::class, 'adminCancel'])->whereNumber('id');
-        Route::post('/bookings/{id}/complete', [AdminBookingController::class, 'complete'])->whereNumber('id');
+        Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy'])->whereNumber('id');
 
         // Payments Management
         // (Quản lý Thanh toán)

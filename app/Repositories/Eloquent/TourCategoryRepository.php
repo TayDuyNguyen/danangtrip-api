@@ -54,9 +54,13 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
 
         $perPage = $filters['per_page'] ?? 10;
 
+        $allowedSorts = ['id', 'name', 'price', 'created_at', 'rating_avg'];
+        $sort = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
+        $order = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
+
         return $category->tours()
             ->where('status', 'active')
-            ->orderBy($filters['sort'] ?? 'created_at', $filters['order'] ?? 'desc')
+            ->orderBy($sort, $order)
             ->paginate($perPage);
     }
 

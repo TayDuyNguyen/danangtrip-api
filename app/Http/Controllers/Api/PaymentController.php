@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\CreatePaymentRequest;
+use App\Http\Requests\Payment\PaymentCallbackRequest;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class PaymentController
@@ -25,9 +25,11 @@ final class PaymentController extends Controller
      * Handle payment callback from gateway.
      * (Xử lý phản hồi từ cổng thanh toán)
      */
-    public function callback(Request $request): JsonResponse
+    public function callback(PaymentCallbackRequest $request): JsonResponse
     {
-        // For callback, we usually don't validate strictly because it's gateway-specific
+        // Use validated data for standard keys, but some gateways might send unexpected fields
+        // that our service needs (like full raw payload for signature verification).
+        // PaymentService::handleCallback(array $gatewayData) handles the logic.
         $result = $this->paymentService->handleCallback($request->all());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

@@ -3,6 +3,8 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\Pagination;
+use App\Enums\PaymentStatus;
+use App\Models\BookingItem;
 use App\Models\Payment;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -109,5 +111,86 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
         }
 
         return $query->latest()->get();
+    }
+
+    /**
+     * Get revenue grouped by period (day/week/month/year).
+     * (Lấy doanh thu theo khoảng thời gian)
+     */
+    public function getRevenueByPeriod(string $period, ?string $from, ?string $to): array
+    {
+        $groupExpr = match ($period) {
+            'day' => 'CAST(created_at AS DATE)',
+            'week' => 'CAST(DATE_TRUNC(\'week\', created_at) AS DATE)',
+            'month' => 'TO_CHAR(created_at, \'YYYY-MM\')',
+            'year' => 'EXTRACT(YEAR FROM created_at)::TEXT',
+            default => 'CAST(created_at AS DATE)',
+        };
+
+        $query = $this->model->newQuery()
+            ->selectRaw("{$groupExpr} as period, SUM(amount) as total_revenue, COUNT(*) as transaction_count")
+            ->where('payment_status', PaymentStatus::PAID->value);
+
+        if ($from) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+
+        if ($to) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        return $query->groupByRaw($groupExpr)
+            ->orderByRaw($groupExpr)
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get total revenue sum.
+     * (Lấy tổng doanh thu)
+     */
+    public function getTotalRevenue(?string $from = null, ?string $to = null): float
+    {
+        $query = $this->model->newQuery()->where('payment_status', PaymentStatus::PAID->value);
+
+        if ($from) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+
+        if ($to) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        return (float) $query->sum('amount');
+    }
+
+    /**
+     * Get detailed revenue report grouped by tour.
+     * (Lấy báo cáo doanh thu chi tiết theo tour)
+     */
+    public function getRevenueDetailByTour(?string $from, ?string $to): array
+    {
+        // Use subquery to get unique paid booking IDs in the given period
+        // to avoid double counting if multiple payments exist for one booking.
+        $paidBookingIds = $this->model->newQuery()
+            ->where('payment_status', PaymentStatus::PAID->value)
+            ->when($from, fn ($q) => $q->whereDate('created_at', '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate('created_at', '<=', $to))
+            ->distinct()
+            ->pluck('booking_id');
+
+        return BookingItem::query()
+            ->join('tours', 'booking_items.tour_id', '=', 'tours.id')
+            ->whereIn('booking_id', $paidBookingIds)
+            ->selectRaw('
+                tours.id as tour_id, 
+                tours.name as tour_name, 
+                COUNT(DISTINCT booking_items.booking_id) as booking_count, 
+                SUM(booking_items.subtotal) as total_revenue
+            ')
+            ->groupBy('tours.id', 'tours.name')
+            ->orderByDesc('total_revenue')
+            ->get()
+            ->toArray();
     }
 }

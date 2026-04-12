@@ -426,4 +426,30 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
         return $data;
     }
+
+    /**
+     * Get top locations ordered by favorite and view count.
+     * (Lấy top địa điểm theo lượt yêu thích và lượt xem)
+     */
+    public function getTopLocations(int $limit): Collection
+    {
+        $table = $this->model->getTable();
+
+        return $this->model->newQuery()
+            ->where("{$table}.status", 'active')
+            ->select([
+                "{$table}.id",
+                "{$table}.name",
+                "{$table}.slug",
+                "{$table}.district",
+                "{$table}.favorite_count",
+                "{$table}.view_count",
+                "{$table}.avg_rating",
+                "{$table}.review_count",
+            ])
+            ->orderByDesc('favorite_count')
+            ->orderByDesc('view_count')
+            ->limit($limit)
+            ->get();
+    }
 }

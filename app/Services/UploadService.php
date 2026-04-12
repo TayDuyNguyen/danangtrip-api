@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Exception;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -121,6 +122,15 @@ final class UploadService
     public function deleteImage(string $publicId): array
     {
         try {
+            // Security: Check if user is admin (Defense-in-depth against IDOR)
+            $user = Auth::user();
+            if (! $user || ($user->role ?? '') !== 'admin') {
+                return [
+                    'status' => HttpStatusCode::FORBIDDEN->value,
+                    'message' => 'Unauthorized to delete images.',
+                ];
+            }
+
             $result = null;
             if (method_exists(Cloudinary::getFacadeRoot(), 'destroy')) {
                 $result = Cloudinary::destroy($publicId);

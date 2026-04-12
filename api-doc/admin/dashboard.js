@@ -104,3 +104,150 @@
  * @apiSuccess {Number} data.count Number of transactions.
  * @apiSuccess {Number} data.total_amount Total amount of points.
  */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/stats Get Dashboard Stats
+ * @apiName GetDashboardStats
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns total counts for users, tours, bookings and revenue.
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/stats
+ *
+ * @apiSuccessExample {json} Success-Response:
+ * HTTP/1.1 200 OK
+ * {
+ *   "code": 200,
+ *   "message": "Success",
+ *   "data": {
+ *     "total_users": 120,
+ *     "total_tours": 45,
+ *     "total_bookings": 300,
+ *     "total_revenue": 15000000
+ *   }
+ * }
+ */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/revenue Get Revenue Statistics
+ * @apiName GetDashboardRevenue
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns revenue grouped by period.
+ *
+ * @apiParam (Query) {String="day","week","month","year"} [period=month] Grouping period.
+ * @apiParam (Query) {String} [from] Start date (YYYY-MM-DD).
+ * @apiParam (Query) {String} [to] End date (YYYY-MM-DD).
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/revenue
+ */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/top-tours Get Top Tours
+ * @apiName GetDashboardTopTours
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns top tours ranked by booking count.
+ *
+ * @apiParam (Query) {Number{1-50}} [limit=10] Number of tours to return.
+ * @apiParam (Query) {String} [from] Start date (YYYY-MM-DD).
+ * @apiParam (Query) {String} [to] End date (YYYY-MM-DD).
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/top-tours
+ */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/top-locations Get Top Locations
+ * @apiName GetDashboardTopLocations
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns top locations ranked by favorite and view count.
+ *
+ * @apiParam (Query) {Number{1-50}} [limit=10] Number of locations to return.
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/top-locations
+ */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/user-growth Get User Growth
+ * @apiName GetDashboardUserGrowth
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns new user count grouped by month for a given year.
+ *
+ * @apiParam (Query) {Number} [year] Year to report (default: current year).
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/user-growth
+ */
+
+/**
+ * @api {get} /api/v1/admin/dashboard/booking-trend Get Booking Trend
+ * @apiName GetDashboardBookingTrend
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns daily booking count for the last N days.
+ *
+ * @apiParam (Query) {Number{1-365}} [days=30] Number of days to look back.
+ *
+ * @apiSampleRequest /api/v1/admin/dashboard/booking-trend
+ */
+
+/**
+ * @api {get} /api/v1/admin/reports/bookings Get Booking Reports
+ * @apiName GetBookingReports
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns booking report grouped by status and date.
+ *
+ * @apiParam (Query) {String} [from] Start date (YYYY-MM-DD).
+ * @apiParam (Query) {String} [to] End date (YYYY-MM-DD).
+ * @apiParam (Query) {String="pending","confirmed","completed","cancelled"} [status] Filter by booking status.
+ * @apiParam (Query) {String="pending","paid","refunded","failed"} [payment_status] Filter by payment status.
+ *
+ * @apiSampleRequest /api/v1/admin/reports/bookings
+ */
+
+/**
+ * @api {get} /api/v1/admin/reports/revenue-detail Get Revenue Detail Report
+ * @apiName GetRevenueDetailReport
+ * @apiGroup Admin Dashboard
+ * @apiVersion 1.0.0
+ * @apiPermission admin
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ *
+ * @apiDescription Admin endpoint. Returns detailed revenue report grouped by tour.
+ *
+ * @apiParam (Query) {String} [from] Start date (YYYY-MM-DD).
+ * @apiParam (Query) {String} [to] End date (YYYY-MM-DD).
+ *
+ * @apiSampleRequest /api/v1/admin/reports/revenue-detail
+ */

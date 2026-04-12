@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -45,7 +46,7 @@ class AuthService
                 'birthdate' => $data['birthdate'] ?? null,
                 'gender' => $data['gender'] ?? null,
                 'city' => $data['city'] ?? null,
-                'role' => $data['role'] ?? 'user',
+                'role' => 'user', // Force user role for registration
             ]);
 
             return [
@@ -245,6 +246,18 @@ class AuthService
     public function verifyEmail(User $user, string $otp): array
     {
         try {
+            $cacheKey = "verify_otp:{$user->email}";
+            $storedOtp = Cache::get($cacheKey);
+
+            if (! $storedOtp || (string) $storedOtp !== $otp) {
+                // Limit attempts logic could be added here
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Invalid or expired OTP.',
+                ];
+            }
+
+            Cache::forget($cacheKey);
             $this->userRepository->markEmailAsVerified($user->id);
 
             return [
