@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AmenityController as AdminAmenityController;
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
@@ -108,6 +110,10 @@ Route::prefix('v1')->group(function () {
     // (Tags & Tiện ích: Truy cập công khai)
     Route::get('/tags', [TagController::class, 'index']);
     Route::get('/amenities', [AmenityController::class, 'index']);
+
+    // Contacts: Public submit
+    // (Liên hệ: Gửi công khai)
+    Route::post('/contacts', [ContactController::class, 'store'])->middleware('throttle:api.strict');
 
     // Tours: Public access
     // (Tour: Truy cập công khai)
@@ -331,11 +337,19 @@ Route::prefix('v1')->group(function () {
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)
         Route::post('/tags', [AdminTagController::class, 'store']);
-        Route::patch('/tags/{id}', [AdminTagController::class, 'update'])->whereNumber('id');
+        Route::put('/tags/{id}', [AdminTagController::class, 'update'])->whereNumber('id');
         Route::delete('/tags/{id}', [AdminTagController::class, 'destroy'])->whereNumber('id');
         Route::post('/amenities', [AdminAmenityController::class, 'store']);
-        Route::patch('/amenities/{id}', [AdminAmenityController::class, 'update'])->whereNumber('id');
+        Route::put('/amenities/{id}', [AdminAmenityController::class, 'update'])->whereNumber('id');
         Route::delete('/amenities/{id}', [AdminAmenityController::class, 'destroy'])->whereNumber('id');
+
+        // Contacts Management
+        // (Quản lý Liên hệ)
+        Route::get('/contacts/export', [AdminContactController::class, 'export'])->middleware('throttle:api.exports');
+        Route::get('/contacts', [AdminContactController::class, 'index']);
+        Route::get('/contacts/{id}', [AdminContactController::class, 'show'])->whereNumber('id');
+        Route::post('/contacts/{id}/reply', [AdminContactController::class, 'reply'])->whereNumber('id');
+        Route::delete('/contacts/{id}', [AdminContactController::class, 'destroy'])->whereNumber('id');
 
         // Notifications Management
         // (Quản lý Thông báo)
