@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting(): void
     {
-        $limitNone = app()->environment('testing', 'local');
+        $limitNone = app()->environment('testing');
 
         // Standard limiter
         RateLimiter::for('api.standard', function (Request $request) use ($limitNone) {

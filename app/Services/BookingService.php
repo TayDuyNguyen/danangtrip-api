@@ -13,8 +13,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * Class BookingService
+ * Handles business logic for bookings.
+ * (Xử lý logic nghiệp vụ cho đơn đặt tour)
+ */
 class BookingService
 {
+    /**
+     * BookingService constructor.
+     * (Khởi tạo BookingService)
+     */
     public function __construct(
         protected BookingRepositoryInterface $bookingRepository,
         protected TourScheduleRepositoryInterface $tourScheduleRepository,
@@ -23,6 +32,7 @@ class BookingService
 
     /**
      * Get all bookings with optional filters.
+     * (Lấy tất cả đơn đặt tour với bộ lọc tùy chọn)
      */
     public function getBookings(array $filters = []): array
     {
@@ -46,6 +56,7 @@ class BookingService
 
     /**
      * Get a specific booking by ID.
+     * (Lấy thông tin đơn đặt tour cụ thể theo ID)
      */
     public function getBooking(int $id): array
     {
@@ -76,6 +87,7 @@ class BookingService
 
     /**
      * Get a specific booking by Code.
+     * (Lấy thông tin đơn đặt tour cụ thể theo mã Code)
      */
     public function getBookingByCode(string $code, ?int $userId = null): array
     {
@@ -113,12 +125,13 @@ class BookingService
 
     /**
      * Calculate price for a booking.
+     * (Tính giá cho một đơn đặt tour)
      */
     public function calculatePrice(array $data): array
     {
         try {
             $tour = $this->tourRepository->find($data['tour_id']);
-            $schedule = $this->tourScheduleRepository->with('tour')->find($data['tour_schedule_id']);
+            $schedule = $this->tourScheduleRepository->find($data['tour_schedule_id']);
 
             if (! $tour || ! $schedule || $schedule->tour_id !== $tour->id) {
                 return [
@@ -184,6 +197,7 @@ class BookingService
 
     /**
      * Create a new booking.
+     * (Tạo một đơn đặt tour mới)
      */
     public function createBooking(array $data, ?int $userId = null): array
     {
@@ -284,6 +298,7 @@ class BookingService
 
     /**
      * User cancels a booking.
+     * (Người dùng hủy đơn đặt tour)
      */
     public function cancelBooking(int $id, int $userId, array $data): array
     {
@@ -345,6 +360,7 @@ class BookingService
 
     /**
      * Admin Confirms a booking.
+     * (Quản trị viên xác nhận đơn đặt tour)
      */
     public function confirmBooking(int $id): array
     {
@@ -391,6 +407,7 @@ class BookingService
 
     /**
      * Admin Completes a booking.
+     * (Quản trị viên hoàn thành đơn đặt tour)
      */
     public function completeBooking(int $id): array
     {
@@ -436,6 +453,7 @@ class BookingService
 
     /**
      * Admin Cancels a booking.
+     * (Quản trị viên hủy đơn đặt tour)
      */
     public function cancelBookingAdmin(int $id, array $data): array
     {
@@ -492,6 +510,7 @@ class BookingService
 
     /**
      * Update the status of a booking (generic).
+     * (Cập nhật trạng thái của đơn đặt tour - chung)
      */
     public function updateBookingStatus(int $id, array $data): array
     {
@@ -511,8 +530,7 @@ class BookingService
             if ($newStatus === BookingStatus::CONFIRMED->value) {
                 return $this->confirmBooking($id);
             } elseif ($newStatus === BookingStatus::CANCELLED->value) {
-                // Need cancellation reason array, we will just pass empty and fallback
-                return $this->cancelBookingAdmin($id, ['cancellation_reason' => 'Status manually updated via generic updateStatus']);
+                return $this->cancelBookingAdmin($id, $data);
             } elseif ($newStatus === BookingStatus::COMPLETED->value) {
                 return $this->completeBooking($id);
             }
@@ -536,6 +554,7 @@ class BookingService
 
     /**
      * Get bookings for a specific user.
+     * (Lấy danh sách đơn đặt tour của một người dùng cụ thể)
      */
     public function getUserBookings(int $userId, array $filters = []): array
     {

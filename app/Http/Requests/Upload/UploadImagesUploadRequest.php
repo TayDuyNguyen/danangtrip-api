@@ -19,6 +19,12 @@ class UploadImagesUploadRequest extends FormRequest
                 'array',
                 'max:10',
             ],
+            'images.*' => [
+                'required',
+                'image',
+                'mimes:jpeg,png,webp',
+                'max:5120',
+            ],
             'folder' => [
                 'nullable',
                 'string',

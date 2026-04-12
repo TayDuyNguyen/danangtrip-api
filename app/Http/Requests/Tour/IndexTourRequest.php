@@ -36,11 +36,11 @@ class IndexTourRequest extends FormRequest
                 'sometimes',
                 'boolean',
             ],
-            'order_by' => [
+            'sort_by' => [
                 'sometimes',
                 'in:created_at,price_adult,view_count,name,rating_avg',
             ],
-            'order_dir' => [
+            'sort_order' => [
                 'sometimes',
                 'in:asc,desc',
             ],

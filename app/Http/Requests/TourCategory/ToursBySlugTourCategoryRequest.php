@@ -30,12 +30,12 @@ class ToursBySlugTourCategoryRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
-            'sort' => [
+            'sort_by' => [
                 'sometimes',
                 'string',
                 'in:created_at,price,rating_avg',
             ],
-            'order' => [
+            'sort_order' => [
                 'sometimes',
                 'string',
                 'in:asc,desc',

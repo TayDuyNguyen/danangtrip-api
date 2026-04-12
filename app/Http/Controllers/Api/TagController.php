@@ -27,7 +27,7 @@ final class TagController extends Controller
      */
     public function index(IndexTagRequest $request): JsonResponse
     {
-        $result = $this->tagService->getAllTags($request->all());
+        $result = $this->tagService->getAllTags($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

@@ -163,4 +163,10 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * (Lấy dữ liệu địa điểm để xuất bản)
      */
     public function getExportData(): Collection;
+
+    /**
+     * Get top locations ordered by favorite and view count.
+     * (Lấy top địa điểm theo lượt yêu thích và lượt xem)
+     */
+    public function getTopLocations(int $limit): Collection;
 }

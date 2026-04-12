@@ -35,4 +35,22 @@ interface PaymentRepositoryInterface extends RepositoryInterface
      * (Lấy danh sách thanh toán để xuất file)
      */
     public function getExportPayments(array $filters): Collection;
+
+    /**
+     * Get revenue grouped by period (day/week/month/year).
+     * (Lấy doanh thu theo khoảng thời gian)
+     */
+    public function getRevenueByPeriod(string $period, ?string $from, ?string $to): array;
+
+    /**
+     * Get total revenue sum.
+     * (Lấy tổng doanh thu)
+     */
+    public function getTotalRevenue(?string $from = null, ?string $to = null): float;
+
+    /**
+     * Get detailed revenue report grouped by tour.
+     * (Lấy báo cáo doanh thu chi tiết theo tour)
+     */
+    public function getRevenueDetailByTour(?string $from, ?string $to): array;
 }

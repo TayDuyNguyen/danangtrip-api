@@ -67,8 +67,8 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         }
 
         $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'];
-        $orderBy = in_array($filters['order_by'] ?? '', $validSortFields) ? $filters['order_by'] : 'created_at';
-        $orderDir = in_array($filters['order_dir'] ?? '', ['asc', 'desc']) ? $filters['order_dir'] : 'desc';
+        $orderBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
+        $orderDir = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($orderBy, $orderDir);
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;

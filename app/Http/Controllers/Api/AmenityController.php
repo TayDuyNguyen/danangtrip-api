@@ -27,7 +27,7 @@ final class AmenityController extends Controller
      */
     public function index(IndexAmenityRequest $request): JsonResponse
     {
-        $result = $this->amenityService->getAllAmenities($request->all());
+        $result = $this->amenityService->getAllAmenities($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

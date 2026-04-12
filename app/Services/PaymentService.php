@@ -159,7 +159,9 @@ class PaymentService
         if (isset($gatewayData['vnp_SecureHash']) || $g === 'vnpay') {
             $secret = config('services.vnpay.hash_secret') ?? env('VNPAY_HASH_SECRET');
             if (! $secret) {
-                return true;
+                Log::warning('VNPay secret is not configured. Webhook verification failed.');
+
+                return false;
             }
             $params = [];
             foreach ($gatewayData as $k => $v) {
@@ -178,7 +180,9 @@ class PaymentService
         if (isset($gatewayData['signature']) || $g === 'momo') {
             $secret = config('services.momo.secret_key') ?? env('MOMO_SECRET_KEY');
             if (! $secret) {
-                return true;
+                Log::warning('MoMo secret is not configured. Webhook verification failed.');
+
+                return false;
             }
             $params = $gatewayData;
             unset($params['signature'], $params['sign'], $params['hash']);
@@ -193,7 +197,9 @@ class PaymentService
         if (isset($gatewayData['mac']) || $g === 'zalopay') {
             $secret = config('services.zalopay.key1') ?? env('ZALOPAY_KEY1');
             if (! $secret) {
-                return true;
+                Log::warning('ZaloPay secret is not configured. Webhook verification failed.');
+
+                return false;
             }
             $params = $gatewayData;
             unset($params['mac']);

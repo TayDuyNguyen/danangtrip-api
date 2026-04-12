@@ -73,8 +73,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
-        $sort = $filters['sort'] ?? 'created_at';
-        $order = $filters['order'] ?? 'desc';
+
+        $allowedSorts = ['id', 'username', 'email', 'full_name', 'created_at', 'status'];
+        $sort = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
+        $order = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
 
         return $query->orderBy($sort, $order)->paginate($perPage, ['*'], 'page', $page);
     }
@@ -108,8 +110,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function getNewUsersByMonth(int $year): array
     {
+        $table = $this->model->getTable();
+
         return $this->model->newQuery()
-            ->selectRaw('EXTRACT(MONTH FROM created_at) as month, COUNT(*) as count')
+            ->selectRaw("EXTRACT(MONTH FROM {$table}.created_at) as month, COUNT(*) as count")
             ->whereYear('created_at', $year)
             ->groupBy('month')
             ->orderBy('month')

@@ -37,7 +37,7 @@ final class UserController extends Controller
      */
     public function index(IndexUserRequest $request): JsonResponse
     {
-        $result = $this->userService->getAdminUsers($request->all());
+        $result = $this->userService->getAdminUsers($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

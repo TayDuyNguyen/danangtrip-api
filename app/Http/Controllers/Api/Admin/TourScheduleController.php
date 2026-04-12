@@ -33,7 +33,7 @@ final class TourScheduleController extends Controller
      */
     public function index(IndexTourScheduleRequest $request): JsonResponse
     {
-        $result = $this->tourScheduleService->getSchedules($request->all());
+        $result = $this->tourScheduleService->getSchedules($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

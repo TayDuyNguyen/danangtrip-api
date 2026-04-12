@@ -49,4 +49,28 @@ interface BookingRepositoryInterface extends RepositoryInterface
      * @return int[]
      */
     public function getRecentTourIds(int $userId, int $limit = 10): array;
+
+    /**
+     * Get booking trend grouped by date for the last N days.
+     * (Lấy xu hướng đặt tour theo ngày trong N ngày gần nhất)
+     */
+    public function getBookingTrend(int $days): array;
+
+    /**
+     * Get booking report grouped by status and date.
+     * (Lấy báo cáo đặt tour theo trạng thái và ngày)
+     */
+    public function getBookingReport(array $filters): array;
+
+    /**
+     * Get top tours by booking count.
+     * (Lấy top tour theo số lượng đặt)
+     */
+    public function getTopTours(int $limit, ?string $from, ?string $to): array;
+
+    /**
+     * Get total booking count.
+     * (Lấy tổng số đơn đặt tour)
+     */
+    public function getTotalCount(): int;
 }

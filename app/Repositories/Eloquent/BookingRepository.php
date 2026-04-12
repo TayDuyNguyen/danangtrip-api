@@ -61,8 +61,10 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         }
 
         $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortOrder = $filters['sort_order'] ?? 'desc';
+
+        $allowedSorts = ['id', 'booking_code', 'total_amount', 'booked_at', 'created_at', 'booking_status', 'payment_status'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
+        $sortOrder = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
 
         return $query->with(['user', 'items.tour'])
             ->orderBy($sortBy, $sortOrder)
@@ -127,8 +129,10 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         }
 
         $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
-        $sortBy = $filters['sort_by'] ?? 'created_at';
-        $sortOrder = $filters['sort_order'] ?? 'desc';
+
+        $allowedSorts = ['id', 'booking_code', 'total_amount', 'booked_at', 'created_at', 'booking_status', 'payment_status'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
+        $sortOrder = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
 
         return $query->with(['items.tour'])
             ->orderBy($sortBy, $sortOrder)
@@ -169,5 +173,91 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             ->flatten()
             ->unique()
             ->all();
+    }
+
+    /**
+     * Get booking trend grouped by date for the last N days.
+     * (Lấy xu hướng đặt tour theo ngày trong N ngày gần nhất)
+     */
+    public function getBookingTrend(int $days): array
+    {
+        $table = $this->model->getTable();
+
+        return $this->model->newQuery()
+            ->selectRaw("CAST({$table}.booked_at AS DATE) as date, COUNT(*) as count")
+            ->where('booked_at', '>=', now()->subDays($days)->startOfDay())
+            ->groupByRaw("CAST({$table}.booked_at AS DATE)")
+            ->orderByRaw("CAST({$table}.booked_at AS DATE)")
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get booking report grouped by status and date.
+     * (Lấy báo cáo đặt tour theo trạng thái và ngày)
+     */
+    public function getBookingReport(array $filters): array
+    {
+        $table = $this->model->getTable();
+        $query = $this->model->newQuery()
+            ->selectRaw("CAST({$table}.booked_at AS DATE) as date, booking_status, payment_status, COUNT(*) as count, SUM(total_amount) as total_amount");
+
+        if (! empty($filters['from'])) {
+            $query->whereDate('booked_at', '>=', $filters['from']);
+        }
+
+        if (! empty($filters['to'])) {
+            $query->whereDate('booked_at', '<=', $filters['to']);
+        }
+
+        if (! empty($filters['status'])) {
+            $query->where('booking_status', $filters['status']);
+        }
+
+        if (! empty($filters['payment_status'])) {
+            $query->where('payment_status', $filters['payment_status']);
+        }
+
+        return $query->groupByRaw("CAST({$table}.booked_at AS DATE), booking_status, payment_status")
+            ->orderByRaw("CAST({$table}.booked_at AS DATE)")
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get top tours by booking count.
+     * (Lấy top tour theo số lượng đặt)
+     */
+    public function getTopTours(int $limit, ?string $from, ?string $to): array
+    {
+        $table = $this->model->getTable();
+
+        return $this->model->newQuery()
+            ->join('booking_items', "{$table}.id", '=', 'booking_items.booking_id')
+            ->join('tours', 'booking_items.tour_id', '=', 'tours.id')
+            ->selectRaw('
+                tours.id, 
+                tours.name, 
+                tours.slug, 
+                COUNT(DISTINCT booking_items.booking_id) as booking_count, 
+                SUM(booking_items.subtotal) as total_revenue
+            ')
+            ->where("{$table}.booking_status", '!=', BookingStatus::CANCELLED->value)
+            ->when($from, fn ($q) => $q->whereDate("{$table}.booked_at", '>=', $from))
+            ->when($to, fn ($q) => $q->whereDate("{$table}.booked_at", '<=', $to))
+            ->groupBy('tours.id', 'tours.name', 'tours.slug')
+            ->orderByDesc('booking_count')
+            ->limit($limit)
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get total booking count.
+     * (Lấy tổng số đơn đặt tour)
+     */
+    public function getTotalCount(): int
+    {
+        return $this->count();
     }
 }

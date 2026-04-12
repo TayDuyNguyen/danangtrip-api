@@ -27,7 +27,6 @@ class RegisterRequest extends FormRequest
             'birthdate' => 'nullable|date_format:Y-m-d',
             'gender' => 'nullable|string|max:20',
             'city' => 'nullable|string|max:100',
-            'role' => 'sometimes|in:admin,partner,user',
         ];
     }
 
@@ -50,7 +49,6 @@ class RegisterRequest extends FormRequest
             'birthdate.date' => 'Please provide a valid birthdate. (Vui lòng cung cấp ngày sinh hợp lệ.)',
             'gender.max' => 'The gender must not exceed 20 characters. (Giới tính không được vượt quá 20 ký tự.)',
             'city.max' => 'The city name must not exceed 100 characters. (Tên thành phố không được vượt quá 100 ký tự.)',
-            'role.in' => 'The selected role is invalid. (Vai trò được chọn không hợp lệ.)',
         ];
     }
 }

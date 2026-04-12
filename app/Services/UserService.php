@@ -90,13 +90,23 @@ class UserService
                 ];
             }
 
-            $updated = $this->userRepository->update($id, ['status' => $status]);
-            if (! $updated) {
+            $user = $this->userRepository->find($id);
+            if (! $user) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'User not found',
                 ];
             }
+
+            // Idempotent check to prevent redundant writes and potential DB locks
+            if ($user->status === $status) {
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'message' => 'User status updated successfully',
+                ];
+            }
+
+            $this->userRepository->update($id, ['status' => $status]);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -128,13 +138,23 @@ class UserService
                 ];
             }
 
-            $updated = $this->userRepository->update($id, ['role' => $role]);
-            if (! $updated) {
+            $user = $this->userRepository->find($id);
+            if (! $user) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'User not found',
                 ];
             }
+
+            // Idempotent check to prevent redundant writes and potential DB locks
+            if ($user->role === $role) {
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'message' => 'User role updated successfully',
+                ];
+            }
+
+            $updated = $this->userRepository->update($id, ['role' => $role]);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
