@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tag\StoreTagRequest;
+use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Services\TagService;
 use Illuminate\Http\JsonResponse;
 
@@ -31,6 +32,19 @@ final class TagController extends Controller
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Update the specified tag.
+     * (Cập nhật tag)
+     */
+    public function update(UpdateTagRequest $request, int $id): JsonResponse
+    {
+        $result = $this->tagService->updateTag($id, $request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'], $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 

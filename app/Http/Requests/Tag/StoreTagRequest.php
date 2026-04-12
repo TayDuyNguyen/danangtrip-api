@@ -17,18 +17,20 @@ class StoreTagRequest extends FormRequest
             'name' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
                 'unique:tags,name',
             ],
             'slug' => [
-                'required',
+                'sometimes',
+                'nullable',
                 'string',
-                'max:100',
+                'max:60',
                 'unique:tags,slug',
             ],
             'type' => [
                 'required',
                 'string',
+                'max:30',
                 'in:cuisine,service,feature,atmosphere',
             ],
         ];

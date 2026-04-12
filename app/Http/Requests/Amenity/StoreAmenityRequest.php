@@ -17,18 +17,18 @@ class StoreAmenityRequest extends FormRequest
             'name' => [
                 'required',
                 'string',
-                'max:100',
+                'max:50',
                 'unique:amenities,name',
             ],
             'icon' => [
-                'sometimes',
-                'nullable',
+                'required',
                 'string',
-                'max:100',
+                'max:50',
             ],
             'category' => [
                 'required',
                 'string',
+                'max:30',
                 'in:connectivity,parking,comfort,payment',
             ],
         ];

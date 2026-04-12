@@ -70,6 +70,39 @@ final class AmenityService
     }
 
     /**
+     * Update an existing amenity (Admin).
+     * (Cập nhật tiện ích - Admin)
+     */
+    public function updateAmenity(int $id, array $data): array
+    {
+        try {
+            $amenity = $this->amenityRepository->find($id);
+
+            if (! $amenity) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Amenity not found.',
+                ];
+            }
+
+            $this->amenityRepository->update($id, $data);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->amenityRepository->find($id),
+                'message' => 'Amenity updated successfully.',
+            ];
+        } catch (Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to update amenity.',
+            ];
+        }
+    }
+
+    /**
      * Delete an amenity (Admin).
      * (Xóa tiện ích - Admin)
      */

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Amenity\StoreAmenityRequest;
+use App\Http\Requests\Amenity\UpdateAmenityRequest;
 use App\Services\AmenityService;
 use Illuminate\Http\JsonResponse;
 
@@ -31,6 +32,19 @@ final class AmenityController extends Controller
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created($result['data'], $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Update the specified amenity.
+     * (Cập nhật tiện ích)
+     */
+    public function update(UpdateAmenityRequest $request, int $id): JsonResponse
+    {
+        $result = $this->amenityService->updateAmenity($id, $request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'], $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 
