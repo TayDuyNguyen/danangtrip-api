@@ -123,4 +123,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'jwt_secret' => env('JWT_SECRET', 'your-secret-key-change-in-production'),
+    'jwt_ttl' => env('JWT_TTL', 60),
+
 ];
