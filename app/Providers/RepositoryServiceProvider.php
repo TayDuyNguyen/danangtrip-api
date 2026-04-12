@@ -7,6 +7,7 @@ use App\Repositories\Eloquent\BlogCategoryRepository;
 use App\Repositories\Eloquent\BlogPostRepository;
 use App\Repositories\Eloquent\BookingRepository;
 use App\Repositories\Eloquent\CategoryRepository;
+use App\Repositories\Eloquent\ContactRepository;
 use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
 use App\Repositories\Eloquent\NotificationRepository;
@@ -27,6 +28,7 @@ use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
+use App\Repositories\Interfaces\ContactRepositoryInterface;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
@@ -58,6 +60,7 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
+        $this->app->bind(ContactRepositoryInterface::class, ContactRepository::class);
         $this->app->bind(CategoryRepositoryInterface::class, CategoryRepository::class);
         $this->app->bind(SubcategoryRepositoryInterface::class, SubcategoryRepository::class);
         $this->app->bind(LocationRepositoryInterface::class, LocationRepository::class);
