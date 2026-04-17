@@ -322,6 +322,7 @@ Route::prefix('v1')->group(function () {
         // Bookings Management
         // (Quản lý Đặt tour)
         Route::get('/bookings', [AdminBookingController::class, 'index']);
+        Route::get('/bookings/status-counts', [AdminBookingController::class, 'statusCounts']);
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');

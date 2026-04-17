@@ -93,12 +93,12 @@ final class DashboardController extends Controller
     }
 
     /**
-     * Get user growth grouped by month.
-     * (Lấy tăng trưởng người dùng theo tháng)
+     * Get user growth grouped by month for the last 12 months.
+     * (Lấy tăng trưởng người dùng theo tháng trong 12 tháng gần nhất)
      */
-    public function userGrowth(UserReportsDashboardRequest $request): JsonResponse
+    public function userGrowth(): JsonResponse
     {
-        $result = $this->dashboardService->getUserGrowth($request->validated());
+        $result = $this->dashboardService->getUserGrowth();
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

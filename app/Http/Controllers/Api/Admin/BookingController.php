@@ -9,7 +9,9 @@ use App\Http\Requests\Booking\IndexBookingRequest;
 use App\Http\Requests\Booking\UpdateBookingStatusRequest;
 use App\Services\BookingService;
 use App\Traits\ApiResponser;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -52,14 +54,45 @@ class BookingController extends Controller
      */
     public function export(IndexBookingRequest $request): BinaryFileResponse|JsonResponse
     {
-        $result = $this->bookingService->getBookings($request->validated());
+        $filters = $request->validated();
+        $filters['no_paginate'] = true;
+        $result = $this->bookingService->getBookings($filters);
 
         if ($result['status'] !== HttpStatusCode::SUCCESS->value) {
             return $this->error($result['message'], $result['status']);
         }
 
-        // Return Excel download response
-        return Excel::download(new BookingsExport($result['data']), 'bookings.xlsx');
+        $data = $result['data'];
+
+        // Ensure we always have a Collection (not a Paginator) for the export
+        if ($data instanceof LengthAwarePaginator) {
+            $data = $data->getCollection();
+        } elseif (! $data instanceof Collection) {
+            $data = collect($data);
+        }
+
+        $fromDate = $filters['from_date'] ?? null;
+        $toDate = $filters['to_date'] ?? null;
+
+        if ($fromDate && $toDate) {
+            $asciiName = "bao-cao-dat-tour-{$fromDate}-{$toDate}.xlsx";
+            $utf8Name = "Báo cáo đặt tour {$fromDate} - {$toDate}.xlsx";
+        } else {
+            $stamp = now()->format('Y-m-d_His');
+            $asciiName = "bao-cao-dat-tour-{$stamp}.xlsx";
+            $utf8Name = "Báo cáo đặt tour {$stamp}.xlsx";
+        }
+
+        $response = Excel::download(new BookingsExport($data), $asciiName);
+
+        $safeAscii = str_replace(['"', '\\'], '-', $asciiName);
+        $response->headers->set(
+            'Content-Disposition',
+            'attachment; filename="'.$safeAscii.'"; filename*=UTF-8\'\''.rawurlencode($utf8Name),
+            true
+        );
+
+        return $response;
     }
 
     /**
@@ -90,5 +123,20 @@ class BookingController extends Controller
         }
 
         return $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get booking counts grouped by status.
+     * (Lấy số lượng đơn đặt tour theo trạng thái)
+     */
+    public function statusCounts(IndexBookingRequest $request): JsonResponse
+    {
+        // We reuse the DashboardService logic or implement it in BookingService
+        // Let's check BookingService.
+        $result = $this->bookingService->getBookingStatusCounts($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
     }
 }
