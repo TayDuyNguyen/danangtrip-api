@@ -7,6 +7,7 @@ use App\Enums\Pagination;
 use App\Models\Booking;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 /**
  * Class BookingRepository
@@ -27,7 +28,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      * Get all bookings with optional filters.
      * (Lấy danh sách đặt chỗ với bộ lọc tùy chọn)
      */
-    public function getBookings(array $filters = []): LengthAwarePaginator
+    public function getBookings(array $filters = []): Collection|LengthAwarePaginator
     {
         $query = $this->model->newQuery();
 
@@ -66,9 +67,14 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         $sortBy = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
         $sortOrder = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
 
-        return $query->with(['user', 'items.tour'])
-            ->orderBy($sortBy, $sortOrder)
-            ->paginate($perPage);
+        $query = $query->with(['user', 'items.tour'])
+            ->orderBy($sortBy, $sortOrder);
+
+        if (isset($filters['no_paginate']) && $filters['no_paginate'] === true) {
+            return $query->get();
+        }
+
+        return $query->paginate($perPage);
     }
 
     /**
@@ -259,5 +265,38 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getTotalCount(): int
     {
         return $this->count();
+    }
+
+    /**
+     * Get booking counts grouped by status.
+     * (Lấy số lượng đơn đặt tour theo trạng thái)
+     */
+    public function getStatusCounts(array $filters = []): array
+    {
+        $query = $this->model->newQuery();
+
+        if (isset($filters['search'])) {
+            $query->where(function ($q) use ($filters) {
+                $q->where('booking_code', 'like', '%'.$filters['search'].'%')
+                    ->orWhereHas('user', function ($q2) use ($filters) {
+                        $q2->where('full_name', 'like', '%'.$filters['search'].'%')
+                            ->orWhere('email', 'like', '%'.$filters['search'].'%');
+                    });
+            });
+        }
+
+        if (isset($filters['from_date'])) {
+            $query->whereDate('booked_at', '>=', $filters['from_date']);
+        }
+
+        if (isset($filters['to_date'])) {
+            $query->whereDate('booked_at', '<=', $filters['to_date']);
+        }
+
+        return $query->selectRaw('booking_status, COUNT(*) as count')
+            ->groupBy('booking_status')
+            ->get()
+            ->pluck('count', 'booking_status')
+            ->toArray();
     }
 }

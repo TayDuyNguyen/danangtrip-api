@@ -4,13 +4,14 @@ namespace App\Repositories\Interfaces;
 
 use App\Models\Booking;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface BookingRepositoryInterface extends RepositoryInterface
 {
     /**
      * Get all bookings with optional filters.
      */
-    public function getBookings(array $filters = []): LengthAwarePaginator;
+    public function getBookings(array $filters = []): Collection|LengthAwarePaginator;
 
     /**
      * Find a booking by ID with its related tour schedule and user.
@@ -73,4 +74,10 @@ interface BookingRepositoryInterface extends RepositoryInterface
      * (Lấy tổng số đơn đặt tour)
      */
     public function getTotalCount(): int;
+
+    /**
+     * Get booking counts grouped by status.
+     * (Lấy số lượng đơn đặt tour theo trạng thái)
+     */
+    public function getStatusCounts(array $filters = []): array;
 }

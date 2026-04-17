@@ -575,4 +575,34 @@ class BookingService
             ];
         }
     }
+
+    /**
+     * Get booking counts grouped by status.
+     * (Lấy số lượng đơn đặt tour theo trạng thái)
+     */
+    public function getBookingStatusCounts(array $filters = []): array
+    {
+        try {
+            $data = $this->bookingRepository->getStatusCounts($filters);
+
+            $statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+            $result = [];
+            foreach ($statuses as $status) {
+                $result[$status] = (int) ($data[$status] ?? 0);
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $result,
+                'message' => 'Booking status counts retrieved successfully.',
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve booking status counts.',
+            ];
+        }
+    }
 }
