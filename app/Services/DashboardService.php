@@ -10,6 +10,9 @@ use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Carbon\Carbon;
+use Carbon\CarbonInterface;
+use Carbon\CarbonPeriod;
 use Exception;
 
 /**
@@ -63,7 +66,7 @@ final class DashboardService
 
     /**
      * Get detailed stats: users, tours, bookings, revenue.
-     * (Lấy thống kê chi tiết: người dùng, tour, đặt tour, doanh thu)
+     * (Láº¥y thá»‘ng kÃª chi tiáº¿t: ngÆ°á»i dÃ¹ng, tour, Ä‘áº·t tour, doanh thu)
      */
     public function getStats(): array
     {
@@ -89,7 +92,7 @@ final class DashboardService
 
     /**
      * Get revenue statistics grouped by period.
-     * (Lấy thống kê doanh thu theo khoảng thời gian)
+     * (Lấy thông tin doanh thu theo khoảng thời gian)
      */
     public function getRevenue(array $filters): array
     {
@@ -97,8 +100,88 @@ final class DashboardService
             $period = $filters['period'] ?? 'month';
             $from = $filters['from'] ?? null;
             $to = $filters['to'] ?? null;
+            $tz = config('app.timezone');
 
-            $data = $this->paymentRepository->getRevenueByPeriod($period, $from, $to);
+            if ($period === 'day') {
+                $from = Carbon::now($tz)->startOfDay()->toDateTimeString();
+                $to = Carbon::now($tz)->toDateTimeString();
+            } elseif ($period === 'month') {
+                $from = Carbon::now($tz)->startOfMonth()->toDateTimeString();
+                $to = Carbon::now($tz)->toDateTimeString();
+            } elseif ($period === 'week') {
+                $from = Carbon::now($tz)->startOfWeek()->toDateTimeString();
+                $to = Carbon::now($tz)->toDateTimeString();
+            } elseif ($period === 'year') {
+                $from = Carbon::now($tz)->startOfYear()->toDateTimeString();
+                $to = Carbon::now($tz)->toDateTimeString();
+            }
+
+            $rawData = $this->paymentRepository->getRevenueByPeriod($period, $from, $to);
+            $dataMap = collect($rawData)->mapWithKeys(function (array $row) use ($period, $tz) {
+                $key = $row['period'];
+                if ($period === 'day') {
+                    $key = (int) $key;
+                } elseif ($period === 'week' || $period === 'month') {
+                    if ($key instanceof CarbonInterface) {
+                        $key = $key->format('Y-m-d');
+                    } else {
+                        $key = Carbon::parse((string) $key, $tz)->toDateString();
+                    }
+                }
+
+                return [$key => $row];
+            });
+            $stats = [];
+
+            if ($period === 'day') {
+                $currentHour = Carbon::now($tz)->hour;
+                for ($hour = 0; $hour <= $currentHour; $hour++) {
+                    $item = $dataMap->get($hour);
+                    $stats[] = [
+                        'period' => str_pad((string) $hour, 2, '0', STR_PAD_LEFT).':00',
+                        'total_revenue' => $item['total_revenue'] ?? '0',
+                        'transaction_count' => $item['transaction_count'] ?? 0,
+                    ];
+                }
+            } elseif ($period === 'week') {
+                $carbonPeriod = CarbonPeriod::create($from, Carbon::now($tz)->toDateString());
+                foreach ($carbonPeriod as $date) {
+                    $key = $date->format('Y-m-d');
+                    $item = $dataMap->get($key);
+                    $stats[] = [
+                        'period' => $key,
+                        'total_revenue' => $item['total_revenue'] ?? '0',
+                        'transaction_count' => $item['transaction_count'] ?? 0,
+                    ];
+                }
+            } elseif ($period === 'month') {
+                $carbonPeriod = CarbonPeriod::create(
+                    Carbon::parse($from, $tz)->toDateString(),
+                    Carbon::now($tz)->toDateString()
+                );
+                foreach ($carbonPeriod as $date) {
+                    $key = $date->format('Y-m-d');
+                    $item = $dataMap->get($key);
+                    $stats[] = [
+                        'period' => $key,
+                        'total_revenue' => $item['total_revenue'] ?? '0',
+                        'transaction_count' => $item['transaction_count'] ?? 0,
+                    ];
+                }
+            } elseif ($period === 'year') {
+                $start = Carbon::parse($from, $tz)->startOfYear()->startOfMonth();
+                $end = Carbon::now($tz)->endOfMonth();
+                $carbonPeriod = CarbonPeriod::create($start, '1 month', $end);
+                foreach ($carbonPeriod as $date) {
+                    $key = $date->format('Y-m');
+                    $item = $dataMap->get($key);
+                    $stats[] = [
+                        'period' => $key,
+                        'total_revenue' => $item['total_revenue'] ?? '0',
+                        'transaction_count' => $item['transaction_count'] ?? 0,
+                    ];
+                }
+            }
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -106,7 +189,7 @@ final class DashboardService
                     'period' => $period,
                     'from' => $from,
                     'to' => $to,
-                    'stats' => $data,
+                    'stats' => $stats,
                 ],
             ];
         } catch (Exception $e) {
@@ -166,21 +249,35 @@ final class DashboardService
     }
 
     /**
-     * Get user growth grouped by month for a given year.
-     * (Lấy tăng trưởng người dùng theo tháng trong năm)
+     * Get user growth grouped by month for the last 12 months.
+     * (Lấy số lượng người dùng mới theo tháng trong 12 tháng gần nhất)
      */
-    public function getUserGrowth(array $filters): array
+    public function getUserGrowth(): array
     {
         try {
-            $year = $filters['year'] ?? (int) date('Y');
+            $data = $this->userRepository->getNewUsersLast12Months();
 
-            $data = $this->userRepository->getNewUsersByMonth($year);
+            // Backfill 12 months
+            $months = collect();
+            $current = now()->subMonths(11)->startOfMonth();
+            $end = now()->endOfMonth();
+
+            while ($current->lte($end)) {
+                $months->push($current->format('Y-m'));
+                $current->addMonth();
+            }
+
+            $dataMap = collect($data)->keyBy('month');
+
+            $stats = $months->map(fn ($month) => [
+                'month' => $month,
+                'count' => $dataMap[$month]['count'] ?? 0,
+            ])->toArray();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
-                    'year' => $year,
-                    'stats' => $data,
+                    'stats' => $stats,
                 ],
             ];
         } catch (Exception $e) {
@@ -202,6 +299,23 @@ final class DashboardService
 
             $data = $this->bookingRepository->getBookingTrend($days);
 
+            $from = now()->subDays($days)->format('Y-m-d');
+            $to = now()->format('Y-m-d');
+
+            $dates = collect(CarbonPeriod::create($from, $to))
+                ->map(fn (CarbonInterface $d) => $d->format('Y-m-d'));
+
+            $dataMap = collect($data)->keyBy('date');
+
+            $data = $dates->map(function ($date) use ($dataMap) {
+                $item = $dataMap->get($date);
+
+                return [
+                    'date' => $date,
+                    'count' => $item['count'] ?? 0,
+                ];
+            })->toArray();
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
@@ -213,6 +327,33 @@ final class DashboardService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking trend.',
+            ];
+        }
+    }
+
+    /**
+     * Get booking counts grouped by status.
+     * (Lấy số lượng đơn đặt tour theo trạng thái)
+     */
+    public function getBookingStatusCounts(array $filters): array
+    {
+        try {
+            $data = $this->bookingRepository->getStatusCounts($filters);
+
+            $statuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+            $result = [];
+            foreach ($statuses as $status) {
+                $result[$status] = (int) ($data[$status] ?? 0);
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $result,
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve booking status counts.',
             ];
         }
     }
@@ -268,7 +409,7 @@ final class DashboardService
 
     /**
      * Get user reports grouped by month.
-     * (Lấy báo cáo người dùng mới theo tháng)
+     * (Lấy báo cáo người dùng theo tháng)
      */
     public function getUserReports(array $filters): array
     {

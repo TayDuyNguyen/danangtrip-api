@@ -105,8 +105,25 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     }
 
     /**
+     * Get new users count grouped by month for the last 12 months.
+     * (Lấy số lượng người dùng mới theo tháng trong 12 tháng qua)
+     */
+    public function getNewUsersLast12Months(): array
+    {
+        $table = $this->model->getTable();
+
+        return $this->model->newQuery()
+            ->selectRaw("TO_CHAR({$table}.created_at, 'YYYY-MM') as month, COUNT(*) as count")
+            ->where("{$table}.created_at", '>=', now()->subMonths(11)->startOfMonth())
+            ->groupByRaw("TO_CHAR({$table}.created_at, 'YYYY-MM')")
+            ->orderByRaw("TO_CHAR({$table}.created_at, 'YYYY-MM')")
+            ->get()
+            ->toArray();
+    }
+
+    /**
      * Get new users count grouped by month for a specific year.
-     * (Lấy số lượng người dùng mới theo tháng trong một năm)
+     * (Lấy số lượng người dùng mới theo tháng trong một năm cụ thể)
      */
     public function getNewUsersByMonth(int $year): array
     {
@@ -114,9 +131,9 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
 
         return $this->model->newQuery()
             ->selectRaw("EXTRACT(MONTH FROM {$table}.created_at) as month, COUNT(*) as count")
-            ->whereYear('created_at', $year)
-            ->groupBy('month')
-            ->orderBy('month')
+            ->whereYear("{$table}.created_at", $year)
+            ->groupByRaw("EXTRACT(MONTH FROM {$table}.created_at)")
+            ->orderByRaw("EXTRACT(MONTH FROM {$table}.created_at)")
             ->get()
             ->toArray();
     }

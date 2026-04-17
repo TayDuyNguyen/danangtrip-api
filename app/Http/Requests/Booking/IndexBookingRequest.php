@@ -14,6 +14,27 @@ class IndexBookingRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+
+        if (! $this->filled('booking_status') && $this->filled('status')) {
+            $merge['booking_status'] = $this->input('status');
+        }
+
+        if (! $this->filled('sort_by') && $this->filled('sort')) {
+            $merge['sort_by'] = $this->input('sort');
+        }
+
+        if (! $this->filled('sort_order') && $this->filled('order')) {
+            $merge['sort_order'] = $this->input('order');
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -23,7 +44,7 @@ class IndexBookingRequest extends FormRequest
             'from_date' => 'nullable|date_format:Y-m-d',
             'to_date' => 'nullable|date_format:Y-m-d|after_or_equal:from_date',
             'per_page' => 'nullable|integer|min:1',
-            'sort_by' => 'nullable|string|in:created_at,booking_code,total_amount',
+            'sort_by' => 'nullable|string|in:id,created_at,booked_at,booking_code,total_amount,booking_status,payment_status',
             'sort_order' => 'nullable|string|in:asc,desc',
         ];
     }

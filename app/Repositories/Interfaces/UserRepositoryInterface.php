@@ -44,8 +44,14 @@ interface UserRepositoryInterface extends RepositoryInterface
     public function getTotalCount(): int;
 
     /**
+     * Get new users count grouped by month for the last 12 months.
+     * (Lấy số lượng người dùng mới theo tháng trong 12 tháng qua)
+     */
+    public function getNewUsersLast12Months(): array;
+
+    /**
      * Get new users count grouped by month for a specific year.
-     * (Lấy số lượng người dùng mới theo tháng trong một năm)
+     * (Lấy số lượng người dùng mới theo tháng trong một năm cụ thể)
      */
     public function getNewUsersByMonth(int $year): array;
 
