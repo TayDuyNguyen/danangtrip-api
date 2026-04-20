@@ -12,11 +12,11 @@ use App\Http\Requests\Auth\VerifyEmailRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Cookie;
 
 /**
  * Class AuthController
  * Handles user authentication requests.
- * Đã thay thế custom Request Validator thành chuẩn FormRequest trực tiếp và Cắm HttpOnly Cookie.
  */
 class AuthController extends Controller
 {
@@ -34,13 +34,13 @@ class AuthController extends Controller
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->created($result['data'], 'User registered successfully');
-        } else {
-            return $this->error('User registered failed', $result['status']);
         }
+
+        return $this->error('User registered failed', $result['status']);
     }
 
     /**
-     * Authenticate a user and return token via JSON and HttpOnly refresh cookie.
+     * Authenticate a user and return an access token plus HttpOnly refresh cookie.
      */
     public function login(LoginRequest $request): JsonResponse
     {
@@ -52,13 +52,11 @@ class AuthController extends Controller
             $refreshToken = $data['refresh_token'];
             unset($data['refresh_token']);
 
-            $secureCookie = env('APP_ENV') !== 'local';
-
             return $this->success($data, 'Login successful')
-                ->cookie('refresh_token', $refreshToken, 20160, '/', null, $secureCookie, true, false, 'Lax');
-        } else {
-            return $this->unauthorized($result['message']);
+                ->withCookie($this->makeRefreshTokenCookie($refreshToken));
         }
+
+        return $this->unauthorized($result['message']);
     }
 
     /**
@@ -66,26 +64,30 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $refreshToken = $request->cookie('refresh_token');
+        $refreshToken = $request->cookie($this->refreshCookieName());
         $result = $this->authService->logout($refreshToken);
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, 'Logged out successfully')
-                ->withoutCookie('refresh_token');
-        } else {
-            return $this->unauthorized($result['message']);
+                ->withCookie($this->expireRefreshTokenCookie());
         }
+
+        return $this->unauthorized($result['message']);
     }
 
     /**
-     * Refresh Token
+     * Refresh an expired access token using the HttpOnly refresh cookie.
      */
     public function refresh(Request $request): JsonResponse
     {
-        $refreshToken = $request->cookie('refresh_token');
+        $refreshToken = $request->cookie($this->refreshCookieName());
 
         if (! $refreshToken) {
-            return $this->error('Refresh token is required in cookie', HttpStatusCode::UNAUTHORIZED->value);
+            return response()->json([
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'REFRESH_TOKEN_MISSING',
+                'message' => 'Refresh token is required in cookie',
+            ], HttpStatusCode::UNAUTHORIZED->value);
         }
 
         $result = $this->authService->refresh($refreshToken);
@@ -95,15 +97,15 @@ class AuthController extends Controller
             $newRefreshToken = $data['refresh_token'];
             unset($data['refresh_token']);
 
-            $secureCookie = env('APP_ENV') !== 'local';
-
             return $this->success($data, 'Token refreshed successfully')
-                ->cookie('refresh_token', $newRefreshToken, 20160, '/', null, $secureCookie, true, false, 'Lax');
-        } else {
-            // Khi không hợp lệ do hết hạn hoặc Token Reuse Attack, revoke HttpOnly Cookie hiện tại
-            return $this->error($result['message'], $result['status'])
-                ->withoutCookie('refresh_token');
+                ->withCookie($this->makeRefreshTokenCookie($newRefreshToken));
         }
+
+        return response()->json([
+            'code' => $result['status'],
+            'error' => $result['error'] ?? 'REFRESH_FAILED',
+            'message' => $result['message'],
+        ], $result['status'])->withCookie($this->expireRefreshTokenCookie());
     }
 
     /**
@@ -123,9 +125,9 @@ class AuthController extends Controller
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
-        } else {
-            return $this->error($result['message'], $result['status']);
         }
+
+        return $this->error($result['message'], $result['status']);
     }
 
     /**
@@ -137,9 +139,9 @@ class AuthController extends Controller
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
-        } else {
-            return $this->error($result['message'], $result['status']);
         }
+
+        return $this->error($result['message'], $result['status']);
     }
 
     /**
@@ -151,9 +153,9 @@ class AuthController extends Controller
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
-        } else {
-            return $this->error($result['message'], $result['status']);
         }
+
+        return $this->error($result['message'], $result['status']);
     }
 
     /**
@@ -165,8 +167,37 @@ class AuthController extends Controller
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);
-        } else {
-            return $this->error($result['message'], $result['status']);
         }
+
+        return $this->error($result['message'], $result['status']);
+    }
+
+    private function refreshCookieName(): string
+    {
+        return (string) config('auth_tokens.refresh_cookie.name', 'refresh_token');
+    }
+
+    private function makeRefreshTokenCookie(string $refreshToken): Cookie
+    {
+        return cookie(
+            $this->refreshCookieName(),
+            $refreshToken,
+            (int) config('auth_tokens.refresh_cookie.ttl', 20160),
+            (string) config('auth_tokens.refresh_cookie.path', '/'),
+            config('auth_tokens.refresh_cookie.domain'),
+            (bool) config('auth_tokens.refresh_cookie.secure', false),
+            true,
+            false,
+            (string) config('auth_tokens.refresh_cookie.same_site', 'lax')
+        );
+    }
+
+    private function expireRefreshTokenCookie(): Cookie
+    {
+        return cookie()->forget(
+            $this->refreshCookieName(),
+            (string) config('auth_tokens.refresh_cookie.path', '/'),
+            config('auth_tokens.refresh_cookie.domain')
+        );
     }
 }

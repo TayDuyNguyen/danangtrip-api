@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tour;
 
+use App\Enums\TourStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -152,7 +153,7 @@ class UpdateTourRequest extends FormRequest
             ],
             'status' => [
                 'sometimes',
-                'in:available,unavailable,pending',
+                'in:'.implode(',', TourStatus::values()),
             ],
             'is_featured' => [
                 'sometimes',

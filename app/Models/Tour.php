@@ -35,7 +35,7 @@ final class Tour extends Model
         'images',
         'video_url',
         'location_ids',
-        'status',
+        'status', // active, inactive, sold_out
         'is_featured',
         'is_hot',
         'view_count',

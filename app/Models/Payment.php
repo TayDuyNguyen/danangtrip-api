@@ -15,7 +15,7 @@ final class Payment extends Model
         'transaction_code',
         'amount',
         'payment_method',
-        'payment_status',
+        'payment_status', // pending, success, failed, refunded
         'payment_gateway',
         'gateway_response',
         'paid_at',

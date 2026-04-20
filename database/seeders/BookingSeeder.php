@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\BookingItem;
 use App\Models\TourSchedule;
@@ -44,7 +45,7 @@ class BookingSeeder extends Seeder
                 'final_amount' => $total,
                 'deposit_amount' => $total * 0.3,
                 'payment_method' => $faker->randomElement(['momo', 'vnpay', 'bank_transfer', 'cash']),
-                'payment_status' => $faker->randomElement(['unpaid', 'paid', 'partially_paid']),
+                'payment_status' => $faker->randomElement([PaymentStatus::PENDING->value, PaymentStatus::SUCCESS->value]),
                 'booking_status' => $faker->randomElement(['pending', 'confirmed', 'completed', 'cancelled']),
                 'booked_at' => $faker->dateTimeBetween('-1 month', 'now'),
             ]);

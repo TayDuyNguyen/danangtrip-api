@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Enums\Pagination;
+use App\Enums\TourStatus;
 use App\Models\Tour;
 use App\Models\TourSchedule;
 use App\Repositories\Interfaces\TourRepositoryInterface;
@@ -63,7 +64,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         } else {
-            $query->where('status', 'available');
+            $query->where('status', TourStatus::ACTIVE->value);
         }
 
         $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'];
@@ -83,7 +84,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     public function getFeaturedTours(?int $limit = null): Collection
     {
         $query = $this->model->newQuery()
-            ->where('status', 'available')
+            ->where('status', TourStatus::ACTIVE->value)
             ->where('is_featured', true);
 
         if ($limit) {
@@ -100,7 +101,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     public function getHotTours(?int $limit = null): Collection
     {
         $query = $this->model->newQuery()
-            ->where('status', 'available')
+            ->where('status', TourStatus::ACTIVE->value)
             ->where('is_hot', true);
 
         if ($limit) {
@@ -250,7 +251,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         }
 
         return $this->model->newQuery()
-            ->where('status', 'available')
+            ->where('status', TourStatus::ACTIVE->value)
             ->where('name', 'like', $q.'%')
             ->orderBy('view_count', 'desc')
             ->limit($limit)
@@ -273,7 +274,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
 
         return $this->model->newQuery()
             ->whereIn('id', $ids)
-            ->where('status', 'available')
+            ->where('status', TourStatus::ACTIVE->value)
             ->with(['category'])
             ->get();
     }

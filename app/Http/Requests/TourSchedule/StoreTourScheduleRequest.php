@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\TourSchedule;
 
+use App\Enums\TourScheduleStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTourScheduleRequest extends FormRequest
@@ -57,7 +58,7 @@ class StoreTourScheduleRequest extends FormRequest
             'status' => [
                 'sometimes',
                 'string',
-                'in:available,full,cancelled',
+                'in:'.implode(',', TourScheduleStatus::values()),
             ],
         ];
     }

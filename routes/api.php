@@ -294,6 +294,8 @@ Route::prefix('v1')->group(function () {
 
         // Tours Management
         // (Quản lý Tour)
+        Route::get('/tours', [AdminTourController::class, 'index']);
+        Route::get('/tours/{id}', [AdminTourController::class, 'show'])->whereNumber('id');
         Route::post('/tours', [AdminTourController::class, 'store']);
         Route::put('/tours/{id}', [AdminTourController::class, 'update'])->whereNumber('id');
         Route::delete('/tours/{id}', [AdminTourController::class, 'destroy'])->whereNumber('id');

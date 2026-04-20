@@ -4,8 +4,10 @@ namespace App\Http\Middleware;
 
 use App\Enums\HttpStatusCode;
 use Closure;
-use Exception;
 use Illuminate\Http\Request;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenExpiredException;
+use PHPOpenSourceSaver\JWTAuth\Exceptions\TokenInvalidException;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,19 +31,39 @@ class JwtAuthMiddleware
         if (! $token) {
             return response()->json([
                 'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'TOKEN_NOT_PROVIDED',
                 'message' => 'Token not provided',
             ], HttpStatusCode::UNAUTHORIZED->value);
         }
 
         try {
             $user = JWTAuth::setToken($token)->authenticate();
-        } catch (Exception $e) {
+        } catch (TokenExpiredException $e) {
+            return response()->json([
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'TOKEN_EXPIRED',
+                'message' => 'Token expired',
+            ], HttpStatusCode::UNAUTHORIZED->value);
+        } catch (TokenInvalidException $e) {
+            return response()->json([
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'TOKEN_INVALID',
+                'message' => 'Invalid token',
+            ], HttpStatusCode::UNAUTHORIZED->value);
+        } catch (JWTException $e) {
+            return response()->json([
+                'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'TOKEN_INVALID',
+                'message' => 'Invalid token',
+            ], HttpStatusCode::UNAUTHORIZED->value);
+        } catch (\Throwable $e) {
             $user = null;
         }
 
         if (! $user) {
             return response()->json([
                 'code' => HttpStatusCode::UNAUTHORIZED->value,
+                'error' => 'TOKEN_INVALID',
                 'message' => 'Invalid token',
             ], HttpStatusCode::UNAUTHORIZED->value);
         }

@@ -2,12 +2,10 @@
 
 namespace App\Enums;
 
-enum PaymentStatus: string
+enum LocationStatus: string
 {
-    case PENDING = 'pending';
-    case SUCCESS = 'success';
-    case FAILED = 'failed';
-    case REFUNDED = 'refunded';
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
 
     /**
      * Get all values of the enum.

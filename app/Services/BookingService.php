@@ -432,7 +432,7 @@ class BookingService
                 $booking->update([
                     'booking_status' => BookingStatus::COMPLETED->value,
                     'completed_at' => now(),
-                    'payment_status' => PaymentStatus::PAID->value, // Usually completed means paid in full
+                    'payment_status' => PaymentStatus::SUCCESS->value, // Usually completed means paid in full
                 ]);
 
                 return [

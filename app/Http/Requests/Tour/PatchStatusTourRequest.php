@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tour;
 
+use App\Enums\TourStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PatchStatusTourRequest extends FormRequest
@@ -28,7 +29,7 @@ class PatchStatusTourRequest extends FormRequest
             ],
             'status' => [
                 'required',
-                'in:available,unavailable,pending,active,inactive',
+                'in:'.implode(',', TourStatus::values()),
             ],
         ];
     }
