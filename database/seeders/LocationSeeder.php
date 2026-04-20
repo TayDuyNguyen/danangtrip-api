@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\LocationStatus;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Subcategory;
@@ -20,7 +21,7 @@ class LocationSeeder extends Seeder
 
         $categories = Category::all();
         $subcategories = Subcategory::all();
-        $tags = Tag::all();
+        $tags = Tag::all(); // Location hiện đang gắn tag qua bảng pivot location_tags.
         $admin = User::where('role', 'admin')->first();
 
         if ($categories->isEmpty()) {
@@ -32,12 +33,13 @@ class LocationSeeder extends Seeder
         foreach (range(1, 150) as $index) {
             $district = $faker->randomElement($districts);
             $category = $categories->random();
-            $subcategory = $subcategories->where('category_id', $category->id)->random() ?? null;
+            $filteredSubcategories = $subcategories->where('category_id', $category->id); // Chỉ lấy subcategory cùng category cha.
+            $subcategory = $filteredSubcategories->isNotEmpty() ? $filteredSubcategories->random() : null;
             $name = $this->generateName($category->name, $faker);
 
             $location = Location::create([
                 'name' => $name,
-                'slug' => Str::slug($name).'-'.uniqid(),
+                'slug' => Str::slug($name).'-'.uniqid(), // Sinh slug unique để reseed không bị vướng unique index.
                 'category_id' => $category->id,
                 'subcategory_id' => $subcategory ? $subcategory->id : null,
                 'description' => $faker->paragraph(3),
@@ -45,7 +47,7 @@ class LocationSeeder extends Seeder
                 'address' => $faker->streetAddress,
                 'district' => $district,
                 'ward' => 'Phường '.$faker->numberBetween(1, 10),
-                'latitude' => $faker->latitude(15.9, 16.1),
+                'latitude' => $faker->latitude(15.9, 16.1), // Giới hạn quanh khu vực Đà Nẵng.
                 'longitude' => $faker->longitude(108.1, 108.3),
                 'phone' => $faker->phoneNumber,
                 'email' => $faker->companyEmail,
@@ -58,7 +60,7 @@ class LocationSeeder extends Seeder
                     'fri' => '08:00-23:00',
                     'sat' => '08:00-23:00',
                     'sun' => '08:00-22:00',
-                ],
+                ], // Lưu JSON đúng với kiểu cột opening_hours.
                 'price_min' => $faker->randomElement([20000, 50000, 100000, 200000]),
                 'price_max' => $faker->randomElement([150000, 300000, 1000000, 5000000]),
                 'price_level' => $faker->numberBetween(1, 4),
@@ -73,12 +75,12 @@ class LocationSeeder extends Seeder
                     'https://picsum.photos/seed/loc'.$index.'c/800/600',
                 ],
                 'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-                'status' => 'active',
+                'status' => LocationStatus::ACTIVE->value,
                 'is_featured' => $faker->boolean(20),
                 'created_by' => $admin ? $admin->id : 1,
             ]);
 
-            // Gán 1-3 tag ngẫu nhiên
+            // Gán ngẫu nhiên tag để dữ liệu lọc/tìm kiếm có đủ quan hệ many-to-many.
             $randomTags = $tags->random(rand(1, 3))->pluck('id');
             $location->tags()->attach($randomTags, ['created_at' => now()]);
         }

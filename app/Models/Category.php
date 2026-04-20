@@ -17,7 +17,7 @@ final class Category extends Model
         'description',
         'image',
         'sort_order',
-        'status',
+        'status', // active, inactive
     ];
 
     protected function casts(): array

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Location;
 
+use App\Enums\LocationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -76,7 +77,7 @@ class UpdateLocationRequest extends FormRequest
             ],
             'status' => [
                 'sometimes',
-                'in:active,inactive,pending',
+                'in:'.implode(',', LocationStatus::values()),
             ],
             'is_featured' => [
                 'sometimes',

@@ -136,7 +136,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
 
         $query = $this->model->newQuery()
             ->selectRaw("{$groupExpr} as period, SUM(amount) as total_revenue, COUNT(*) as transaction_count")
-            ->where('payment_status', PaymentStatus::PAID->value)
+            ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->whereNotNull('paid_at');
 
         if ($fromBound !== null) {
@@ -160,7 +160,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     public function getTotalRevenue(?string $from = null, ?string $to = null): float
     {
         $query = $this->model->newQuery()
-            ->where('payment_status', PaymentStatus::PAID->value)
+            ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->whereNotNull('paid_at');
 
         if ($from) {
@@ -183,7 +183,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
         // Use subquery to get unique paid booking IDs in the given period
         // to avoid double counting if multiple payments exist for one booking.
         $paidBookingIds = $this->model->newQuery()
-            ->where('payment_status', PaymentStatus::PAID->value)
+            ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->whereNotNull('paid_at')
             ->when($from, fn ($q) => $q->whereDate('paid_at', '>=', $from))
             ->when($to, fn ($q) => $q->whereDate('paid_at', '<=', $to))

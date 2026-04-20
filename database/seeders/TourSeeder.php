@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\TourStatus;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Models\User;
@@ -14,8 +15,8 @@ class TourSeeder extends Seeder
     public function run(): void
     {
         $faker = Faker::create('vi_VN');
-        $categories = TourCategory::all();
-        $admin = User::where('role', 'admin')->first();
+        $categories = TourCategory::all(); // Tour phải gắn vào tour_categories nên cần lấy trước.
+        $admin = User::where('role', 'admin')->first(); // created_by ưu tiên admin để dữ liệu hợp logic quản trị.
 
         $toursData = [
             ['name' => 'Khám phá Sun World Ba Na Hills - Đường lên tiên cảnh', 'duration' => '1 ngày'],
@@ -30,11 +31,11 @@ class TourSeeder extends Seeder
 
         foreach ($toursData as $index => $data) {
             $name = $data['name'];
-            $priceAdult = $faker->randomElement([500000, 800000, 1200000, 1500000]);
+            $priceAdult = $faker->randomElement([500000, 800000, 1200000, 1500000]); // Mức giá mẫu để test filter/sort theo giá.
 
             Tour::create([
                 'name' => $name,
-                'slug' => Str::slug($name).'-'.uniqid(),
+                'slug' => Str::slug($name).'-'.uniqid(), // Slug được nối uniqid để tránh trùng khi reseed.
                 'tour_category_id' => $categories->random()->id,
                 'description' => "Trải nghiệm {$name} trọn gói với dịch vụ chất lượng cao, xe đưa đón tận nơi và hướng dẫn viên nhiệt tình.",
                 'short_desc' => "Khám phá vẻ đẹp của Đà Nẵng qua tour {$name}.",
@@ -43,18 +44,18 @@ class TourSeeder extends Seeder
                     ['time' => '09:00', 'activity' => 'Bắt đầu hành trình tham quan'],
                     ['time' => '12:00', 'activity' => 'Nghỉ ngơi và dùng bữa trưa tại nhà hàng địa phương'],
                     ['time' => '15:30', 'activity' => 'Kết thúc chương trình, xe đưa khách về lại điểm đón'],
-                ],
+                ], // Lưu JSON để frontend dựng timeline lịch trình.
                 'inclusions' => ['Xe đưa đón đời mới', 'HDV tiếng Việt', 'Ăn trưa', 'Vé tham quan', 'Nước uống'],
                 'exclusions' => ['VAT', 'Chi phí cá nhân', 'Tips'],
                 'price_adult' => $priceAdult,
-                'price_child' => $priceAdult * 0.7,
+                'price_child' => $priceAdult * 0.7, // Trẻ em dùng tỷ lệ giá đơn giản để test tính tiền.
                 'price_infant' => $priceAdult * 0.2,
                 'discount_percent' => rand(0, 15),
                 'duration' => $data['duration'],
                 'start_time' => '08:30 AM',
-                'meeting_point' => 'Điểm hẹn trung tâm hoặc Khách sạn của quý khách',
+                'meeting_point' => 'Điểm hẹn trung tâm hoặc khách sạn của quý khách',
                 'max_people' => rand(20, 50),
-                'min_people' => 2,
+                'min_people' => 2, // Tour cần ít nhất 2 khách để phản ánh business rule cơ bản.
                 'available_from' => now()->startOfMonth(),
                 'available_to' => now()->addMonths(6)->endOfMonth(),
                 'thumbnail' => "https://picsum.photos/seed/tour{$index}/800/450",
@@ -63,7 +64,7 @@ class TourSeeder extends Seeder
                     "https://picsum.photos/seed/tour{$index}b/800/600",
                     "https://picsum.photos/seed/tour{$index}c/800/600",
                 ],
-                'status' => 'available',
+                'status' => TourStatus::ACTIVE->value, // Đồng bộ với enum/migration chuẩn hóa mới nhất.
                 'is_featured' => $faker->boolean(30),
                 'is_hot' => $faker->boolean(20),
                 'view_count' => rand(100, 1000),

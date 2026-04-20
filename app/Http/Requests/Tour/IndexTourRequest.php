@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Tour;
 
+use App\Enums\TourStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexTourRequest extends FormRequest
@@ -26,7 +27,7 @@ class IndexTourRequest extends FormRequest
             ],
             'status' => [
                 'sometimes',
-                'in:available,unavailable,pending,active,inactive',
+                'in:'.implode(',', TourStatus::values()),
             ],
             'is_featured' => [
                 'sometimes',
