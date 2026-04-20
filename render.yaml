@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: danangtrip-api
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    autoDeploy: true
