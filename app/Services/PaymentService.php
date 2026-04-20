@@ -43,7 +43,7 @@ class PaymentService
                     ];
                 }
 
-                if ($booking->payment_status === PaymentStatus::PAID->value) {
+                if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
                         'message' => 'This booking has already been paid',
@@ -124,7 +124,7 @@ class PaymentService
                     ];
                 }
 
-                $newPaymentStatus = ($status === 'success') ? PaymentStatus::PAID->value : PaymentStatus::FAILED->value;
+                $newPaymentStatus = ($status === 'success') ? PaymentStatus::SUCCESS->value : PaymentStatus::FAILED->value;
 
                 $this->paymentRepository->update($payment->id, [
                     'payment_status' => $newPaymentStatus,
@@ -133,7 +133,7 @@ class PaymentService
                 ]);
 
                 if ($status === 'success') {
-                    $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::PAID->value);
+                    $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::SUCCESS->value);
                     $this->bookingRepository->updateStatus($payment->booking_id, BookingStatus::CONFIRMED->value);
                 }
 
@@ -255,7 +255,7 @@ class PaymentService
             ];
         }
 
-        if ($booking->payment_status === PaymentStatus::PAID->value) {
+        if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
             return [
                 'status' => HttpStatusCode::BAD_REQUEST->value,
                 'message' => 'This booking has already been paid',
@@ -289,7 +289,7 @@ class PaymentService
                     ];
                 }
 
-                if ($payment->payment_status !== PaymentStatus::PAID->value) {
+                if ($payment->payment_status !== PaymentStatus::SUCCESS->value) {
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
                         'message' => 'Only paid payments can be refunded',

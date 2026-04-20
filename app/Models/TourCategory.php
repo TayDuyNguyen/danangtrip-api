@@ -16,7 +16,7 @@ final class TourCategory extends Model
         'description',
         'icon',
         'sort_order',
-        'status',
+        'status', // active, inactive
     ];
 
     public function tours(): HasMany

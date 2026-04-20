@@ -8,6 +8,7 @@ use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -72,6 +73,7 @@ class AuthService
             if (! $token = Auth::guard('api')->attempt(['email' => $email, 'password' => $password])) {
                 return [
                     'status' => HttpStatusCode::UNAUTHORIZED->value,
+                    'error' => 'INVALID_CREDENTIALS',
                     'message' => 'Invalid credentials',
                 ];
             }
@@ -90,6 +92,8 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'token' => $token,
+                    'token_type' => 'bearer',
+                    'expires_in' => (int) Config::get('auth_tokens.access_token_ttl_seconds', 900),
                     'refresh_token' => $refreshTokenStr,
                     'user' => $user,
                 ],
@@ -98,6 +102,7 @@ class AuthService
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'error' => 'LOGIN_FAILED',
                 'message' => 'Login failed',
             ];
         }
@@ -146,6 +151,7 @@ class AuthService
             if (! $storedToken) {
                 return [
                     'status' => HttpStatusCode::UNAUTHORIZED->value,
+                    'error' => 'REFRESH_TOKEN_INVALID',
                     'message' => 'Invalid refresh token',
                 ];
             }
@@ -157,6 +163,7 @@ class AuthService
 
                 return [
                     'status' => HttpStatusCode::FORBIDDEN->value,
+                    'error' => 'REFRESH_TOKEN_REUSED',
                     'message' => 'Token reuse detected. All sessions revoked. Please login again.',
                 ];
             }
@@ -164,6 +171,7 @@ class AuthService
             if ($storedToken->expires_at < now()) {
                 return [
                     'status' => HttpStatusCode::UNAUTHORIZED->value,
+                    'error' => 'REFRESH_TOKEN_EXPIRED',
                     'message' => 'Refresh token expired',
                 ];
             }
@@ -187,6 +195,8 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'token' => $newAccessToken,
+                    'token_type' => 'bearer',
+                    'expires_in' => (int) Config::get('auth_tokens.access_token_ttl_seconds', 900),
                     'refresh_token' => $newRefreshTokenStr,
                     'user' => $storedToken->user,
                 ],
@@ -195,6 +205,7 @@ class AuthService
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'error' => 'REFRESH_FAILED',
                 'message' => 'Refresh failed',
             ];
         }

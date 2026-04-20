@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Location;
 
+use App\Enums\LocationStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PatchStatusLocationRequest extends FormRequest
@@ -28,7 +29,7 @@ class PatchStatusLocationRequest extends FormRequest
             ],
             'status' => [
                 'required',
-                'in:active,inactive,pending',
+                'in:'.implode(',', LocationStatus::values()),
             ],
         ];
     }

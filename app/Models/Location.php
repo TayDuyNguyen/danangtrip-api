@@ -38,7 +38,7 @@ final class Location extends Model
         'thumbnail',
         'images',
         'video_url',
-        'status',
+        'status', // active, inactive
         'is_featured',
         'created_by',
     ];
