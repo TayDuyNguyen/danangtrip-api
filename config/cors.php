@@ -25,7 +25,7 @@ return [
             ',',
             env(
                 'ALLOWED_ORIGINS',
-                'http://localhost:5173,http://localhost:3000,https://danangtrip-web.duytayqt.workers.dev'
+                'http://localhost:5173,http://localhost:3000,https://danangtrip-web.duytayqt.workers.dev,https://danangtrip-admin.onrender.com'
             )
         )
     )),
