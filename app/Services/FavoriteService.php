@@ -75,7 +75,7 @@ class FavoriteService
                 'location_id' => $locationId,
             ]);
 
-            $this->locationRepository->incrementFavoriteCount($locationId);
+            $this->locationRepository->increment($locationId, 'favorite_count');
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
@@ -108,7 +108,7 @@ class FavoriteService
             }
 
             $this->favoriteRepository->delete($existing->id);
-            $this->locationRepository->decrementFavoriteCount($locationId);
+            $this->locationRepository->decrement($locationId, 'favorite_count', 1, [['favorite_count', '>', 0]]);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

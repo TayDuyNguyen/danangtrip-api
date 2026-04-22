@@ -6,6 +6,7 @@ use App\Models\TourCategory;
 use App\Repositories\Interfaces\TourCategoryRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Class TourCategoryRepository
@@ -48,7 +49,7 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
             ->where('status', 'active')
             ->first();
 
-        if (! ($category instanceof TourCategory)) {
+        if (! $category) {
             return null;
         }
 
@@ -70,7 +71,16 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
      */
     public function getCategories(array $filters = []): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->newQuery()
+            ->withCount(['tours as tour_count']);
+
+        if (isset($filters['search']) && trim((string) $filters['search']) !== '') {
+            $keyword = trim((string) $filters['search']);
+            $query->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', '%'.$keyword.'%')
+                    ->orWhere('slug', 'like', '%'.$keyword.'%');
+            });
+        }
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -79,6 +89,86 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
         $perPage = $filters['per_page'] ?? 10;
 
         return $query->orderBy('sort_order')->paginate($perPage);
+    }
+
+    /**
+     * Get aggregate stats for admin list.
+     * (Lấy thống kê tổng hợp cho danh sách admin)
+     */
+    public function getAdminStats(): array
+    {
+        $baseQuery = $this->model->newQuery();
+
+        return [
+            'total_categories' => (int) (clone $baseQuery)->count(),
+            'active_categories' => (int) (clone $baseQuery)->where('status', 'active')->count(),
+            'inactive_categories' => (int) (clone $baseQuery)->where('status', 'inactive')->count(),
+            'total_tours' => (int) $this->model->newQuery()->withCount('tours')->get()->sum('tours_count'),
+        ];
+    }
+
+    /**
+     * Get next available sort order.
+     * (Lấy thứ tự kế tiếp khả dụng)
+     */
+    public function getNextSortOrder(): int
+    {
+        return ((int) $this->model->newQuery()->max('sort_order')) + 1;
+    }
+
+    /**
+     * Reorder categories and normalize sequence.
+     * (Sắp xếp lại danh mục và chuẩn hóa thứ tự)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorder(array $items): bool
+    {
+        return DB::transaction(function () use ($items): bool {
+            $requestedIds = collect($items)->pluck('id')->unique()->values()->all();
+            $requestedCount = count($requestedIds);
+
+            $existingIds = $this->model->newQuery()
+                ->whereIn('id', $requestedIds)
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+
+            if ($requestedCount !== count($existingIds)) {
+                return false;
+            }
+
+            $currentIds = $this->model->newQuery()
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id')
+                ->all();
+
+            $orderedRequestedIds = collect($items)
+                ->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+                ->pluck('id')
+                ->unique()
+                ->values()
+                ->all();
+
+            $remainingIds = array_values(array_diff($currentIds, $orderedRequestedIds));
+            $finalOrderIds = array_merge($orderedRequestedIds, $remainingIds);
+
+            foreach ($finalOrderIds as $index => $id) {
+                $this->model->newQuery()
+                    ->where('id', $id)
+                    ->update(['sort_order' => -($index + 1)]);
+            }
+
+            foreach ($finalOrderIds as $index => $id) {
+                $this->model->newQuery()
+                    ->where('id', $id)
+                    ->update(['sort_order' => $index + 1]);
+            }
+
+            return true;
+        });
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Exports\ToursExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tour\IndexTourRequest;
 use App\Http\Requests\Tour\PatchStatusTourRequest;
 use App\Http\Requests\Tour\ShowTourRequest;
 use App\Http\Requests\Tour\StoreTourRequest;
@@ -28,6 +29,30 @@ final class TourController extends Controller
     public function __construct(
         protected TourService $tourService
     ) {}
+
+    /**
+     * List tours (admin — mọi trạng thái nếu không truyền status).
+     */
+    public function index(IndexTourRequest $request): JsonResponse
+    {
+        $result = $this->tourService->getAdminTours($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Show one tour by id (admin — mọi trạng thái).
+     */
+    public function show(ShowTourRequest $request, int $id): JsonResponse
+    {
+        $result = $this->tourService->getTourByIdForAdmin($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
 
     /**
      * Store a new tour.

@@ -63,7 +63,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
-        } else {
+        } elseif (empty($filters['for_admin'])) {
             $query->where('status', TourStatus::ACTIVE->value);
         }
 

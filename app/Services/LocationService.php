@@ -118,8 +118,8 @@ final class LocationService
                     'created_at' => now(),
                 ]);
 
-                // (Tăng lượt xem thông qua LocationRepository)
-                $this->locationRepository->incrementViewCount($id);
+                // (Tăng lượt xem qua BaseRepository::increment)
+                $this->locationRepository->increment($id, 'view_count');
             });
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'View recorded'];
@@ -290,7 +290,7 @@ final class LocationService
     public function attachTags(int $id, array $tagIds): array
     {
         try {
-            $this->locationRepository->attachTags($id, $tagIds);
+            $this->locationRepository->sync($id, 'tags', $tagIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tags attached successfully'];
         } catch (\Exception $_) {
@@ -306,7 +306,7 @@ final class LocationService
     public function detachTag(int $id, int $tagId): array
     {
         try {
-            $this->locationRepository->detachTag($id, $tagId);
+            $this->locationRepository->detach($id, 'tags', [$tagId]);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Tag detached successfully'];
         } catch (\Exception $_) {
@@ -322,7 +322,7 @@ final class LocationService
     public function attachAmenities(int $id, array $amenityIds): array
     {
         try {
-            $this->locationRepository->attachAmenities($id, $amenityIds);
+            $this->locationRepository->sync($id, 'amenities', $amenityIds);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenities attached successfully'];
         } catch (\Exception $_) {
@@ -338,7 +338,7 @@ final class LocationService
     public function detachAmenity(int $id, int $amenityId): array
     {
         try {
-            $this->locationRepository->detachAmenity($id, $amenityId);
+            $this->locationRepository->detach($id, 'amenities', [$amenityId]);
 
             return ['status' => HttpStatusCode::SUCCESS->value, 'message' => 'Amenity detached successfully'];
         } catch (\Exception $_) {

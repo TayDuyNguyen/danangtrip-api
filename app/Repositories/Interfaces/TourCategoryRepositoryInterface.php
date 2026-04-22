@@ -32,6 +32,26 @@ interface TourCategoryRepositoryInterface extends RepositoryInterface
     public function getCategories(array $filters = []): LengthAwarePaginator;
 
     /**
+     * Get aggregate stats for admin list.
+     * (Lấy thống kê tổng hợp cho danh sách admin)
+     */
+    public function getAdminStats(): array;
+
+    /**
+     * Get next available sort order.
+     * (Lấy thứ tự kế tiếp khả dụng)
+     */
+    public function getNextSortOrder(): int;
+
+    /**
+     * Reorder categories and normalize sequence.
+     * (Sắp xếp lại danh mục và chuẩn hóa thứ tự)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorder(array $items): bool;
+
+    /**
      * Update category status.
      * (Cập nhật trạng thái danh mục)
      */
