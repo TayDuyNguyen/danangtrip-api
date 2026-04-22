@@ -30,7 +30,15 @@ return [
         )
     )),
 
-    'allowed_origins_patterns' => [],
+    /*
+    | Cloudflare Pages preview: https://{hash}.danangtrip-admin.pages.dev
+    | Cloudflare Workers preview: https://{hash}.danangtrip-web.duytayqt.workers.dev
+    | URL production (không có prefix) vẫn khai báo trong ALLOWED_ORIGINS.
+    */
+    'allowed_origins_patterns' => [
+        '#^https://[\w-]+\.danangtrip-admin\.pages\.dev$#',
+        '#^https://[\w-]+\.danangtrip-web\.duytayqt\.workers\.dev$#',
+    ],
 
     'allowed_headers' => ['*'],
 
