@@ -6,12 +6,20 @@
  *
  * @apiDescription Public endpoint. Returns active locations with filters and pagination.
  *
+ * @apiParam (Query) {String} [q] Search alias of search
+ * @apiParam (Query) {String} [categories] CSV category ids, e.g. 1,2,5
+ * @apiParam (Query) {String} [districts] CSV districts, e.g. Hai Chau,Son Tra
  * @apiParam (Query) {Number} [category_id] Category id
+ * @apiParam (Query) {Number[]} [category_ids] Category ids array
  * @apiParam (Query) {Number} [subcategory_id] Subcategory id
  * @apiParam (Query) {String} [district] District name
  * @apiParam (Query) {String} [search] Search text (name/address)
+ * @apiParam (Query) {String[]} [districts[]] Districts array
+ * @apiParam (Query) {Number{1-5}} [min_rating] Minimum average rating
  * @apiParam (Query) {Number{1-4}} [price_level] Price level (1-4)
  * @apiParam (Query) {Boolean} [is_featured] Featured filter
+ * @apiParam (Query) {String} [sort] Sort alias of sort_by
+ * @apiParam (Query) {String} [order] Sort alias of sort_order
  * @apiParam (Query) {String="avg_rating","review_count","view_count","created_at","price_min"} [sort_by] Sort field
  * @apiParam (Query) {String="asc","desc"} [sort_order] Sort direction
  * @apiParam (Query) {Number{1-100}} [per_page] Items per page
@@ -25,7 +33,6 @@
  *   "code": 200,
  *   "message": "Success",
  *   "data": {
- *     "current_page": 1,
  *     "data": [
  *       {
  *         "id": 1,
@@ -47,8 +54,18 @@
  *         "status": "active"
  *       }
  *     ],
- *     "per_page": 10,
- *     "total": 1
+ *     "meta": {
+ *       "current_page": 1,
+ *       "last_page": 1,
+ *       "per_page": 10,
+ *       "total": 1
+ *     },
+ *     "links": {
+ *       "first": "http://localhost:8000/api/v1/locations?page=1",
+ *       "last": "http://localhost:8000/api/v1/locations?page=1",
+ *       "prev": null,
+ *       "next": null
+ *     }
  *   }
  * }
  */

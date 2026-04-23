@@ -7,37 +7,37 @@
  * @apiDescription Public endpoint. Returns active categories with active subcategories.
  *
  * @apiSampleRequest /api/v1/categories
+ * @apiSampleRequest /api/v1/location-categories
  *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * {
  *   "code": 200,
  *   "message": "Success",
- *   "data": {
- *     "categories": [
- *       {
- *         "id": 1,
- *         "name": "Ăn uống",
- *         "slug": "an-uong",
- *         "icon": "fa-utensils",
- *         "description": "Mô tả",
- *         "image": null,
- *         "sort_order": 1,
- *         "status": "active",
- *         "subcategories": [
- *           {
- *             "id": 10,
- *             "category_id": 1,
- *             "name": "Hải sản",
- *             "slug": "hai-san",
- *             "description": null,
- *             "sort_order": 1,
- *             "status": "active"
- *           }
- *         ]
- *       }
- *     ]
- *   }
+ *   "data": [
+ *     {
+ *       "id": 1,
+ *       "name": "Ăn uống",
+ *       "slug": "an-uong",
+ *       "icon": "fa-utensils",
+ *       "description": "Mô tả",
+ *       "image": null,
+ *       "sort_order": 1,
+ *       "status": "active",
+ *       "locations_count": 42,
+ *       "subcategories": [
+ *         {
+ *           "id": 10,
+ *           "category_id": 1,
+ *           "name": "Hải sản",
+ *           "slug": "hai-san",
+ *           "description": null,
+ *           "sort_order": 1,
+ *           "status": "active"
+ *         }
+ *       ]
+ *     }
+ *   ]
  * }
  */
 

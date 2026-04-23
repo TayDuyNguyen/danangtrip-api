@@ -67,6 +67,7 @@ Route::prefix('v1')->group(function () {
     // Categories: List & Detail & Locations by slug
     // (Danh mục: Danh sách & Chi tiết & Địa điểm theo danh mục)
     Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/location-categories', [CategoryController::class, 'index']);
     Route::get('/categories/{id}', [CategoryController::class, 'show'])->whereNumber('id');
     Route::get('/categories/{slug}/locations', [CategoryController::class, 'locationsBySlug'])->where('slug', '[a-z0-9-]+');
 
@@ -310,6 +311,7 @@ Route::prefix('v1')->group(function () {
         // (Quản lý Danh mục Tour)
         Route::get('/tour-categories', [AdminTourCategoryController::class, 'index']);
         Route::post('/tour-categories', [AdminTourCategoryController::class, 'store']);
+        Route::patch('/tour-categories/reorder', [AdminTourCategoryController::class, 'reorder']);
         Route::put('/tour-categories/{id}', [AdminTourCategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/tour-categories/{id}', [AdminTourCategoryController::class, 'destroy'])->whereNumber('id');
         Route::patch('/tour-categories/{id}/status', [AdminTourCategoryController::class, 'updateStatus'])->whereNumber('id');

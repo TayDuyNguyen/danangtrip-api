@@ -76,24 +76,6 @@ interface LocationRepositoryInterface extends RepositoryInterface
     public function getNameSuggestions(string $q, int $limit = 5): array;
 
     /**
-     * Increment favorite count of a location.
-     * (Tăng số lượng yêu thích của một địa điểm)
-     */
-    public function incrementFavoriteCount(int $id): bool;
-
-    /**
-     * Decrement favorite count of a location.
-     * (Giảm số lượng yêu thích của một địa điểm)
-     */
-    public function decrementFavoriteCount(int $id): bool;
-
-    /**
-     * Increment view count of a location.
-     * (Tăng số lượng lượt xem của một địa điểm)
-     */
-    public function incrementViewCount(int $id): bool;
-
-    /**
      * Get locations by IDs.
      * (Lấy danh sách địa điểm theo mảng ID)
      *
@@ -124,30 +106,6 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * (Lấy các địa điểm lân cận tương đối với một địa điểm cụ thể)
      */
     public function getNearbyLocationsById(int $id, int $limit): Collection;
-
-    /**
-     * Attach or sync tags to a location.
-     * (Gán tags cho địa điểm)
-     */
-    public function attachTags(int $id, array $tagIds): void;
-
-    /**
-     * Detach a specific tag from a location.
-     * (Xóa tag khỏi địa điểm)
-     */
-    public function detachTag(int $id, int $tagId): void;
-
-    /**
-     * Attach or sync amenities to a location.
-     * (Gán tiện ích cho địa điểm)
-     */
-    public function attachAmenities(int $id, array $amenityIds): void;
-
-    /**
-     * Detach a specific amenity from a location.
-     * (Xóa tiện ích khỏi địa điểm)
-     */
-    public function detachAmenity(int $id, int $amenityId): void;
 
     /**
      * Update location rating statistics by calculating from approved ratings.

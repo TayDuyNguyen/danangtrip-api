@@ -54,6 +54,8 @@ class UpdateTourCategoryRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'integer',
+                'min:1',
+                Rule::unique('tour_categories', 'sort_order')->ignore($this->route('id')),
             ],
             'status' => [
                 'sometimes',
