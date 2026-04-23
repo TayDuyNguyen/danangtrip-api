@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TourCategory\IndexTourCategoryRequest;
+use App\Http\Requests\TourCategory\ReorderTourCategoryRequest;
 use App\Http\Requests\TourCategory\ShowTourCategoryRequest;
 use App\Http\Requests\TourCategory\StoreTourCategoryRequest;
 use App\Http\Requests\TourCategory\UpdateStatusTourCategoryRequest;
@@ -86,6 +87,19 @@ final class TourCategoryController extends Controller
     public function updateStatus(UpdateStatusTourCategoryRequest $request, int $id): JsonResponse
     {
         $result = $this->tourCategoryService->updateStatus($id, $request->status);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Reorder categories and normalize sort order.
+     * (Sắp xếp lại danh mục và chuẩn hóa thứ tự)
+     */
+    public function reorder(ReorderTourCategoryRequest $request): JsonResponse
+    {
+        $result = $this->tourCategoryService->reorderCategories($request->validated()['items']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])

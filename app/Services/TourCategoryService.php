@@ -81,10 +81,16 @@ final class TourCategoryService
     {
         try {
             $categories = $this->tourCategoryRepository->getCategories($filters);
+            $withStats = filter_var($filters['with_stats'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $categories,
+                'data' => $withStats
+                    ? [
+                        'categories' => $categories,
+                        'stats' => $this->tourCategoryRepository->getAdminStats(),
+                    ]
+                    : $categories,
             ];
         } catch (\Exception $e) {
             Log::error($e);
@@ -105,6 +111,9 @@ final class TourCategoryService
         try {
             if (empty($data['slug'])) {
                 $data['slug'] = $this->tourCategoryRepository->generateUniqueSlug($data['name']);
+            }
+            if (! isset($data['sort_order']) || $data['sort_order'] === null) {
+                $data['sort_order'] = $this->tourCategoryRepository->getNextSortOrder();
             }
             $category = $this->tourCategoryRepository->create($data);
 
@@ -214,6 +223,37 @@ final class TourCategoryService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update status',
+            ];
+        }
+    }
+
+    /**
+     * Reorder categories and normalize sequence.
+     * (Sắp xếp lại danh mục và chuẩn hóa thứ tự)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorderCategories(array $items): array
+    {
+        try {
+            $ok = $this->tourCategoryRepository->reorder($items);
+            if (! $ok) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'One or more categories were not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Categories reordered successfully',
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to reorder categories',
             ];
         }
     }

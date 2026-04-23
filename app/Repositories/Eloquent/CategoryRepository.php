@@ -27,6 +27,11 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
     public function getPublicCategories(): Collection
     {
         return $this->model->newQuery()
+            ->withCount([
+                'locations as locations_count' => function ($query): void {
+                    $query->where('status', 'active');
+                },
+            ])
             ->with([
                 'subcategories' => function ($query): void {
                     $query->where('status', 'active')->orderBy('sort_order');
@@ -44,6 +49,11 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
     public function getPublicCategoryById(int $id): ?Category
     {
         return $this->model->newQuery()
+            ->withCount([
+                'locations as locations_count' => function ($query): void {
+                    $query->where('status', 'active');
+                },
+            ])
             ->with([
                 'subcategories' => function ($query): void {
                     $query->where('status', 'active')->orderBy('sort_order');

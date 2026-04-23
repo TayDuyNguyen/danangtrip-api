@@ -45,6 +45,44 @@ final class TourService
     }
 
     /**
+     * Admin list: all statuses unless status filter is set.
+     * (Danh sách admin: mọi trạng thái nếu không lọc status)
+     */
+    public function getAdminTours(array $filters): array
+    {
+        $filters['for_admin'] = true;
+
+        return $this->getTours($filters);
+    }
+
+    /**
+     * Admin detail by primary key (any status).
+     * (Chi tiết admin theo id)
+     */
+    public function getTourByIdForAdmin(int $id): array
+    {
+        try {
+            $tour = $this->tourRepository->find($id);
+            if (! $tour) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Tour not found'];
+            }
+
+            $tour->load([
+                'category',
+                'schedules' => function ($query) {
+                    $query->orderBy('start_date', 'desc');
+                },
+            ]);
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $tour];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get tour'];
+        }
+    }
+
+    /**
      * Get featured tours.
      * (Lấy tour nổi bật)
      */

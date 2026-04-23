@@ -11,22 +11,37 @@
  *
  * @apiQuery {String} [search] Search by name or slug
  * @apiQuery {String="active","inactive"} [status] Filter by status
+ * @apiQuery {Number{1-100}} [per_page] Items per page
+ * @apiQuery {Boolean} [with_stats] Include aggregate stats
  *
- * @apiSampleRequest /api/v1/admin/tour-categories
+ * @apiSampleRequest /api/v1/admin/tour-categories?with_stats=true
  *
  * @apiSuccessExample {json} Success-Response:
  * HTTP/1.1 200 OK
  * {
  *   "code": 200,
  *   "message": "Success",
- *   "data": [
- *     {
- *       "id": 1,
- *       "name": "City Tour",
- *       "slug": "city-tour",
- *       "status": "active"
+ *   "data": {
+ *     "categories": {
+ *       "current_page": 1,
+ *       "data": [
+ *         {
+ *           "id": 1,
+ *           "name": "City Tour",
+ *           "slug": "city-tour",
+ *           "status": "active",
+ *           "sort_order": 1,
+ *           "tour_count": 12
+ *         }
+ *       ]
+ *     },
+ *     "stats": {
+ *       "total_categories": 8,
+ *       "active_categories": 6,
+ *       "inactive_categories": 2,
+ *       "total_tours": 42
  *     }
- *   ]
+ *   }
  * }
  */
 
@@ -95,6 +110,24 @@
  * @apiParam {Number} id Category id
  *
  * @apiSampleRequest /api/v1/admin/tour-categories/1
+ */
+
+/**
+ * @api {patch} /api/v1/admin/tour-categories/reorder Admin Reorder Tour Categories
+ * @apiName AdminReorderTourCategories
+ * @apiGroup AdminTourCategories
+ * @apiVersion 1.0.0
+ *
+ * @apiHeader {String} Authorization Bearer token (JWT)
+ * @apiPermission admin
+ *
+ * @apiDescription Admin endpoint. Reorders categories and normalizes sort_order.
+ *
+ * @apiBody {Object[]} items List of reordered items
+ * @apiBody {Number} items.id Category id
+ * @apiBody {Number} items.sort_order New position (1..N)
+ *
+ * @apiSampleRequest /api/v1/admin/tour-categories/reorder
  */
 
 /**

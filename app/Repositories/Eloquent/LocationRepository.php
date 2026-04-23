@@ -68,12 +68,20 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             $query->where('category_id', $filters['category_id']);
         }
 
+        if (isset($filters['category_ids']) && is_array($filters['category_ids']) && count($filters['category_ids']) > 0) {
+            $query->whereIn('category_id', $filters['category_ids']);
+        }
+
         if (isset($filters['subcategory_id'])) {
             $query->where('subcategory_id', $filters['subcategory_id']);
         }
 
         if (isset($filters['district'])) {
             $query->where('district', $filters['district']);
+        }
+
+        if (isset($filters['districts']) && is_array($filters['districts']) && count($filters['districts']) > 0) {
+            $query->whereIn('district', $filters['districts']);
         }
 
         if (isset($filters['price_min'])) {
@@ -90,6 +98,10 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
         if (isset($filters['price_level'])) {
             $query->where('price_level', $filters['price_level']);
+        }
+
+        if (isset($filters['min_rating'])) {
+            $query->where('avg_rating', '>=', $filters['min_rating']);
         }
 
         if (isset($filters['tag'])) {
@@ -220,42 +232,6 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     }
 
     /**
-     * Increment favorite count of a location.
-     * (Tăng số lượng yêu thích của một địa điểm)
-     */
-    public function incrementFavoriteCount(int $id): bool
-    {
-        return $this->increment($id, 'favorite_count');
-    }
-
-    /**
-     * Decrement favorite count of a location.
-     * (Giảm số lượng yêu thích của một địa điểm)
-     */
-    public function decrementFavoriteCount(int $id): bool
-    {
-        return $this->decrement($id, 'favorite_count', 1, [['favorite_count', '>', 0]]);
-    }
-
-    /**
-     * Increment view count of a location.
-     * (Tăng số lượng lượt xem của một địa điểm)
-     */
-    public function incrementViewCount(int $id): bool
-    {
-        return $this->increment($id, 'view_count');
-    }
-
-    /**
-     * Get total location count.
-     * (Lấy tổng số địa điểm)
-     */
-    public function getTotalCount(): int
-    {
-        return $this->count();
-    }
-
-    /**
      * Get locations by IDs.
      * (Lấy danh sách địa điểm theo mảng ID)
      *
@@ -348,42 +324,6 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         ])->reject(function (Location $item) use ($id) {
             return $item->id === $id;
         })->take($limit);
-    }
-
-    /**
-     * Attach or sync tags to a location.
-     * (Gán tags cho địa điểm)
-     */
-    public function attachTags(int $id, array $tagIds): void
-    {
-        $this->sync($id, 'tags', $tagIds);
-    }
-
-    /**
-     * Detach a specific tag from a location.
-     * (Xóa tag khỏi địa điểm)
-     */
-    public function detachTag(int $id, int $tagId): void
-    {
-        $this->detach($id, 'tags', [$tagId]);
-    }
-
-    /**
-     * Attach or sync amenities to a location.
-     * (Gán tiện ích cho địa điểm)
-     */
-    public function attachAmenities(int $id, array $amenityIds): void
-    {
-        $this->sync($id, 'amenities', $amenityIds);
-    }
-
-    /**
-     * Detach a specific amenity from a location.
-     * (Xóa tiện ích khỏi địa điểm)
-     */
-    public function detachAmenity(int $id, int $amenityId): void
-    {
-        $this->detach($id, 'amenities', [$amenityId]);
     }
 
     /**

@@ -41,6 +41,8 @@ class StoreTourCategoryRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'integer',
+                'min:1',
+                'unique:tour_categories,sort_order',
             ],
             'status' => [
                 'sometimes',
