@@ -318,6 +318,7 @@ Route::prefix('v1')->group(function () {
 
         // Tour Schedules Management
         // (Quản lý Lịch khởi hành Tour)
+        Route::get('/tour-schedules/status-counts', [AdminTourScheduleController::class, 'statusCounts'])->middleware('throttle:api.admin');
         Route::get('/tour-schedules', [AdminTourScheduleController::class, 'index']);
         Route::get('/tour-schedules/{id}', [AdminTourScheduleController::class, 'show'])->whereNumber('id');
         Route::post('/tours/{id}/schedules', [AdminTourScheduleController::class, 'store'])->whereNumber('id');
