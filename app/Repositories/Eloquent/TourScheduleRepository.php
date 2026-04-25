@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Models\TourSchedule;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Class TourScheduleRepository
@@ -30,27 +31,72 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
      */
     public function getSchedules(array $filters = []): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->with('tour');
+        $query = $this->model->newQuery()->with(['tour.category']);
 
-        if (isset($filters['tour_id'])) {
+        $this->applyScheduleListFilters($query, $filters);
+
+        $perPage = (int) ($filters['per_page'] ?? 10);
+
+        $sortField = $filters['sort'] ?? 'start_date';
+        $sortOrder = strtolower((string) ($filters['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
+        $allowedSort = ['start_date', 'end_date', 'max_people', 'booked_people', 'status', 'created_at'];
+        if (! in_array($sortField, $allowedSort, true)) {
+            $sortField = 'start_date';
+        }
+
+        $query->orderBy($sortField, $sortOrder);
+
+        return $query->paginate($perPage);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function getStatusCounts(array $filters = []): array
+    {
+        $base = $this->model->newQuery();
+        $this->applyScheduleListFilters($base, $filters, true);
+
+        return [
+            'total_schedules' => (clone $base)->count(),
+            'available_schedules' => (clone $base)->where('status', 'available')->count(),
+            'full_schedules' => (clone $base)->where('status', 'full')->count(),
+            'cancelled_schedules' => (clone $base)->where('status', 'cancelled')->count(),
+        ];
+    }
+
+    public function findWithTour(int $id): ?TourSchedule
+    {
+        return $this->model->newQuery()->with(['tour.category'])->find($id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyScheduleListFilters(Builder $query, array $filters, bool $ignoreStatusFilter = false): void
+    {
+        if (! empty($filters['tour_id'])) {
             $query->where('tour_id', $filters['tour_id']);
         }
 
-        if (isset($filters['status'])) {
+        if (! $ignoreStatusFilter && isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
         }
 
-        if (isset($filters['from'])) {
-            $query->where('start_date', '>=', $filters['from']);
+        if (! empty($filters['from'])) {
+            $query->whereDate('start_date', '>=', $filters['from']);
         }
 
-        if (isset($filters['to'])) {
-            $query->where('start_date', '<=', $filters['to']);
+        if (! empty($filters['to'])) {
+            $query->whereDate('start_date', '<=', $filters['to']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
-
-        return $query->latest('start_date')->paginate($perPage);
+        if (! empty($filters['q'])) {
+            $keyword = (string) $filters['q'];
+            $query->whereHas('tour', function (Builder $tourQuery) use ($keyword): void {
+                $tourQuery->where('name', 'like', '%'.$keyword.'%');
+            });
+        }
     }
 
     /**

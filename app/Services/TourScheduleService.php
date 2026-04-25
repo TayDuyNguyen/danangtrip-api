@@ -48,13 +48,37 @@ final class TourScheduleService
     }
 
     /**
+     * Aggregated schedule counts for admin stats cards (filtered by tour/date/search, not by status).
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    public function getStatusCounts(array $filters): array
+    {
+        try {
+            $counts = $this->tourScheduleRepository->getStatusCounts($filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $counts,
+            ];
+        } catch (\Exception $e) {
+            Log::error($e);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get tour schedule stats',
+            ];
+        }
+    }
+
+    /**
      * Get tour schedule detail by ID.
      * (Lấy chi tiết lịch khởi hành theo ID)
      */
     public function getScheduleById(int $id): array
     {
         try {
-            $schedule = $this->tourScheduleRepository->with('tour')->find($id);
+            $schedule = $this->tourScheduleRepository->findWithTour($id);
             if (! $schedule) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,

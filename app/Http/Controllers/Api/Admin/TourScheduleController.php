@@ -41,6 +41,21 @@ final class TourScheduleController extends Controller
     }
 
     /**
+     * Status breakdown for schedule list stats row (same filters as index except status).
+     */
+    public function statusCounts(IndexTourScheduleRequest $request): JsonResponse
+    {
+        $filters = $request->validated();
+        unset($filters['status'], $filters['page'], $filters['per_page'], $filters['sort'], $filters['order']);
+
+        $result = $this->tourScheduleService->getStatusCounts($filters);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Display the specified tour schedule.
      * (Chi tiết lịch khởi hành tour)
      */

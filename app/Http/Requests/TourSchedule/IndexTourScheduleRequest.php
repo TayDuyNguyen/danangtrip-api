@@ -46,6 +46,22 @@ class IndexTourScheduleRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'q' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'sort' => [
+                'sometimes',
+                'string',
+                'in:start_date,end_date,max_people,booked_people,status,created_at',
+            ],
+            'order' => [
+                'sometimes',
+                'string',
+                'in:asc,desc',
+            ],
         ];
     }
 

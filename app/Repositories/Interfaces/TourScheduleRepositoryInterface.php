@@ -19,6 +19,18 @@ interface TourScheduleRepositoryInterface extends RepositoryInterface
     public function getSchedules(array $filters = []): LengthAwarePaginator;
 
     /**
+     * Count schedules by status for dashboard cards (respects tour/date/search filters, not status).
+     *
+     * @return array{total_schedules: int, available_schedules: int, full_schedules: int, cancelled_schedules: int}
+     */
+    public function getStatusCounts(array $filters = []): array;
+
+    /**
+     * Find schedule by ID with tour (and category) eager-loaded for API detail.
+     */
+    public function findWithTour(int $id): ?TourSchedule;
+
+    /**
      * Find a schedule by ID for update.
      * (Tìm lịch khởi hành theo ID để cập nhật)
      */
