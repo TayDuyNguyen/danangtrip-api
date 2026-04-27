@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Enums\Pagination;
 use App\Models\Rating;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -33,6 +34,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
         $query = $this->model->newQuery()
             ->with(['user', 'location', 'tour', 'images', 'approver'])
             ->orderByDesc('created_at');
+        [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -46,12 +48,12 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('tour_id', $filters['tour_id']);
         }
 
-        if (isset($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
 
-        if (isset($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
@@ -170,6 +172,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
         $query = $this->model->newQuery()
             ->with(['user', 'location', 'tour', 'approver'])
             ->orderByDesc('created_at');
+        [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -183,12 +186,12 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('tour_id', $filters['tour_id']);
         }
 
-        if (isset($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
 
-        if (isset($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         return $query->get();
@@ -202,12 +205,13 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     {
         $query = $this->model->newQuery()
             ->selectRaw('CAST(created_at AS DATE) as date, status, COUNT(*) as count');
+        [$fromBound, $toBound] = $this->createdAtBounds($fromDate, $toDate);
 
-        if ($fromDate) {
-            $query->whereDate('created_at', '>=', $fromDate);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
-        if ($toDate) {
-            $query->whereDate('created_at', '<=', $toDate);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
         if ($status) {
             $query->where('status', $status);
@@ -217,5 +221,35 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             ->orderBy('date')
             ->get()
             ->toArray();
+    }
+
+    /**
+     * Normalize created_at filter bounds. Date-only "to" uses end of day (inclusive).
+     * (Chuẩn hóa các ngưỡng created_at)
+     */
+    private function createdAtBounds(?string $from, ?string $to): array
+    {
+        $tz = config('app.timezone');
+        $fromBound = null;
+        $toBound = null;
+
+        if ($from !== null && $from !== '') {
+            $fromBound = $this->isDateOnlyString($from)
+                ? Carbon::parse($from, $tz)->startOfDay()->toDateTimeString()
+                : Carbon::parse($from, $tz)->toDateTimeString();
+        }
+
+        if ($to !== null && $to !== '') {
+            $toBound = $this->isDateOnlyString($to)
+                ? Carbon::parse($to, $tz)->endOfDay()->toDateTimeString()
+                : Carbon::parse($to, $tz)->toDateTimeString();
+        }
+
+        return [$fromBound, $toBound];
+    }
+
+    private function isDateOnlyString(string $value): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
     }
 }

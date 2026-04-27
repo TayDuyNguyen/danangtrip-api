@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\HttpStatusCode;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,9 +31,9 @@ class RoleMiddleware
         // (Kiểm tra xem người dùng có tồn tại và có vai trò khớp với bất kỳ vai trò yêu cầu nào không)
         if (! $user || ! in_array($user->role, $roles)) {
             return response()->json([
-                'code' => 403,
+                'code' => HttpStatusCode::FORBIDDEN->value,
                 'message' => 'Access denied. Your role ('.($user->role ?? 'none').') does not have permission to access this resource.',
-            ], 403);
+            ], HttpStatusCode::FORBIDDEN->value);
         }
 
         return $next($request);

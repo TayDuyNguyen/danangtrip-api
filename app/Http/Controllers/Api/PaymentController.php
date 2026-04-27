@@ -6,6 +6,8 @@ use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\CreatePaymentRequest;
 use App\Http\Requests\Payment\PaymentCallbackRequest;
+use App\Http\Requests\Payment\RetryPaymentRequest;
+use App\Http\Requests\Payment\ShowPaymentStatusRequest;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 
@@ -54,9 +56,9 @@ final class PaymentController extends Controller
      * Get payment status.
      * (Lấy trạng thái thanh toán)
      */
-    public function status(string $transactionCode): JsonResponse
+    public function status(ShowPaymentStatusRequest $request): JsonResponse
     {
-        $result = $this->paymentService->getStatus($transactionCode);
+        $result = $this->paymentService->getStatus($request->validated()['transaction_code']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'] ?? null, $result['message'])
@@ -67,9 +69,9 @@ final class PaymentController extends Controller
      * Retry payment for a booking.
      * (Thử thanh toán lại cho một đơn đặt chỗ)
      */
-    public function retry(string $bookingCode): JsonResponse
+    public function retry(RetryPaymentRequest $request): JsonResponse
     {
-        $result = $this->paymentService->retryPayment($bookingCode);
+        $result = $this->paymentService->retryPayment($request->validated()['booking_code']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'] ?? null, $result['message'])

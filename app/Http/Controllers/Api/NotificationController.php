@@ -6,9 +6,10 @@ use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Notification\DeleteNotificationRequest;
 use App\Http\Requests\Notification\ListNotificationRequest;
+use App\Http\Requests\Notification\MarkAsReadNotificationRequest;
+use App\Http\Requests\Notification\UserNotificationActionRequest;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class NotificationController
@@ -42,7 +43,7 @@ final class NotificationController extends Controller
      * Mark a notification as read.
      * (Đánh dấu một thông báo là đã đọc)
      */
-    public function markAsRead(Request $request, int $id): JsonResponse
+    public function markAsRead(MarkAsReadNotificationRequest $request, int $id): JsonResponse
     {
         $userId = $request->user()->id;
         $result = $this->notificationService->markAsRead($userId, $id);
@@ -56,7 +57,7 @@ final class NotificationController extends Controller
      * Mark all notifications as read.
      * (Đánh dấu tất cả thông báo là đã đọc)
      */
-    public function markAllAsRead(Request $request): JsonResponse
+    public function markAllAsRead(UserNotificationActionRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
         $result = $this->notificationService->markAllAsRead($userId);
@@ -84,7 +85,7 @@ final class NotificationController extends Controller
      * Get unread notifications count.
      * (Lấy số lượng thông báo chưa đọc)
      */
-    public function unreadCount(Request $request): JsonResponse
+    public function unreadCount(UserNotificationActionRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
         $result = $this->notificationService->getUnreadCount($userId);

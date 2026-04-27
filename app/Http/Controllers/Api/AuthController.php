@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\AuthenticatedActionRequest;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
@@ -11,7 +12,6 @@ use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\VerifyEmailRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Cookie;
 
 /**
@@ -62,7 +62,7 @@ class AuthController extends Controller
     /**
      * Invalidate user token (Logout).
      */
-    public function logout(Request $request): JsonResponse
+    public function logout(AuthenticatedActionRequest $request): JsonResponse
     {
         $refreshToken = $request->cookie($this->refreshCookieName());
         $result = $this->authService->logout($refreshToken);
@@ -78,16 +78,12 @@ class AuthController extends Controller
     /**
      * Refresh an expired access token using the HttpOnly refresh cookie.
      */
-    public function refresh(Request $request): JsonResponse
+    public function refresh(AuthenticatedActionRequest $request): JsonResponse
     {
         $refreshToken = $request->cookie($this->refreshCookieName());
 
         if (! $refreshToken) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'REFRESH_TOKEN_MISSING',
-                'message' => 'Refresh token is required in cookie',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorized('Refresh token is required in cookie');
         }
 
         $result = $this->authService->refresh($refreshToken);
@@ -101,17 +97,17 @@ class AuthController extends Controller
                 ->withCookie($this->makeRefreshTokenCookie($newRefreshToken));
         }
 
-        return response()->json([
-            'code' => $result['status'],
-            'error' => $result['error'] ?? 'REFRESH_FAILED',
-            'message' => $result['message'],
-        ], $result['status'])->withCookie($this->expireRefreshTokenCookie());
+        return $this->error(
+            $result['message'],
+            $result['status'],
+            isset($result['error']) ? ['error' => $result['error']] : null
+        )->withCookie($this->expireRefreshTokenCookie());
     }
 
     /**
      * Get authenticated user.
      */
-    public function me(Request $request): JsonResponse
+    public function me(AuthenticatedActionRequest $request): JsonResponse
     {
         return $this->success($request->user());
     }
@@ -161,7 +157,7 @@ class AuthController extends Controller
     /**
      * Resend verification email.
      */
-    public function resendVerification(Request $request): JsonResponse
+    public function resendVerification(AuthenticatedActionRequest $request): JsonResponse
     {
         $result = $this->authService->resendVerification($request->user());
 

@@ -11,7 +11,6 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -50,7 +49,6 @@ final class RatingService
                 ],
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -76,7 +74,6 @@ final class RatingService
                 'data' => $rating->images()->get(),
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -119,7 +116,6 @@ final class RatingService
                 if (count($imageUrls) > 0) {
                     $this->ratingRepository->update($rating->id, [
                         'image_count' => count($imageUrls),
-                        'point_cost' => 0,
                     ]);
 
                     $this->ratingImageRepository->createMany($rating->id, $imageUrls);
@@ -134,7 +130,6 @@ final class RatingService
                 'message' => 'Rating created successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -205,7 +200,6 @@ final class RatingService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -252,7 +246,6 @@ final class RatingService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -285,7 +278,6 @@ final class RatingService
                 'message' => 'Marked as helpful',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -306,7 +298,6 @@ final class RatingService
                 'data' => $this->ratingRepository->paginateForAdmin($filters),
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -369,7 +360,6 @@ final class RatingService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -386,7 +376,7 @@ final class RatingService
     {
         try {
             $result = DB::transaction(function () use ($adminId, $ratingId, $data) {
-                $rating = $this->ratingRepository->findForUpdate($ratingId, ['user', 'location']);
+                $rating = $this->ratingRepository->findForUpdate($ratingId, ['user', 'location', 'tour']);
                 if (! $rating) {
                     return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
@@ -402,14 +392,16 @@ final class RatingService
                     'approved_at' => null,
                 ]);
 
+                $targetName = $rating->location?->name ?? $rating->tour?->name ?? 'item';
+
                 $this->notificationRepository->create([
                     'user_id' => $rating->user_id,
                     'type' => 'rating_rejected',
                     'title' => 'Bài đánh giá bị từ chối',
-                    'content' => "Bài đánh giá của bạn tại {$rating->location->name} bị từ chối. Lý do: {$data['rejected_reason']}.",
+                    'content' => "Bài đánh giá của bạn tại {$targetName} bị từ chối. Lý do: {$data['rejected_reason']}.",
                     'data' => [
                         'rating_id' => $rating->id,
-                        'location_name' => $rating->location->name,
+                        'target_name' => $targetName,
                     ],
                     'is_read' => false,
                     'created_at' => now(),
@@ -424,7 +416,6 @@ final class RatingService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -468,7 +459,6 @@ final class RatingService
 
             return $result;
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -489,7 +479,6 @@ final class RatingService
                 'data' => $this->ratingRepository->searchForExport($filters),
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

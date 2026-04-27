@@ -6,7 +6,6 @@ enum TourStatus: string
 {
     case ACTIVE = 'active';
     case INACTIVE = 'inactive';
-    case SOLD_OUT = 'sold_out';
 
     /**
      * Get all values of the enum.

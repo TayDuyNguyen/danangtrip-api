@@ -20,7 +20,7 @@
  * @apiBody {String[]} [images] Array of image URLs
  * @apiBody {Number} duration_days Tour duration (days)
  * @apiBody {Number} duration_nights Tour duration (nights)
- * @apiBody {String="active","inactive","pending"} [status] Initial status
+ * @apiBody {String="active","inactive"} [status] Initial status (booking capacity is synced separately)
  * @apiBody {Boolean} [is_featured] Featured flag
  * @apiBody {Boolean} [is_hot] Hot flag
  *
@@ -111,7 +111,7 @@
  * @apiDescription Admin endpoint. Updates tour status.
  *
  * @apiParam {Number} id Tour id
- * @apiBody {String="active","inactive","pending"} status New status
+ * @apiBody {String="active","inactive"} status New status
  *
  * @apiSampleRequest /api/v1/admin/tours/1/status
  */

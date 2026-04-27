@@ -6,7 +6,6 @@ use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class NotificationService
@@ -37,7 +36,6 @@ final class NotificationService
                 'data' => $notifications,
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -68,7 +66,6 @@ final class NotificationService
                 'message' => 'Notification marked as read.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -92,7 +89,6 @@ final class NotificationService
                 'message' => "{$updatedCount} notifications marked as read.",
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -128,7 +124,6 @@ final class NotificationService
                 'message' => 'Notification deleted successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -151,7 +146,6 @@ final class NotificationService
                 'data' => ['unread_count' => $count],
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -174,7 +168,6 @@ final class NotificationService
                 'data' => $notifications,
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -206,7 +199,6 @@ final class NotificationService
                 'message' => 'Notification sent successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -241,7 +233,6 @@ final class NotificationService
                 'message' => 'Initial notifications sent to all users.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

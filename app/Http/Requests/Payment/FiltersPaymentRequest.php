@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Payment;
 
+use App\Enums\PaymentStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class FiltersPaymentRequest extends FormRequest
@@ -17,7 +18,7 @@ class FiltersPaymentRequest extends FormRequest
             'payment_status' => [
                 'nullable',
                 'string',
-                'in:pending,paid,failed,refunded',
+                'in:'.implode(',', PaymentStatus::values()),
             ],
             'payment_gateway' => [
                 'nullable',

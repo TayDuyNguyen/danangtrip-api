@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\HttpStatusCode;
 use App\Http\Middleware\JwtAuthMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Auth\AuthenticationException;
@@ -34,7 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (Throwable $e, Request $request) {
             if ($request->is('api/*')) {
-                $code = 500;
+                $code = HttpStatusCode::INTERNAL_SERVER_ERROR->value;
                 $message = config('app.debug') ? $e->getMessage() : 'Internal Server Error';
                 if (! $message) {
                     $message = 'Internal Server Error';
@@ -42,7 +43,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 $errors = null;
 
                 if ($e instanceof ValidationException) {
-                    $code = 422;
+                    $code = HttpStatusCode::VALIDATION_ERROR->value;
                     $message = 'Validation failed';
                     $errors = $e->errors();
                 } elseif (
@@ -52,19 +53,19 @@ return Application::configure(basePath: dirname(__DIR__))
                     $e instanceof JWTException ||
                     $e instanceof UnauthorizedHttpException
                 ) {
-                    $code = 401;
+                    $code = HttpStatusCode::UNAUTHORIZED->value;
                     $message = 'Unauthenticated';
                 } elseif ($e instanceof AccessDeniedHttpException) {
-                    $code = 403;
+                    $code = HttpStatusCode::FORBIDDEN->value;
                     $message = 'Forbidden';
                 } elseif ($e instanceof ModelNotFoundException || $e instanceof NotFoundHttpException) {
-                    $code = 404;
+                    $code = HttpStatusCode::NOT_FOUND->value;
                     $message = 'Resource not found';
                 } elseif ($e instanceof MethodNotAllowedHttpException) {
-                    $code = 405;
+                    $code = HttpStatusCode::METHOD_NOT_ALLOWED->value;
                     $message = 'Method not allowed';
                 } elseif ($e instanceof ThrottleRequestsException) {
-                    $code = 429;
+                    $code = HttpStatusCode::TOO_MANY_REQUESTS->value;
                     $message = 'Too many requests';
                 }
 

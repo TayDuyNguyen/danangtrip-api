@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -25,8 +26,8 @@ return new class extends Migration
             $table->string('email', 100)->nullable();
             $table->string('website', 255)->nullable();
             $table->json('opening_hours')->nullable();
-            $table->decimal('price_min', 12, 0)->nullable();
-            $table->decimal('price_max', 12, 0)->nullable();
+            $table->decimal('price_min', 12, 2)->nullable();
+            $table->decimal('price_max', 12, 2)->nullable();
             $table->unsignedTinyInteger('price_level')->nullable();
             $table->decimal('avg_rating', 3, 2)->default(0)->index();
             $table->unsignedInteger('review_count')->default(0);
@@ -42,7 +43,20 @@ return new class extends Migration
 
             $table->index('category_id');
             $table->index('subcategory_id');
+            $table->fullText(['name', 'address', 'description', 'short_description'], 'locations_search_fulltext');
         });
+
+        DB::statement('ALTER TABLE locations ADD CONSTRAINT locations_lat_chk CHECK (latitude BETWEEN -90 AND 90)');
+        DB::statement('ALTER TABLE locations ADD CONSTRAINT locations_lng_chk CHECK (longitude BETWEEN -180 AND 180)');
+        DB::statement('
+            ALTER TABLE locations
+            ADD CONSTRAINT locations_price_chk
+            CHECK (
+                (price_min IS NULL OR price_min >= 0) AND
+                (price_max IS NULL OR price_max >= 0) AND
+                (price_min IS NULL OR price_max IS NULL OR price_min <= price_max)
+            )
+        ');
     }
 
     public function down(): void

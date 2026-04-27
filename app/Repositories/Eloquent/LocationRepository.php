@@ -6,6 +6,7 @@ use App\Enums\Constants;
 use App\Enums\Pagination;
 use App\Models\Location;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -56,6 +57,11 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
             if (in_array($driver, ['mysql', 'mariadb'], true)) {
                 $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $query->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
             } else {
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'like', "%{$searchTerm}%")
@@ -268,12 +274,13 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $query = $this->model->newQuery()
             ->selectRaw('category_id, district, COUNT(*) as count')
             ->with('category:id,name');
+        [$fromBound, $toBound] = $this->createdAtBounds($fromDate, $toDate);
 
-        if ($fromDate) {
-            $query->whereDate('created_at', '>=', $fromDate);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
-        if ($toDate) {
-            $query->whereDate('created_at', '<=', $toDate);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         return $query->groupBy('category_id', 'district')
@@ -391,5 +398,35 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->orderByDesc('view_count')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Normalize created_at filter bounds. Date-only "to" uses end of day (inclusive).
+     * (Chuẩn hóa các ngưỡng created_at)
+     */
+    private function createdAtBounds(?string $from, ?string $to): array
+    {
+        $tz = config('app.timezone');
+        $fromBound = null;
+        $toBound = null;
+
+        if ($from !== null && $from !== '') {
+            $fromBound = $this->isDateOnlyString($from)
+                ? Carbon::parse($from, $tz)->startOfDay()->toDateTimeString()
+                : Carbon::parse($from, $tz)->toDateTimeString();
+        }
+
+        if ($to !== null && $to !== '') {
+            $toBound = $this->isDateOnlyString($to)
+                ? Carbon::parse($to, $tz)->endOfDay()->toDateTimeString()
+                : Carbon::parse($to, $tz)->toDateTimeString();
+        }
+
+        return [$fromBound, $toBound];
+    }
+
+    private function isDateOnlyString(string $value): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
     }
 }

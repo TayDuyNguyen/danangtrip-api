@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class CategoryService
@@ -30,19 +29,11 @@ final class CategoryService
         try {
             $categories = $this->categoryRepository->getPublicCategories();
 
-            if ($categories->isEmpty()) {
-                return [
-                    'status' => HttpStatusCode::NOT_FOUND->value,
-                    'message' => 'Categories not found',
-                ];
-            }
-
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $categories,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -72,7 +63,6 @@ final class CategoryService
                 'data' => $category,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -111,7 +101,6 @@ final class CategoryService
                 'data' => $category,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -156,7 +145,6 @@ final class CategoryService
                 'data' => $category,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -200,7 +188,6 @@ final class CategoryService
                 'message' => 'Category deleted successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -230,7 +217,6 @@ final class CategoryService
                 'data' => $paginator,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -261,7 +247,6 @@ final class CategoryService
                 'message' => 'Category status updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

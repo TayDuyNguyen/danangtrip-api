@@ -29,48 +29,36 @@ class JwtAuthMiddleware
         $token = $request->bearerToken();
 
         if (! $token) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'TOKEN_NOT_PROVIDED',
-                'message' => 'Token not provided',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorizedResponse('Token not provided');
         }
 
         try {
             $user = JWTAuth::setToken($token)->authenticate();
         } catch (TokenExpiredException $e) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'TOKEN_EXPIRED',
-                'message' => 'Token expired',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorizedResponse('Token expired');
         } catch (TokenInvalidException $e) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'TOKEN_INVALID',
-                'message' => 'Invalid token',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorizedResponse('Invalid token');
         } catch (JWTException $e) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'TOKEN_INVALID',
-                'message' => 'Invalid token',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorizedResponse('Invalid token');
         } catch (\Throwable $e) {
             $user = null;
         }
 
         if (! $user) {
-            return response()->json([
-                'code' => HttpStatusCode::UNAUTHORIZED->value,
-                'error' => 'TOKEN_INVALID',
-                'message' => 'Invalid token',
-            ], HttpStatusCode::UNAUTHORIZED->value);
+            return $this->unauthorizedResponse('Invalid token');
         }
 
         $request->merge(['auth_user' => $user]);
         $request->setUserResolver(fn () => $user);
 
         return $next($request);
+    }
+
+    private function unauthorizedResponse(string $message): Response
+    {
+        return response()->json([
+            'code' => HttpStatusCode::UNAUTHORIZED->value,
+            'message' => $message,
+        ], HttpStatusCode::UNAUTHORIZED->value);
     }
 }

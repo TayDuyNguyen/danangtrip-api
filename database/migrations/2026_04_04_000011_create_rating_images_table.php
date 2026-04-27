@@ -13,9 +13,10 @@ return new class extends Migration
             $table->foreignId('rating_id')->constrained('ratings')->cascadeOnDelete();
             $table->string('image_url', 255);
             $table->tinyInteger('sort_order')->default(0);
-            $table->timestamp('created_at')->nullable();
+            $table->timestamp('created_at')->useCurrent();
 
             $table->index('rating_id');
+            $table->index('created_at');
         });
     }
 

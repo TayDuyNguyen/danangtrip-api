@@ -162,9 +162,9 @@ Route::prefix('v1')->group(function () {
         // Favorites: List / Add / Remove / Check
         // (Yêu thích: Danh sách / Thêm / Xóa / Kiểm tra)
         Route::get('/user/favorites', [FavoriteController::class, 'index']);
-        Route::get('/user/favorites/check/{location_id}', [FavoriteController::class, 'check'])->whereNumber('location_id');
+        Route::get('/user/favorites/check', [FavoriteController::class, 'check']);
         Route::post('/user/favorites', [FavoriteController::class, 'store']);
-        Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
+        Route::delete('/user/favorites', [FavoriteController::class, 'destroy']);
 
         // Recommendations
         // (Gợi ý)
@@ -198,15 +198,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:api.strict');
         Route::get('/user/bookings', [BookingController::class, 'index']);
         Route::get('/user/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id');
-        Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode']);
+        Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode'])
+            ->where('booking_code', '[A-Za-z0-9_-]{1,20}');
         Route::get('/user/bookings/{id}/invoice', [BookingController::class, 'invoice'])->whereNumber('id');
         Route::post('/user/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id');
 
         // Payments
         // (Thanh toán)
         Route::post('/payments/create', [PaymentController::class, 'create'])->middleware('throttle:api.strict');
-        Route::get('/payments/status/{transaction_code}', [PaymentController::class, 'status']);
-        Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])->middleware('throttle:api.strict');
+        Route::get('/payments/status/{transaction_code}', [PaymentController::class, 'status'])
+            ->where('transaction_code', '[A-Za-z0-9_-]{1,100}');
+        Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])
+            ->where('booking_code', '[A-Za-z0-9_-]{1,20}')
+            ->middleware('throttle:api.strict');
     });
 
     // =========================================================================

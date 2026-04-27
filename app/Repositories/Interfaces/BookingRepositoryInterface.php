@@ -80,4 +80,8 @@ interface BookingRepositoryInterface extends RepositoryInterface
      * (Lấy số lượng đơn đặt tour theo trạng thái)
      */
     public function getStatusCounts(array $filters = []): array;
+
+    public function createItem(int $bookingId, array $data): void;
+
+    public function updateBooking(int $bookingId, array $data): bool;
 }

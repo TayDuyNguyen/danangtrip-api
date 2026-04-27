@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class UserService
@@ -36,7 +35,6 @@ class UserService
                 'data' => $users,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -65,7 +63,6 @@ class UserService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -113,7 +110,6 @@ class UserService
                 'message' => 'User status updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -161,7 +157,6 @@ class UserService
                 'message' => 'User role updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -184,7 +179,6 @@ class UserService
                 'data' => $users,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -213,7 +207,6 @@ class UserService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -240,7 +233,6 @@ class UserService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -286,7 +278,6 @@ class UserService
                 'data' => $user,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -322,7 +313,6 @@ class UserService
                 'message' => 'User deleted successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

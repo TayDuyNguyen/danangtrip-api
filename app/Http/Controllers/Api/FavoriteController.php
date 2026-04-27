@@ -4,11 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Favorite\CheckFavoriteRequest;
+use App\Http\Requests\Favorite\DestroyFavoriteRequest;
 use App\Http\Requests\Favorite\IndexFavoriteRequest;
 use App\Http\Requests\Favorite\StoreFavoriteRequest;
 use App\Services\FavoriteService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class FavoriteController.
@@ -43,13 +44,16 @@ final class FavoriteController extends Controller
     }
 
     /**
-     * Check if a location is favorited.
-     * (Kiểm tra xem một địa điểm có được yêu thích hay không)
+     * Check if a location or tour is favorited.
+     * (Kiểm tra xem một địa điểm hoặc tour có được yêu thích hay không)
      */
-    public function check(int $locationId, Request $request): JsonResponse
+    public function check(CheckFavoriteRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $result = $this->favoriteService->checkFavorite($userId, $locationId);
+        $locationId = $request->validated('location_id');
+        $tourId = $request->validated('tour_id');
+
+        $result = $this->favoriteService->checkFavorite($userId, $locationId ? (int) $locationId : null, $tourId ? (int) $tourId : null);
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data']);
@@ -59,35 +63,39 @@ final class FavoriteController extends Controller
     }
 
     /**
-     * Add a location to favorites.
-     * (Thêm địa điểm vào danh sách yêu thích)
+     * Add a location or tour to favorites.
+     * (Thêm địa điểm hoặc tour vào danh sách yêu thích)
      */
     public function store(StoreFavoriteRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $locationId = (int) $request->validated('location_id');
+        $locationId = $request->validated('location_id');
+        $tourId = $request->validated('tour_id');
 
-        $result = $this->favoriteService->saveFavorite($userId, $locationId);
+        $result = $this->favoriteService->saveFavorite($userId, $locationId ? (int) $locationId : null, $tourId ? (int) $tourId : null);
 
         if ($result['status'] === HttpStatusCode::CREATED->value) {
             return $this->created(null, $result['message']);
         }
 
         if ($result['status'] === HttpStatusCode::BAD_REQUEST->value) {
-            return $this->validation_error(['location_id' => [$result['message']]]);
+            return $this->validation_error(['item' => [$result['message']]]);
         }
 
         return $this->server_error($result['message']);
     }
 
     /**
-     * Remove a location from favorites.
-     * (Xóa địa điểm khỏi danh sách yêu thích)
+     * Remove a location or tour from favorites.
+     * (Xóa địa điểm hoặc tour khỏi danh sách yêu thích)
      */
-    public function destroy(int $locationId, Request $request): JsonResponse
+    public function destroy(DestroyFavoriteRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
-        $result = $this->favoriteService->unsaveFavorite($userId, $locationId);
+        $locationId = $request->validated('location_id');
+        $tourId = $request->validated('tour_id');
+
+        $result = $this->favoriteService->unsaveFavorite($userId, $locationId ? (int) $locationId : null, $tourId ? (int) $tourId : null);
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success(null, $result['message']);

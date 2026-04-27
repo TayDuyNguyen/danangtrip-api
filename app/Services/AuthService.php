@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -177,7 +176,7 @@ class AuthService
             }
 
             // Đánh dấu đã sử dụng (để tracking Reuse)
-            $storedToken->update(['used_at' => now()]);
+            $this->refreshTokenRepository->markUsedAtNow((int) $storedToken->id);
 
             // Sinh Access Token JWT mới
             $newAccessToken = (string) Auth::guard('api')->login($storedToken->user);
@@ -222,7 +221,6 @@ class AuthService
                 'message' => 'Password reset link sent to your email.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -242,7 +240,6 @@ class AuthService
                 'message' => 'Password has been reset successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -276,7 +273,6 @@ class AuthService
                 'message' => 'Email verified successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -303,7 +299,6 @@ class AuthService
                 'message' => 'Verification email resent successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

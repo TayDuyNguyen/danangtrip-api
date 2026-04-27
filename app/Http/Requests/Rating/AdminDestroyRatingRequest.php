@@ -28,4 +28,13 @@ class AdminDestroyRatingRequest extends FormRequest
             ],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'id.required' => 'Rating ID is required. (ID đánh giá là bắt buộc.)',
+            'id.integer' => 'Rating ID must be an integer. (ID đánh giá phải là số nguyên.)',
+            'id.exists' => 'Rating not found. (Đánh giá không tồn tại.)',
+        ];
+    }
 }

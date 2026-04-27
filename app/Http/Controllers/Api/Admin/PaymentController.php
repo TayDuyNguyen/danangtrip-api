@@ -7,6 +7,7 @@ use App\Exports\PaymentsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Payment\FiltersPaymentRequest;
 use App\Http\Requests\Payment\RefundPaymentRequest;
+use App\Http\Requests\Payment\ShowPaymentRequest;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
@@ -41,7 +42,7 @@ final class PaymentController extends Controller
      * Show payment details.
      * (Xem chi tiết thanh toán)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowPaymentRequest $request, int $id): JsonResponse
     {
         $result = $this->paymentService->getPayment($id);
 

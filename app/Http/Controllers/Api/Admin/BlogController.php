@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Blog\DeleteBlogCategoryRequest;
+use App\Http\Requests\Blog\DeleteBlogRequest;
 use App\Http\Requests\Blog\IndexAdminBlogRequest;
 use App\Http\Requests\Blog\IndexBlogCategoryRequest;
+use App\Http\Requests\Blog\ShowBlogRequest;
 use App\Http\Requests\Blog\StoreBlogCategoryRequest;
 use App\Http\Requests\Blog\StoreBlogRequest;
 use App\Http\Requests\Blog\UpdateBlogCategoryRequest;
@@ -59,7 +62,7 @@ final class BlogController extends Controller
      * Remove the specified blog post.
      * (Xóa bài viết Blog)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteBlogRequest $request, int $id): JsonResponse
     {
         $result = $this->blogService->deleteBlogPost($id);
 
@@ -85,7 +88,7 @@ final class BlogController extends Controller
      * Get a single blog post by ID for admin.
      * (Lấy chi tiết bài viết blog theo ID cho admin)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowBlogRequest $request, int $id): JsonResponse
     {
         $result = $this->blogService->getAdminPostById($id);
 
@@ -150,7 +153,7 @@ final class BlogController extends Controller
      * Delete a blog category.
      * (Xóa danh mục blog)
      */
-    public function destroyCategory(int $id): JsonResponse
+    public function destroyCategory(DeleteBlogCategoryRequest $request, int $id): JsonResponse
     {
         $result = $this->blogService->deleteCategory($id);
 

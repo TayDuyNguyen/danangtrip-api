@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('location_id')->constrained('locations')->cascadeOnDelete();
             $table->foreignId('tag_id')->constrained('tags')->cascadeOnDelete();
-            $table->timestamp('created_at')->nullable();
+            $table->timestamp('created_at')->useCurrent();
 
             $table->unique(['location_id', 'tag_id'], 'uq_location_tag');
+            $table->index('created_at');
         });
     }
 

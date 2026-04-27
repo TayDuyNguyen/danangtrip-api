@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('slug', 60)->unique();
             $table->text('description')->nullable();
             $table->string('icon', 50)->nullable();
-            $table->integer('sort_order')->default(0);
+            $table->integer('sort_order')->default(0)->unique();
             $table->string('status', 20)->default('active')->index();
             $table->timestamps();
         });

@@ -12,7 +12,6 @@ final class Rating extends Model
     use HasFactory;
 
     protected $fillable = [
-        'id',
         'user_id',
         'location_id',
         'tour_id',
