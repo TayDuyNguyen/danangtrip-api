@@ -53,6 +53,22 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('price_adult', '<=', $filters['price_max']);
         }
 
+        if (isset($filters['duration'])) {
+            $query->where('duration', 'like', '%'.$filters['duration'].'%');
+        }
+
+        if (isset($filters['available_from'])) {
+            $query->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '>=', $filters['available_from']);
+            });
+        }
+
+        if (isset($filters['available_to'])) {
+            $query->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '<=', $filters['available_to']);
+            });
+        }
+
         if (isset($filters['is_featured'])) {
             $query->where('is_featured', (bool) $filters['is_featured']);
         }
@@ -67,7 +83,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('status', TourStatus::ACTIVE->value);
         }
 
-        $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'];
+        $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'];
         $orderBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
         $orderDir = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($orderBy, $orderDir);

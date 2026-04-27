@@ -15,6 +15,30 @@ class IndexTourRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'price_min' => [
+                'sometimes',
+                'integer',
+                'min:0',
+            ],
+            'price_max' => [
+                'sometimes',
+                'integer',
+                'gte:price_min',
+            ],
+            'duration' => [
+                'sometimes',
+                'string',
+                'max:50',
+            ],
+            'available_from' => [
+                'sometimes',
+                'date_format: Y-m-d',
+            ],
+            'available_to' => [
+                'sometimes',
+                'date_format: Y-m-d',
+                'after_or_equal:available_from',
+            ],
             'tour_category_id' => [
                 'sometimes',
                 'integer',
@@ -39,7 +63,7 @@ class IndexTourRequest extends FormRequest
             ],
             'sort_by' => [
                 'sometimes',
-                'in:created_at,price_adult,view_count,name,rating_avg',
+                'in:created_at,price_adult,view_count,name,rating_avg,booking_count',
             ],
             'sort_order' => [
                 'sometimes',
