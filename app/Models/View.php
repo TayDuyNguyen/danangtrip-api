@@ -15,6 +15,7 @@ final class View extends Model
     protected $fillable = [
         'user_id',
         'location_id',
+        'tour_id',
         'session_id',
         'time_spent',
         'created_at',
@@ -36,5 +37,10 @@ final class View extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function tour(): BelongsTo
+    {
+        return $this->belongsTo(Tour::class);
     }
 }

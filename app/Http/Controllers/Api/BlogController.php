@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Blog\IndexBlogCategoriesRequest;
 use App\Http\Requests\Blog\IndexBlogRequest;
+use App\Http\Requests\Blog\ShowBlogBySlugRequest;
 use App\Services\BlogService;
 use Illuminate\Http\JsonResponse;
 
@@ -39,9 +41,9 @@ final class BlogController extends Controller
      * Display the specified blog post.
      * (Chi tiết bài viết Blog)
      */
-    public function show(string $slug): JsonResponse
+    public function show(ShowBlogBySlugRequest $request): JsonResponse
     {
-        $result = $this->blogService->getPublicPostBySlug($slug);
+        $result = $this->blogService->getPublicPostBySlug($request->validated()['slug']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -52,7 +54,7 @@ final class BlogController extends Controller
      * Display a listing of blog categories.
      * (Danh sách danh mục Blog)
      */
-    public function categories(): JsonResponse
+    public function categories(IndexBlogCategoriesRequest $request): JsonResponse
     {
         $result = $this->blogService->getBlogCategories();
 

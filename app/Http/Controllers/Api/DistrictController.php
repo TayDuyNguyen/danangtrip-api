@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\District\IndexDistrictRequest;
+use App\Services\DistrictService;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -12,23 +14,16 @@ use Illuminate\Http\JsonResponse;
  */
 final class DistrictController extends Controller
 {
+    public function __construct(
+        protected DistrictService $districtService
+    ) {}
+
     /**
      * Get the list of districts in Da Nang.
      * (Lấy danh sách quận/huyện tại Đà Nẵng)
      */
-    public function index(): JsonResponse
+    public function index(IndexDistrictRequest $request): JsonResponse
     {
-        $districts = [
-            ['id' => 1, 'name' => 'Hải Châu', 'slug' => 'hai-chau'],
-            ['id' => 2, 'name' => 'Thanh Khê', 'slug' => 'thanh-khe'],
-            ['id' => 3, 'name' => 'Sơn Trà', 'slug' => 'son-tra'],
-            ['id' => 4, 'name' => 'Ngũ Hành Sơn', 'slug' => 'ngu-hanh-son'],
-            ['id' => 5, 'name' => 'Liên Chiểu', 'slug' => 'lien-chieu'],
-            ['id' => 6, 'name' => 'Cẩm Lệ', 'slug' => 'cam-le'],
-            ['id' => 7, 'name' => 'Hòa Vang', 'slug' => 'hoa-vang'],
-            ['id' => 8, 'name' => 'Hoàng Sa', 'slug' => 'hoang-sa'],
-        ];
-
-        return $this->success($districts);
+        return $this->success($this->districtService->listAll());
     }
 }

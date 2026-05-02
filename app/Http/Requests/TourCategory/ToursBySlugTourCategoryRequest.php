@@ -2,10 +2,18 @@
 
 namespace App\Http\Requests\TourCategory;
 
+use App\Enums\TourBookingAvailability;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ToursBySlugTourCategoryRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('sort_by') === 'price') {
+            $this->merge(['sort_by' => 'price_adult']);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -33,12 +41,17 @@ class ToursBySlugTourCategoryRequest extends FormRequest
             'sort_by' => [
                 'sometimes',
                 'string',
-                'in:created_at,price,rating_avg',
+                'in:created_at,price_adult,rating_avg,price',
             ],
             'sort_order' => [
                 'sometimes',
                 'string',
                 'in:asc,desc',
+            ],
+            'booking_availability' => [
+                'sometimes',
+                'string',
+                'in:'.implode(',', TourBookingAvailability::values()),
             ],
         ];
     }
@@ -48,6 +61,7 @@ class ToursBySlugTourCategoryRequest extends FormRequest
         return [
             'slug.required' => 'Slug is required.',
             'slug.exists' => 'The selected slug does not exist.',
+            'booking_availability.in' => 'Invalid booking availability value.',
         ];
     }
 }

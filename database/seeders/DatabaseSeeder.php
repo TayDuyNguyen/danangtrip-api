@@ -15,21 +15,16 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
             CategorySeeder::class,
-            SubcategorySeeder::class,
             TagSeeder::class,
+            TourCategorySeeder::class,
+            UserSeeder::class,
             LocationSeeder::class,
-            AmenitySeeder::class,
-            TourCategorySeeder::class, // New
-            TourSeeder::class,         // New
-            TourScheduleSeeder::class, // New
-            BookingSeeder::class,      // New
-            FavoriteSeeder::class,
-            RatingSeeder::class,       // Updated for Tours
+            TourSeeder::class,
             BlogSeeder::class,
+            BookingSeeder::class,
             InteractionSeeder::class,
-            ContactSeeder::class,      // New
+            SqlSeeder::class,
         ]);
     }
 }

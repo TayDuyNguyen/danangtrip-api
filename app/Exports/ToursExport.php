@@ -2,6 +2,7 @@
 
 namespace App\Exports;
 
+use App\Enums\TourBookingAvailability;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -34,6 +35,7 @@ class ToursExport implements FromCollection, WithHeadings, WithMapping
             'Discount %',
             'Duration',
             'Status',
+            'Booking availability',
             'Featured',
             'Hot',
             'View Count',
@@ -58,6 +60,9 @@ class ToursExport implements FromCollection, WithHeadings, WithMapping
             $tour->discount_percent,
             $tour->duration,
             $tour->status,
+            $tour->booking_availability instanceof TourBookingAvailability
+                ? $tour->booking_availability->value
+                : TourBookingAvailability::OPEN->value,
             $tour->is_featured ? 'Yes' : 'No',
             $tour->is_hot ? 'Yes' : 'No',
             $tour->view_count,

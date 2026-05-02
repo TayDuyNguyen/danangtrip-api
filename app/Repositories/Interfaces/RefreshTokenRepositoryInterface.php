@@ -31,4 +31,10 @@ interface RefreshTokenRepositoryInterface extends RepositoryInterface
      * @return void
      */
     public function deleteAllByUserId(int $userId);
+
+    /**
+     * Mark a refresh token as used (rotation / reuse detection).
+     * (Đánh dấu refresh token đã dùng)
+     */
+    public function markUsedAtNow(int $id): bool;
 }

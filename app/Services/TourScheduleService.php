@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Enums\TourScheduleBookingAvailability;
 use App\Models\Tour;
+use App\Models\TourSchedule;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class TourScheduleService
@@ -21,7 +22,8 @@ final class TourScheduleService
      */
     public function __construct(
         protected TourScheduleRepositoryInterface $tourScheduleRepository,
-        protected TourRepositoryInterface $tourRepository
+        protected TourRepositoryInterface $tourRepository,
+        protected TourStatusSyncService $tourStatusSyncService
     ) {}
 
     /**
@@ -38,7 +40,6 @@ final class TourScheduleService
                 'data' => $schedules,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -62,7 +63,6 @@ final class TourScheduleService
                 'data' => $counts,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -91,7 +91,6 @@ final class TourScheduleService
                 'data' => $schedule,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -118,13 +117,14 @@ final class TourScheduleService
             }
 
             $schedule = $this->tourScheduleRepository->create($data);
+            $this->syncBookingAvailability($schedule);
+            $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $schedule,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -166,13 +166,17 @@ final class TourScheduleService
                     'message' => 'Failed to update tour schedule',
                 ];
             }
+            $fresh = $this->tourScheduleRepository->find($id);
+            if ($fresh) {
+                $this->syncBookingAvailability($fresh);
+            }
+            $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $this->tourScheduleRepository->find($id),
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -188,6 +192,14 @@ final class TourScheduleService
     public function deleteSchedule(int $id): array
     {
         try {
+            $schedule = $this->tourScheduleRepository->find($id);
+            if (! $schedule) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
             if ($this->tourScheduleRepository->hasBookings($id)) {
                 return [
                     'status' => HttpStatusCode::BAD_REQUEST->value,
@@ -202,13 +214,13 @@ final class TourScheduleService
                     'message' => 'Tour schedule not found',
                 ];
             }
+            $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Tour schedule deleted successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -224,6 +236,14 @@ final class TourScheduleService
     public function updateStatus(int $id, string $status): array
     {
         try {
+            $schedule = $this->tourScheduleRepository->find($id);
+            if (! $schedule) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Tour schedule not found',
+                ];
+            }
+
             $updated = $this->tourScheduleRepository->updateStatus($id, $status);
             if (! $updated) {
                 return [
@@ -231,18 +251,37 @@ final class TourScheduleService
                     'message' => 'Tour schedule not found',
                 ];
             }
+            $fresh = $this->tourScheduleRepository->find($id);
+            if ($fresh) {
+                $this->syncBookingAvailability($fresh);
+            }
+            $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Status updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update status',
             ];
+        }
+    }
+
+    private function syncBookingAvailability(TourSchedule $schedule): void
+    {
+        $target = $schedule->booked_people >= $schedule->max_people
+            ? TourScheduleBookingAvailability::SOLD_OUT->value
+            : TourScheduleBookingAvailability::OPEN->value;
+
+        $current = $schedule->booking_availability instanceof \BackedEnum
+            ? $schedule->booking_availability->value
+            : (string) $schedule->booking_availability;
+
+        if ($current !== $target) {
+            $this->tourScheduleRepository->updateBookingAvailability((int) $schedule->id, $target);
         }
     }
 }

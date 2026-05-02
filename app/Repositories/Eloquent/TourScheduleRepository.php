@@ -60,7 +60,8 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
         return [
             'total_schedules' => (clone $base)->count(),
             'available_schedules' => (clone $base)->where('status', 'available')->count(),
-            'full_schedules' => (clone $base)->where('status', 'full')->count(),
+            // Keep response key for backward compatibility with admin UI cards.
+            'full_schedules' => (clone $base)->where('booking_availability', 'sold_out')->count(),
             'cancelled_schedules' => (clone $base)->where('status', 'cancelled')->count(),
         ];
     }
@@ -134,5 +135,35 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
         }
 
         return $schedule->bookingItems()->exists();
+    }
+
+    public function increaseBookedPeople(int $id, int $amount): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        return (bool) $schedule->increment('booked_people', $amount);
+    }
+
+    public function decreaseBookedPeople(int $id, int $amount): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        return (bool) $schedule->decrement('booked_people', $amount);
+    }
+
+    public function updateBookingAvailability(int $id, string $availability): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        return $schedule->update(['booking_availability' => $availability]);
     }
 }

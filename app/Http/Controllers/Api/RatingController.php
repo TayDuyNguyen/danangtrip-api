@@ -7,11 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Rating\CheckRatingRequest;
 use App\Http\Requests\Rating\DestroyRatingRequest;
 use App\Http\Requests\Rating\HelpfulRatingRequest;
+use App\Http\Requests\Rating\ShowRatingRequest;
 use App\Http\Requests\Rating\StoreRatingRequest;
 use App\Http\Requests\Rating\UpdateRatingRequest;
 use App\Services\RatingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class RatingController
@@ -42,7 +42,7 @@ final class RatingController extends Controller
      * Get images for a rating.
      * (Lấy danh sách ảnh của đánh giá)
      */
-    public function images(int $id): JsonResponse
+    public function images(ShowRatingRequest $request, int $id): JsonResponse
     {
         $result = $this->ratingService->getImages($id);
 

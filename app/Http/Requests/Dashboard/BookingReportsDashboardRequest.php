@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Dashboard;
 
+use App\Enums\PaymentStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -36,7 +37,7 @@ class BookingReportsDashboardRequest extends FormRequest
             'payment_status' => [
                 'sometimes',
                 'string',
-                'in:pending,paid,refunded,failed',
+                'in:'.implode(',', array_merge(PaymentStatus::values(), ['unpaid', 'partially_paid'])),
             ],
         ];
     }

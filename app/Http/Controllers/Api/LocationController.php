@@ -12,6 +12,7 @@ use App\Http\Requests\Location\NearbyLocationRequest;
 use App\Http\Requests\Location\RatingsLocationRequest;
 use App\Http\Requests\Location\RatingStatsLocationRequest;
 use App\Http\Requests\Location\RecordViewLocationRequest;
+use App\Http\Requests\Location\ShowLocationBySlugRequest;
 use App\Http\Requests\Location\ShowLocationRequest;
 use App\Services\LocationService;
 use Illuminate\Http\JsonResponse;
@@ -39,9 +40,9 @@ final class LocationController extends Controller
      * Display the specified resource.
      * (Chi tiết địa điểm theo slug)
      */
-    public function show(string $slug): JsonResponse
+    public function show(ShowLocationBySlugRequest $request): JsonResponse
     {
-        $result = $this->locationService->getLocationBySlug($slug);
+        $result = $this->locationService->getLocationBySlug($request->validated()['slug']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

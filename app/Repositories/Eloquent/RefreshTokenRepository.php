@@ -53,4 +53,13 @@ class RefreshTokenRepository extends BaseRepository implements RefreshTokenRepos
     {
         $this->model->newQuery()->where('user_id', $userId)->delete();
     }
+
+    /**
+     * Mark a refresh token as used (rotation / reuse detection).
+     * (Đánh dấu refresh token đã dùng)
+     */
+    public function markUsedAtNow(int $id): bool
+    {
+        return (bool) $this->update($id, ['used_at' => now()]);
+    }
 }

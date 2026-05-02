@@ -49,6 +49,18 @@ final class FavoriteRepository extends BaseRepository implements FavoriteReposit
     }
 
     /**
+     * Find a favorite by user and tour.
+     * (Tìm yêu thích theo người dùng và tour)
+     */
+    public function findByUserAndTour(int $userId, int $tourId): ?Favorite
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->where('tour_id', $tourId)
+            ->first();
+    }
+
+    /**
      * Get recent favorited location IDs by user.
      * (Lấy danh sách ID địa điểm yêu thích gần đây của người dùng)
      *

@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -15,15 +16,21 @@ return new class extends Migration
             $table->date('end_date');
             $table->integer('max_people')->default(0);
             $table->integer('booked_people')->default(0);
-            $table->decimal('price_adult', 12, 0)->nullable()->comment('Override tour price');
-            $table->decimal('price_child', 12, 0)->nullable();
-            $table->decimal('price_infant', 12, 0)->nullable();
+            $table->decimal('price_adult', 12, 2)->nullable()->comment('Override tour price');
+            $table->decimal('price_child', 12, 2)->nullable();
+            $table->decimal('price_infant', 12, 2)->nullable();
             $table->string('status', 20)->default('available')->index();
             $table->timestamps();
 
             $table->unique(['tour_id', 'start_date'], 'uq_tour_schedule');
             $table->index('start_date');
         });
+
+        DB::statement('
+            ALTER TABLE tour_schedules
+            ADD CONSTRAINT tour_schedules_people_chk
+            CHECK (max_people >= 0 AND booked_people >= 0 AND booked_people <= max_people)
+        ');
     }
 
     public function down(): void

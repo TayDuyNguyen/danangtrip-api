@@ -41,6 +41,12 @@ class UpdateRatingRequest extends FormRequest
                 'array',
                 'max:5',
             ],
+            'images.*' => [
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ];
     }
 

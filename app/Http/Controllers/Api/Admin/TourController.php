@@ -110,7 +110,7 @@ final class TourController extends Controller
      * Toggle featured status.
      * (Bật/tắt nổi bật)
      */
-    public function toggleFeatured(int $id): JsonResponse
+    public function toggleFeatured(ShowTourRequest $request, int $id): JsonResponse
     {
         $result = $this->tourService->toggleFeatured($id);
 
@@ -123,7 +123,7 @@ final class TourController extends Controller
      * Toggle hot status.
      * (Bật/tắt tour hot)
      */
-    public function toggleHot(int $id): JsonResponse
+    public function toggleHot(ShowTourRequest $request, int $id): JsonResponse
     {
         $result = $this->tourService->toggleHot($id);
 
