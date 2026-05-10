@@ -30,6 +30,11 @@ class IndexBlogRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'sort' => [
+                'sometimes',
+                'string',
+                'in:latest,popular',
+            ],
         ];
     }
 
@@ -37,6 +42,7 @@ class IndexBlogRequest extends FormRequest
     {
         return [
             'category_id.exists' => 'The selected category is invalid.',
+            'sort.in' => 'Invalid sort value. Use latest or popular.',
         ];
     }
 }

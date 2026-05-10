@@ -339,6 +339,65 @@ final class LocationService
     }
 
     /**
+     * Admin: paginated location list with filters.
+     */
+    public function getAdminLocations(array $filters): array
+    {
+        try {
+            $locations = $this->locationRepository->getAdminLocations($filters);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $locations,
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get locations',
+            ];
+        }
+    }
+
+    /**
+     * Admin: stats row (totals across all locations).
+     */
+    public function getAdminLocationStats(): array
+    {
+        try {
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->locationRepository->getAdminLocationStatsSummary(),
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get location stats',
+            ];
+        }
+    }
+
+    /**
+     * Admin: district names for filters.
+     */
+    public function getAdminDistricts(): array
+    {
+        try {
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->locationRepository->getDistinctDistrictsForAdmin(),
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get districts',
+            ];
+        }
+    }
+
+    /**
      * Get data for export.
      * (Lấy dữ liệu để xuất bản)
      */
