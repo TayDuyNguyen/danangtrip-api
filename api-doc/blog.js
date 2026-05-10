@@ -9,6 +9,7 @@
  * @apiQuery {Number} [category_id] Filter by blog category ID.
  * @apiQuery {Number} [page=1] Page number.
  * @apiQuery {Number} [per_page=15] Items per page.
+ * @apiQuery {String} [sort=latest] Sort order: `latest` (published_at desc) or `popular` (view_count desc).
  *
  * @apiSuccess {Number} code Status code (200).
  * @apiSuccess {String} message Success message.

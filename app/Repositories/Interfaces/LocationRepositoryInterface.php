@@ -127,4 +127,23 @@ interface LocationRepositoryInterface extends RepositoryInterface
      * (Lấy top địa điểm theo lượt yêu thích và lượt xem)
      */
     public function getTopLocations(int $limit): Collection;
+
+    /**
+     * Admin: paginated locations (all statuses) with filters.
+     */
+    public function getAdminLocations(array $filters = []): LengthAwarePaginator;
+
+    /**
+     * Admin: aggregate counts for dashboard cards.
+     *
+     * @return array{total: int, active: int, featured: int, total_views: int}
+     */
+    public function getAdminLocationStatsSummary(): array;
+
+    /**
+     * Admin: distinct district names for filter dropdowns.
+     *
+     * @return string[]
+     */
+    public function getDistinctDistrictsForAdmin(): array;
 }

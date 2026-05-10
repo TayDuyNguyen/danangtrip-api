@@ -252,6 +252,9 @@ Route::prefix('v1')->group(function () {
         // Location Management
         // (Quản lý Địa điểm)
         Route::get('/locations/export', [AdminLocationController::class, 'export'])->middleware('throttle:api.exports');
+        Route::get('/locations/stats', [AdminLocationController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/locations/districts', [AdminLocationController::class, 'districts'])->middleware('throttle:api.admin');
+        Route::get('/locations', [AdminLocationController::class, 'index'])->middleware('throttle:api.admin');
         Route::post('/locations', [AdminLocationController::class, 'store']);
         Route::put('/locations/{id}', [AdminLocationController::class, 'update'])->whereNumber('id');
         Route::delete('/locations/{id}', [AdminLocationController::class, 'destroy'])->whereNumber('id');
