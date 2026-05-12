@@ -523,6 +523,17 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     }
 
     /**
+     * Admin: find a location by ID with all relations for editing.
+     * (Admin: tìm địa điểm theo ID với đầy đủ quan hệ để chỉnh sửa)
+     */
+    public function findWithDetails(int $id): ?Location
+    {
+        return $this->model->newQuery()
+            ->with(['category', 'subcategory', 'tags', 'amenities'])
+            ->find($id);
+    }
+
+    /**
      * Normalize created_at filter bounds. Date-only "to" uses end of day (inclusive).
      * (Chuẩn hóa các ngưỡng created_at)
      */

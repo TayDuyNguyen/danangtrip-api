@@ -80,6 +80,19 @@ final class LocationController extends Controller
     }
 
     /**
+     * Display the specified location (Admin).
+     * (Hiển thị chi tiết địa điểm - Admin)
+     */
+    public function show(int $id): JsonResponse
+    {
+        $result = $this->locationService->getLocationById($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Update an existing location.
      * (Cập nhật địa điểm)
      */

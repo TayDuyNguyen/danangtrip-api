@@ -141,9 +141,11 @@ interface LocationRepositoryInterface extends RepositoryInterface
     public function getAdminLocationStatsSummary(): array;
 
     /**
-     * Admin: distinct district names for filter dropdowns.
+     * Admin: find a location by ID with all relations for editing.
+     * (Admin: tìm địa điểm theo ID với đầy đủ quan hệ để chỉnh sửa)
      *
-     * @return string[]
+     * @param  int  $id  Location ID.
+     * @return Location|null The location model with details.
      */
-    public function getDistinctDistrictsForAdmin(): array;
+    public function findWithDetails(int $id): ?Location;
 }

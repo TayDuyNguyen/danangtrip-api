@@ -428,4 +428,23 @@ final class LocationService
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get export data'];
         }
     }
+
+    /**
+     * Get location detail by ID (Admin).
+     * (Lấy chi tiết địa điểm theo ID - Admin)
+     */
+    public function getLocationById(int $id): array
+    {
+        try {
+            $location = $this->locationRepository->findWithDetails($id);
+            if (! $location) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Location not found'];
+            }
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $location];
+        } catch (\Exception $e) {
+
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get location detail'];
+        }
+    }
 }
