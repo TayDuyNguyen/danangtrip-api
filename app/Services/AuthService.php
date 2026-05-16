@@ -6,10 +6,12 @@ use App\Enums\HttpStatusCode;
 use App\Models\User;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
 /**
@@ -216,11 +218,20 @@ class AuthService
     public function forgotPassword(string $email): array
     {
         try {
+            $status = Password::broker()->sendResetLink(['email' => $email]);
+
+            if ($status !== Password::RESET_LINK_SENT) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => __($status),
+                ];
+            }
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password reset link sent to your email.',
             ];
-        } catch (\Exception $e) {
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -235,11 +246,37 @@ class AuthService
     public function resetPassword(array $data): array
     {
         try {
+            $status = Password::broker()->reset(
+                [
+                    'email' => $data['email'],
+                    'password' => $data['password'],
+                    'password_confirmation' => $data['password_confirmation'],
+                    'token' => $data['token'],
+                ],
+                function (User $user, string $password): void {
+                    $user->forceFill([
+                        'password' => $password,
+                        'remember_token' => Str::random(60),
+                    ])->save();
+
+                    $this->refreshTokenRepository->deleteAllByUserId((int) $user->id);
+
+                    event(new PasswordReset($user));
+                }
+            );
+
+            if ($status !== Password::PASSWORD_RESET) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => __($status),
+                ];
+            }
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password has been reset successfully.',
             ];
-        } catch (\Exception $e) {
+        } catch (\Exception $_) {
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

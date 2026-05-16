@@ -3,6 +3,7 @@
 use App\Enums\HttpStatusCode;
 use App\Http\Middleware\JwtAuthMiddleware;
 use App\Http\Middleware\RoleMiddleware;
+use App\Support\ApiErrorResponse;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -69,16 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     $message = 'Too many requests';
                 }
 
-                $response = [
-                    'code' => $code,
-                    'message' => $message,
-                ];
-
-                if ($errors) {
-                    $response['errors'] = $errors;
-                }
-
-                return response()->json($response, $code);
+                return response()->json(ApiErrorResponse::make($code, $message, $errors), $code);
             }
         });
     })->create();

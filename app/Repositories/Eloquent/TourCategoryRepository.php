@@ -90,7 +90,9 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
             $query->where('status', $filters['status']);
         }
 
-        $perPage = $filters['per_page'] ?? 10;
+        $perPage = filter_var($filters['all'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            ? max((clone $query)->count(), 1)
+            : ($filters['per_page'] ?? 10);
 
         return $query->orderBy('sort_order')->paginate($perPage);
     }
@@ -134,7 +136,6 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
 
             $existingIds = $this->model->newQuery()
                 ->whereIn('id', $requestedIds)
-                ->lockForUpdate()
                 ->pluck('id')
                 ->all();
 
@@ -145,7 +146,6 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
             $currentIds = $this->model->newQuery()
                 ->orderBy('sort_order')
                 ->orderBy('id')
-                ->lockForUpdate()
                 ->pluck('id')
                 ->all();
 
@@ -159,17 +159,16 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
             $remainingIds = array_values(array_diff($currentIds, $orderedRequestedIds));
             $finalOrderIds = array_merge($orderedRequestedIds, $remainingIds);
 
-            foreach ($finalOrderIds as $index => $id) {
-                $this->model->newQuery()
-                    ->where('id', $id)
-                    ->update(['sort_order' => -($index + 1)]);
-            }
+            $caseSql = collect($finalOrderIds)
+                ->map(fn (int $id, int $index): string => 'WHEN '.$id.' THEN '.($index + 1))
+                ->implode(' ');
 
-            foreach ($finalOrderIds as $index => $id) {
-                $this->model->newQuery()
-                    ->where('id', $id)
-                    ->update(['sort_order' => $index + 1]);
-            }
+            $this->model->newQuery()
+                ->whereIn('id', $finalOrderIds)
+                ->update([
+                    'sort_order' => DB::raw('CASE id '.$caseSql.' END'),
+                    'updated_at' => now(),
+                ]);
 
             return true;
         });

@@ -6,6 +6,8 @@ use App\Enums\HttpStatusCode;
 use App\Exports\ToursExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tour\IndexTourRequest;
+use App\Http\Requests\Tour\PatchFeaturedTourRequest;
+use App\Http\Requests\Tour\PatchHotTourRequest;
 use App\Http\Requests\Tour\PatchStatusTourRequest;
 use App\Http\Requests\Tour\ShowTourRequest;
 use App\Http\Requests\Tour\StoreTourRequest;
@@ -110,9 +112,9 @@ final class TourController extends Controller
      * Toggle featured status.
      * (Bật/tắt nổi bật)
      */
-    public function toggleFeatured(ShowTourRequest $request, int $id): JsonResponse
+    public function toggleFeatured(PatchFeaturedTourRequest $request, int $id): JsonResponse
     {
-        $result = $this->tourService->toggleFeatured($id);
+        $result = $this->tourService->setFeatured($id, $request->boolean('is_featured'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Featured status toggled successfully')
@@ -123,9 +125,9 @@ final class TourController extends Controller
      * Toggle hot status.
      * (Bật/tắt tour hot)
      */
-    public function toggleHot(ShowTourRequest $request, int $id): JsonResponse
+    public function toggleHot(PatchHotTourRequest $request, int $id): JsonResponse
     {
-        $result = $this->tourService->toggleHot($id);
+        $result = $this->tourService->setHot($id, $request->boolean('is_hot'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], 'Hot status toggled successfully')

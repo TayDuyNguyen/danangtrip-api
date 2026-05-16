@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\TourCategory;
+namespace App\Http\Requests\Category;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ReorderTourCategoryRequest extends FormRequest
+class ReorderCategoryRequest extends FormRequest
 {
     public function authorize(): bool
     {

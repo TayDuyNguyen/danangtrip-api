@@ -37,6 +37,13 @@ class StoreTourCategoryRequest extends FormRequest
                 'string',
                 'max:50',
             ],
+            'icon_background' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:20',
+                'regex:/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/',
+            ],
             'sort_order' => [
                 'sometimes',
                 'nullable',
@@ -57,6 +64,7 @@ class StoreTourCategoryRequest extends FormRequest
             'name.required' => 'Tour category name is required.',
             'slug.required' => 'Slug is required.',
             'slug.exists' => 'The selected slug does not exist.',
+            'icon_background.regex' => 'Icon background must be a valid hex color.',
             'status.required' => 'Status is required.',
             'status.in' => 'Status must be active or inactive.',
         ];

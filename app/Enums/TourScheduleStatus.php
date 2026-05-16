@@ -5,7 +5,6 @@ namespace App\Enums;
 enum TourScheduleStatus: string
 {
     case AVAILABLE = 'available';
-    case FULL = 'full';
     case CANCELLED = 'cancelled';
 
     /**

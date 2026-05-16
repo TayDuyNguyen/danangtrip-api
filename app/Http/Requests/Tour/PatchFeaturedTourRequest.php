@@ -1,11 +1,10 @@
 <?php
 
-namespace App\Http\Requests\TourSchedule;
+namespace App\Http\Requests\Tour;
 
-use App\Enums\TourScheduleStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateStatusTourScheduleRequest extends FormRequest
+class PatchFeaturedTourRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -25,12 +24,11 @@ class UpdateStatusTourScheduleRequest extends FormRequest
             'id' => [
                 'required',
                 'integer',
-                'exists:tour_schedules,id',
+                'exists:tours,id',
             ],
-            'status' => [
+            'is_featured' => [
                 'required',
-                'string',
-                'in:'.implode(',', TourScheduleStatus::values()),
+                'boolean',
             ],
         ];
     }
@@ -38,9 +36,11 @@ class UpdateStatusTourScheduleRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'id.required' => 'Schedule ID is required.',
-            'id.exists' => 'The selected schedule does not exist.',
-            'status.in' => 'Status must be available or cancelled.',
+            'id.required' => 'Tour ID is required.',
+            'id.integer' => 'Tour ID must be an integer.',
+            'id.exists' => 'The selected tour does not exist.',
+            'is_featured.required' => 'Featured flag is required.',
+            'is_featured.boolean' => 'Featured flag must be true or false.',
         ];
     }
 }

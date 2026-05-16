@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\HttpStatusCode;
+use App\Support\ApiErrorResponse;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,10 +31,10 @@ class RoleMiddleware
         // Check if user exists and has a role that matches any of the required roles
         // (Kiểm tra xem người dùng có tồn tại và có vai trò khớp với bất kỳ vai trò yêu cầu nào không)
         if (! $user || ! in_array($user->role, $roles)) {
-            return response()->json([
-                'code' => HttpStatusCode::FORBIDDEN->value,
-                'message' => 'Access denied. Your role ('.($user->role ?? 'none').') does not have permission to access this resource.',
-            ], HttpStatusCode::FORBIDDEN->value);
+            $code = HttpStatusCode::FORBIDDEN->value;
+            $message = 'Access denied. Your role ('.($user->role ?? 'none').') does not have permission to access this resource.';
+
+            return response()->json(ApiErrorResponse::make($code, $message), $code);
         }
 
         return $next($request);

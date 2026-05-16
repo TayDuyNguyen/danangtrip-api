@@ -21,7 +21,7 @@ final class TourSchedule extends Model
         'price_adult',
         'price_child',
         'price_infant',
-        'status', // available, full, cancelled
+        'status', // available, cancelled
         'booking_availability', // open, sold_out
     ];
 

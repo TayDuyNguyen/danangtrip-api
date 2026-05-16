@@ -237,7 +237,10 @@ Route::prefix('v1')->group(function () {
 
         // Categories Management
         // (Quản lý Danh mục)
+        Route::get('/categories', [AdminCategoryController::class, 'index'])->middleware('throttle:api.admin');
+        Route::get('/categories/{id}', [AdminCategoryController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
         Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::patch('/categories/reorder', [AdminCategoryController::class, 'reorder']);
         Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->whereNumber('id');
         Route::patch('/categories/{id}/status', [AdminCategoryController::class, 'updateStatus'])->whereNumber('id');
@@ -341,7 +344,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
-        Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy'])->whereNumber('id');
 
         // Payments Management
         // (Quản lý Thanh toán)

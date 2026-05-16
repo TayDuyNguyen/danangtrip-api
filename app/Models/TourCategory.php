@@ -15,6 +15,7 @@ final class TourCategory extends Model
         'slug',
         'description',
         'icon',
+        'icon_background',
         'sort_order',
         'status', // active, inactive
     ];

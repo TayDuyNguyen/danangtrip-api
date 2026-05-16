@@ -22,7 +22,12 @@ class IndexTourScheduleRequest extends FormRequest
             'status' => [
                 'sometimes',
                 'string',
-                'in:available,full,cancelled',
+                'in:available,cancelled',
+            ],
+            'booking_availability' => [
+                'sometimes',
+                'string',
+                'in:open,sold_out',
             ],
             'from' => [
                 'sometimes',
@@ -55,7 +60,7 @@ class IndexTourScheduleRequest extends FormRequest
             'sort' => [
                 'sometimes',
                 'string',
-                'in:start_date,end_date,max_people,booked_people,status,created_at',
+                'in:start_date,end_date,max_people,booked_people,status,booking_availability,created_at',
             ],
             'order' => [
                 'sometimes',
@@ -70,7 +75,8 @@ class IndexTourScheduleRequest extends FormRequest
         return [
             'tour_id.required' => 'Tour ID is required.',
             'tour_id.exists' => 'The selected tour does not exist.',
-            'status.in' => 'Status must be available, full, or cancelled.',
+            'status.in' => 'Status must be available or cancelled.',
+            'booking_availability.in' => 'Booking availability must be open or sold_out.',
             'from.date_format' => 'From date must be in Y-m-d format.',
             'to.date_format' => 'To date must be in Y-m-d format.',
         ];

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\HttpStatusCode;
+use App\Support\ApiErrorResponse;
 use Closure;
 use Illuminate\Http\Request;
 use PHPOpenSourceSaver\JWTAuth\Exceptions\JWTException;
@@ -56,9 +57,8 @@ class JwtAuthMiddleware
 
     private function unauthorizedResponse(string $message): Response
     {
-        return response()->json([
-            'code' => HttpStatusCode::UNAUTHORIZED->value,
-            'message' => $message,
-        ], HttpStatusCode::UNAUTHORIZED->value);
+        $code = HttpStatusCode::UNAUTHORIZED->value;
+
+        return response()->json(ApiErrorResponse::make($code, $message), $code);
     }
 }

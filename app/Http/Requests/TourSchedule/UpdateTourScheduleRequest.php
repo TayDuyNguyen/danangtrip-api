@@ -3,6 +3,7 @@
 namespace App\Http\Requests\TourSchedule;
 
 use App\Enums\TourScheduleStatus;
+use App\Enums\TourScheduleBookingAvailability;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTourScheduleRequest extends FormRequest
@@ -67,6 +68,11 @@ class UpdateTourScheduleRequest extends FormRequest
                 'string',
                 'in:'.implode(',', TourScheduleStatus::values()),
             ],
+            'booking_availability' => [
+                'sometimes',
+                'string',
+                'in:'.implode(',', TourScheduleBookingAvailability::values()),
+            ],
         ];
     }
 
@@ -82,7 +88,8 @@ class UpdateTourScheduleRequest extends FormRequest
             'end_date.date_format' => 'End date must be in Y-m-d format.',
             'end_date.after_or_equal' => 'End date must be after or equal to start date.',
             'max_people.required' => 'Max people is required.',
-            'status.in' => 'Status must be available, full, or cancelled.',
+            'status.in' => 'Status must be available or cancelled.',
+            'booking_availability.in' => 'Booking availability must be open or sold_out.',
         ];
     }
 }
