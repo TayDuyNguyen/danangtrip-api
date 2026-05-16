@@ -21,6 +21,7 @@ class IndexTourCategoryRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $payload = [];
         $withStats = $this->query('with_stats');
 
         if ($withStats === '') {
@@ -33,10 +34,27 @@ class IndexTourCategoryRequest extends FormRequest
             $normalized = strtolower(trim($withStats));
 
             if (in_array($normalized, ['true', '1'], true)) {
-                $this->merge(['with_stats' => true]);
+                $payload['with_stats'] = true;
             } elseif (in_array($normalized, ['false', '0'], true)) {
-                $this->merge(['with_stats' => false]);
+                $payload['with_stats'] = false;
             }
+        }
+
+        if ($this->has('all')) {
+            $all = $this->query('all');
+
+            if (is_string($all)) {
+                $normalized = strtolower(trim($all));
+                if (in_array($normalized, ['true', '1'], true)) {
+                    $payload['all'] = true;
+                } elseif (in_array($normalized, ['false', '0'], true)) {
+                    $payload['all'] = false;
+                }
+            }
+        }
+
+        if ($payload !== []) {
+            $this->merge($payload);
         }
     }
 
@@ -65,10 +83,15 @@ class IndexTourCategoryRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'all' => [
+                'sometimes',
+                'nullable',
+                'boolean',
+            ],
             'with_stats' => [
                 'sometimes',
                 'nullable',
-                'in:true,false,1,0',
+                'boolean',
             ],
         ];
     }
@@ -84,7 +107,8 @@ class IndexTourCategoryRequest extends FormRequest
             'per_page.integer' => 'The per_page must be an integer. (per_page phải là số nguyên.)',
             'per_page.min' => 'The per_page must be at least 1. (per_page phải ít nhất là 1.)',
             'per_page.max' => 'The per_page must not exceed 100. (per_page không được vượt quá 100.)',
-            'with_stats.in' => 'The with_stats must be true/false or 1/0. (with_stats phải là true/false hoặc 1/0.)',
+            'all.boolean' => 'The all must be true or false. (all phải là true hoặc false.)',
+            'with_stats.boolean' => 'The with_stats must be true or false. (with_stats phải là true hoặc false.)',
         ];
     }
 }

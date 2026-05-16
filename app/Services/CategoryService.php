@@ -43,6 +43,61 @@ final class CategoryService
     }
 
     /**
+     * Get categories for admin.
+     * (Lấy danh sách danh mục cho admin)
+     */
+    public function getAdminCategories(array $filters = []): array
+    {
+        try {
+            $categories = $this->categoryRepository->getCategories($filters);
+            $withStats = filter_var($filters['with_stats'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $withStats
+                    ? [
+                        'categories' => $categories,
+                        'stats' => $this->categoryRepository->getAdminStats(),
+                    ]
+                    : $categories,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get categories',
+            ];
+        }
+    }
+
+    /**
+     * Get category detail for admin.
+     * (Lấy chi tiết danh mục cho admin)
+     */
+    public function getAdminCategoryById(int $id): array
+    {
+        try {
+            $category = $this->categoryRepository->getAdminCategoryById($id);
+
+            if (! $category) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Category not found',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $category,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get category',
+            ];
+        }
+    }
+
+    /**
      * Get a public category by id (active) with active subcategories.
      * (Lấy chi tiết danh mục public theo id kèm danh mục con đang hoạt động)
      */
@@ -86,6 +141,7 @@ final class CategoryService
 
             $data['sort_order'] = $data['sort_order'] ?? 0;
             $data['status'] = $data['status'] ?? 'active';
+            $data['icon_background'] = $data['icon_background'] ?? '#E0F2FE';
 
             $category = $this->categoryRepository->create($data);
 
@@ -175,6 +231,13 @@ final class CategoryService
                 ];
             }
 
+            if ($this->categoryRepository->hasLocations($id)) {
+                return [
+                    'status' => HttpStatusCode::CONFLICT->value,
+                    'message' => 'Cannot delete category because it has locations',
+                ];
+            }
+
             $deleted = $this->categoryRepository->delete($id);
             if (! $deleted) {
                 return [
@@ -240,10 +303,20 @@ final class CategoryService
                 ];
             }
 
-            $this->categoryRepository->updateStatus($id, $status);
+            $updated = $this->categoryRepository->updateStatus($id, $status);
+
+            if (! $updated) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Category not found',
+                ];
+            }
+
+            $category = $this->categoryRepository->getAdminCategoryById($id);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $category,
                 'message' => 'Category status updated successfully',
             ];
         } catch (\Exception $e) {
@@ -251,6 +324,36 @@ final class CategoryService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update category status',
+            ];
+        }
+    }
+
+    /**
+     * Reorder categories in bulk.
+     * (Sắp xếp lại danh mục hàng loạt)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorderCategories(array $items): array
+    {
+        try {
+            $ok = $this->categoryRepository->reorder($items);
+
+            if (! $ok) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'One or more categories do not exist',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Categories reordered successfully',
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to reorder categories',
             ];
         }
     }

@@ -273,36 +273,18 @@ final class TourService
      * Toggle featured status (Admin).
      * (Bật/tắt nổi bật - Admin)
      */
-    public function toggleFeatured(int $id): array
+    public function setFeatured(int $id, bool $isFeatured): array
     {
-        try {
-            $tour = $this->tourRepository->find($id);
-            if (! $tour) {
-                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Tour not found'];
-            }
-
-            return $this->updateTour($id, ['is_featured' => ! $tour->is_featured]);
-        } catch (\Exception $e) {
-            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to toggle featured status'];
-        }
+        return $this->updateTour($id, ['is_featured' => $isFeatured]);
     }
 
     /**
      * Toggle hot status (Admin).
      * (Bật/tắt tour hot - Admin)
      */
-    public function toggleHot(int $id): array
+    public function setHot(int $id, bool $isHot): array
     {
-        try {
-            $tour = $this->tourRepository->find($id);
-            if (! $tour) {
-                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Tour not found'];
-            }
-
-            return $this->updateTour($id, ['is_hot' => ! $tour->is_hot]);
-        } catch (\Exception $e) {
-            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to toggle hot status'];
-        }
+        return $this->updateTour($id, ['is_hot' => $isHot]);
     }
 
     /**

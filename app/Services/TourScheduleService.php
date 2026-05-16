@@ -117,7 +117,9 @@ final class TourScheduleService
             }
 
             $schedule = $this->tourScheduleRepository->create($data);
-            $this->syncBookingAvailability($schedule);
+            if (! array_key_exists('booking_availability', $data)) {
+                $this->syncBookingAvailability($schedule);
+            }
             $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 
             return [
@@ -167,7 +169,7 @@ final class TourScheduleService
                 ];
             }
             $fresh = $this->tourScheduleRepository->find($id);
-            if ($fresh) {
+            if ($fresh && ! array_key_exists('booking_availability', $data)) {
                 $this->syncBookingAvailability($fresh);
             }
             $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
@@ -250,10 +252,6 @@ final class TourScheduleService
                     'status' => HttpStatusCode::NOT_FOUND->value,
                     'message' => 'Tour schedule not found',
                 ];
-            }
-            $fresh = $this->tourScheduleRepository->find($id);
-            if ($fresh) {
-                $this->syncBookingAvailability($fresh);
             }
             $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
 

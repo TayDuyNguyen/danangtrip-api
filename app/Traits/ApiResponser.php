@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Enums\HttpStatusCode;
+use App\Support\ApiErrorResponse;
 use Illuminate\Http\JsonResponse;
 
 trait ApiResponser
@@ -26,16 +27,7 @@ trait ApiResponser
      */
     protected function error(string $message = 'Error', int $code = HttpStatusCode::BAD_REQUEST->value, mixed $errors = null): JsonResponse
     {
-        $response = [
-            'code' => $code,
-            'message' => $message,
-        ];
-
-        if ($errors) {
-            $response['errors'] = $errors;
-        }
-
-        return response()->json($response, $code);
+        return response()->json(ApiErrorResponse::make($code, $message, $errors), $code);
     }
 
     /**

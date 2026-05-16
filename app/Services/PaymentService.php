@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\BookingStatus;
 use App\Enums\HttpStatusCode;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
@@ -17,6 +18,12 @@ use Illuminate\Support\Str;
  */
 class PaymentService
 {
+    private const CALLBACK_GATEWAYS = [
+        PaymentMethod::MOMO->value,
+        PaymentMethod::VNPAY->value,
+        PaymentMethod::ZALOPAY->value,
+    ];
+
     /**
      * PaymentService constructor.
      * (Hàm khởi tạo)
@@ -117,6 +124,13 @@ class PaymentService
                     ];
                 }
 
+                if (! $this->supportsSignedCallback($payment->payment_gateway)) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Unsupported payment gateway callback',
+                    ];
+                }
+
                 if (! $this->verifyGatewaySignature($gatewayData, $payment->payment_gateway)) {
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
@@ -211,7 +225,12 @@ class PaymentService
             return hash_equals($calculated, $mac);
         }
 
-        return true;
+        return false;
+    }
+
+    private function supportsSignedCallback(?string $gateway): bool
+    {
+        return in_array(strtolower((string) $gateway), self::CALLBACK_GATEWAYS, true);
     }
 
     /**
@@ -226,6 +245,15 @@ class PaymentService
             return [
                 'status' => HttpStatusCode::NOT_FOUND->value,
                 'message' => 'Payment not found',
+            ];
+        }
+
+        $currentUserId = Auth::id();
+        $bookingUserId = $payment->booking?->user_id;
+        if ($currentUserId === null || $bookingUserId === null || (int) $bookingUserId !== (int) $currentUserId) {
+            return [
+                'status' => HttpStatusCode::FORBIDDEN->value,
+                'message' => 'You do not have permission to view this payment',
             ];
         }
 

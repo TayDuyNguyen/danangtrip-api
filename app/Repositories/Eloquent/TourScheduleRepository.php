@@ -39,7 +39,7 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
 
         $sortField = $filters['sort'] ?? 'start_date';
         $sortOrder = strtolower((string) ($filters['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
-        $allowedSort = ['start_date', 'end_date', 'max_people', 'booked_people', 'status', 'created_at'];
+        $allowedSort = ['start_date', 'end_date', 'max_people', 'booked_people', 'status', 'booking_availability', 'created_at'];
         if (! in_array($sortField, $allowedSort, true)) {
             $sortField = 'start_date';
         }
@@ -82,6 +82,10 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
 
         if (! $ignoreStatusFilter && isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
+        }
+
+        if (! $ignoreStatusFilter && isset($filters['booking_availability']) && $filters['booking_availability'] !== '') {
+            $query->where('booking_availability', $filters['booking_availability']);
         }
 
         if (! empty($filters['from'])) {
