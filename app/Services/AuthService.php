@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -55,7 +56,12 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $user,
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error('Auth register failed', [
+                'email' => $data['email'] ?? null,
+                'username' => $data['username'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -99,7 +105,11 @@ class AuthService
                     'user' => $user,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error('Auth login failed', [
+                'email' => $email,
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -130,7 +140,10 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Logout successfully',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error('Auth logout failed', [
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -202,7 +215,10 @@ class AuthService
                     'user' => $storedToken->user,
                 ],
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error('Auth refresh failed', [
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

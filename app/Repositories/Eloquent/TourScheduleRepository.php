@@ -158,7 +158,9 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
             return false;
         }
 
-        return (bool) $schedule->decrement('booked_people', $amount);
+        $newBooked = max(0, $schedule->booked_people - $amount);
+
+        return (bool) $schedule->update(['booked_people' => $newBooked]);
     }
 
     public function updateBookingAvailability(int $id, string $availability): bool
