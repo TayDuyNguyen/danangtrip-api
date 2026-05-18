@@ -2,9 +2,9 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\Enums\Pagination;
 use App\Models\Category;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
-use App\Enums\Pagination;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;

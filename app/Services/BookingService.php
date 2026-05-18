@@ -11,6 +11,7 @@ use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -181,6 +182,11 @@ class BookingService
                 'message' => 'Price calculated successfully.',
             ];
         } catch (\Exception $e) {
+            Log::error('Booking price calculation failed', [
+                'payload' => $data,
+                'exception' => $e->getMessage(),
+            ]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Price calculation failed',
@@ -285,6 +291,12 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error('Booking creation failed', [
+                'payload' => $data,
+                'user_id' => $userId,
+                'exception' => $e->getMessage(),
+            ]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking creation failed',
@@ -339,7 +351,7 @@ class BookingService
                         if (
                             $schedule->booking_availability === TourScheduleBookingAvailability::SOLD_OUT
                             && $schedule->booked_people < $schedule->max_people
-                            && $booking->tour?->status !== TourStatus::INACTIVE->value
+                            && $item->tour?->status !== TourStatus::INACTIVE->value
                         ) {
                             $this->tourScheduleRepository->updateBookingAvailability((int) $schedule->id, TourScheduleBookingAvailability::OPEN->value);
                         }
@@ -354,6 +366,8 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error('Booking cancellation (user) failed: '.$e->getMessage(), ['exception' => $e]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking cancellation failed',
@@ -490,7 +504,7 @@ class BookingService
                         if (
                             $schedule->booking_availability === TourScheduleBookingAvailability::SOLD_OUT
                             && $schedule->booked_people < $schedule->max_people
-                            && $booking->tour?->status !== TourStatus::INACTIVE->value
+                            && $item->tour?->status !== TourStatus::INACTIVE->value
                         ) {
                             $this->tourScheduleRepository->updateBookingAvailability((int) $schedule->id, TourScheduleBookingAvailability::OPEN->value);
                         }
@@ -507,6 +521,8 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
+            Log::error('Booking cancellation (admin) failed: '.$e->getMessage(), ['exception' => $e]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking cancellation failed',
@@ -549,6 +565,8 @@ class BookingService
                 'message' => 'Booking status updated successfully.',
             ];
         } catch (\Exception $e) {
+            Log::error('Booking status update failed: '.$e->getMessage(), ['exception' => $e]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to update booking status',

@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\TourSchedule;
 
-use App\Enums\TourScheduleStatus;
 use App\Enums\TourScheduleBookingAvailability;
+use App\Enums\TourScheduleStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTourScheduleRequest extends FormRequest
