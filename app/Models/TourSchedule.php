@@ -23,6 +23,9 @@ final class TourSchedule extends Model
         'price_infant',
         'status', // available, cancelled
         'booking_availability', // open, sold_out
+        'departure_code',
+        'departure_place',
+        'booking_deadline',
     ];
 
     protected function casts(): array
@@ -36,6 +39,7 @@ final class TourSchedule extends Model
             'price_child' => 'decimal:0',
             'price_infant' => 'decimal:0',
             'booking_availability' => TourScheduleBookingAvailability::class,
+            'booking_deadline' => 'datetime',
         ];
     }
 
