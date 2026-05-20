@@ -22,6 +22,7 @@ class RetryPaymentRequest extends FormRequest
     {
         return [
             'booking_code' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{1,20}$/'],
+            'return_url' => ['nullable', 'url', 'max:2048'],
         ];
     }
 
@@ -29,6 +30,7 @@ class RetryPaymentRequest extends FormRequest
     {
         return [
             'booking_code.regex' => 'The booking code format is invalid. (Mã đặt chỗ không hợp lệ.)',
+            'return_url.url' => 'The return URL format is invalid.',
         ];
     }
 }

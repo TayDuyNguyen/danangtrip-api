@@ -77,13 +77,21 @@ class PaymentService
 
                 // Mock payment link creation
                 $amount = $booking->final_amount ?? $booking->total_amount;
-                $paymentLink = "https://mock-gateway.com/pay/{$transactionCode}?method={$data['payment_method']}&amount={$amount}";
+                $paymentLink = $this->buildPaymentUrl(
+                    $transactionCode,
+                    (string) $booking->booking_code,
+                    (string) $data['payment_method'],
+                    (string) $amount,
+                    $data['return_url'] ?? null,
+                );
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
                     'data' => [
                         'payment' => $payment,
                         'payment_url' => $paymentLink,
+                        'transaction_code' => $transactionCode,
+                        'booking_code' => $booking->booking_code,
                     ],
                     'message' => 'Payment link created successfully',
                 ];
@@ -272,7 +280,7 @@ class PaymentService
      * Retry payment for a booking.
      * (Thử thanh toán lại cho một đơn đặt chỗ)
      */
-    public function retryPayment(string $bookingCode): array
+    public function retryPayment(string $bookingCode, ?string $returnUrl = null): array
     {
         $booking = $this->bookingRepository->findByCode($bookingCode);
 
@@ -304,7 +312,27 @@ class PaymentService
         return $this->createPayment([
             'booking_id' => $booking->id,
             'payment_method' => $paymentMethod,
+            'return_url' => $returnUrl,
         ]);
+    }
+
+    private function buildPaymentUrl(
+        string $transactionCode,
+        string $bookingCode,
+        string $paymentMethod,
+        string $amount,
+        ?string $returnUrl = null
+    ): string {
+        if ($returnUrl) {
+            $separator = str_contains($returnUrl, '?') ? '&' : '?';
+
+            return $returnUrl.$separator.http_build_query([
+                'transaction_code' => $transactionCode,
+                'booking_code' => $bookingCode,
+            ]);
+        }
+
+        return "https://mock-gateway.com/pay/{$transactionCode}?method={$paymentMethod}&amount={$amount}";
     }
 
     /**

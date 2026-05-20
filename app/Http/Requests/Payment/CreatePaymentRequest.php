@@ -30,6 +30,11 @@ class CreatePaymentRequest extends FormRequest
                     PaymentMethod::ZALOPAY->value,
                 ]),
             ],
+            'return_url' => [
+                'nullable',
+                'url',
+                'max:2048',
+            ],
         ];
     }
 
@@ -41,6 +46,7 @@ class CreatePaymentRequest extends FormRequest
             'booking_id.exists' => 'The selected booking does not exist.',
             'payment_method.required' => 'Payment method is required.',
             'payment_method.in' => 'The selected payment method is invalid.',
+            'return_url.url' => 'The return URL format is invalid.',
         ];
     }
 }
