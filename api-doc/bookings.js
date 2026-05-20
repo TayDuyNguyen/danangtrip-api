@@ -4,15 +4,13 @@
  * @apiGroup Bookings
  * @apiVersion 1.0.0
  *
- * @apiHeader {String} Authorization Bearer token (JWT)
- * @apiPermission user
+ * @apiDescription Public endpoint - Calculates the total price and breakdown for a potential booking before checkout.
  *
- * @apiDescription Protected endpoint - Calculates the total price and breakdown for a potential booking.
- *
+ * @apiBody {Number} tour_id Tour ID
  * @apiBody {Number} tour_schedule_id Tour schedule ID
- * @apiBody {Number} adult_count Number of adults
- * @apiBody {Number} [child_count=0] Number of children
- * @apiBody {String} [promo_code] Optional promotional code
+ * @apiBody {Number} quantity_adult Number of adults
+ * @apiBody {Number} [quantity_child=0] Number of children
+ * @apiBody {Number} [quantity_infant=0] Number of infants
  *
  * @apiSampleRequest /api/v1/bookings/calculate
  *
@@ -20,12 +18,28 @@
  * HTTP/1.1 200 OK
  * {
  *   "code": 200,
- *   "message": "Success",
+ *   "message": "Price calculated successfully.",
  *   "data": {
- *     "total_amount": 1000000,
+ *     "breakdown": {
+ *       "adult": {
+ *         "quantity": 2,
+ *         "unit_price": 1000000,
+ *         "subtotal": 2000000
+ *       },
+ *       "child": {
+ *         "quantity": 1,
+ *         "unit_price": 700000,
+ *         "subtotal": 700000
+ *       },
+ *       "infant": {
+ *         "quantity": 0,
+ *         "unit_price": 0,
+ *         "subtotal": 0
+ *       }
+ *     },
+ *     "total_amount": 2700000,
  *     "discount_amount": 0,
- *     "final_amount": 1000000,
- *     "deposit_amount": 500000
+ *     "final_amount": 2700000
  *   }
  * }
  */

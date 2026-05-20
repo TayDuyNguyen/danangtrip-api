@@ -128,6 +128,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/tours/{id}/ratings', [TourController::class, 'ratings'])->whereNumber('id');
     Route::get('/tours/{id}/rating-stats', [TourController::class, 'ratingStats'])->whereNumber('id');
     Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id')->middleware('throttle:api.standard');
+    Route::post('/bookings/calculate', [BookingController::class, 'calculate'])->middleware('throttle:api.standard');
 
     // Tour Categories: Public access
     // (Danh mục tour: Truy cập công khai)
@@ -194,7 +195,6 @@ Route::prefix('v1')->group(function () {
 
         // Bookings
         // (Đặt tour)
-        Route::post('/bookings/calculate', [BookingController::class, 'calculate'])->middleware('throttle:api.auth');
         Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:api.strict');
         Route::get('/user/bookings', [BookingController::class, 'index']);
         Route::get('/user/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id');

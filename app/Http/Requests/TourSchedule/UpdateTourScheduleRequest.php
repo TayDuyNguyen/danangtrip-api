@@ -32,7 +32,21 @@ class UpdateTourScheduleRequest extends FormRequest
                 'sometimes',
                 'date',
                 'date_format:Y-m-d',
-                'after_or_equal:today',
+                function ($attribute, $value, $fail) {
+                    $schedule = \App\Models\TourSchedule::find($this->route('id'));
+                    if ($schedule && $schedule->start_date) {
+                        $today = date('Y-m-d');
+                        $currentDate = $schedule->start_date->format('Y-m-d');
+                        // If the existing schedule starts in the past, bypass the future check.
+                        if ($currentDate < $today) {
+                            return;
+                        }
+                        // If it is a future schedule and the start date is changed to a past date, fail.
+                        if ($value !== $currentDate && $value < $today) {
+                            $fail('Start date must be today or in the future.');
+                        }
+                    }
+                }
             ],
             'end_date' => [
                 'sometimes',
