@@ -29,7 +29,7 @@ class UpdateRoleUserRequest extends FormRequest
             'role' => [
                 'required',
                 'string',
-                'in:admin,partner,user',
+                'in:admin,user',
             ],
         ];
     }

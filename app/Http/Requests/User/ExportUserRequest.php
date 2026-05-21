@@ -22,7 +22,7 @@ class ExportUserRequest extends FormRequest
             'role' => [
                 'sometimes',
                 'string',
-                'in:admin,staff,user',
+                'in:admin,user',
             ],
             'status' => [
                 'sometimes',
