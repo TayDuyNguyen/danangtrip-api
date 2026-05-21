@@ -33,6 +33,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     public function getPayments(array $filters): LengthAwarePaginator
     {
         $query = $this->model->newQuery()->with('booking.user');
+        [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
         if (! empty($filters['payment_status'])) {
             $query->where('payment_status', $filters['payment_status']);
@@ -42,12 +43,12 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             $query->where('payment_gateway', $filters['payment_gateway']);
         }
 
-        if (! empty($filters['date_from'])) {
-            $query->whereRaw('CAST(created_at AS DATE) >= ?', [$filters['date_from']]);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
 
-        if (! empty($filters['date_to'])) {
-            $query->whereRaw('CAST(created_at AS DATE) <= ?', [$filters['date_to']]);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         if (! empty($filters['search'])) {
@@ -94,6 +95,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     public function getExportPayments(array $filters): Collection
     {
         $query = $this->model->newQuery()->with('booking.user');
+        [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
         if (! empty($filters['payment_status'])) {
             $query->where('payment_status', $filters['payment_status']);
@@ -103,12 +105,12 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             $query->where('payment_gateway', $filters['payment_gateway']);
         }
 
-        if (! empty($filters['date_from'])) {
-            $query->whereRaw('CAST(created_at AS DATE) >= ?', [$filters['date_from']]);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
 
-        if (! empty($filters['date_to'])) {
-            $query->whereRaw('CAST(created_at AS DATE) <= ?', [$filters['date_to']]);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         return $query->latest()->get();
@@ -162,13 +164,14 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
         $query = $this->model->newQuery()
             ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->whereNotNull('paid_at');
+        [$fromBound, $toBound] = $this->paidAtBounds($from, $to);
 
-        if ($from) {
-            $query->whereDate('paid_at', '>=', $from);
+        if ($fromBound !== null) {
+            $query->where('paid_at', '>=', $fromBound);
         }
 
-        if ($to) {
-            $query->whereDate('paid_at', '<=', $to);
+        if ($toBound !== null) {
+            $query->where('paid_at', '<=', $toBound);
         }
 
         return (float) $query->sum('amount');
@@ -180,13 +183,15 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      */
     public function getRevenueDetailByTour(?string $from, ?string $to): array
     {
+        [$fromBound, $toBound] = $this->paidAtBounds($from, $to);
+
         // Use subquery to get unique paid booking IDs in the given period
         // to avoid double counting if multiple payments exist for one booking.
         $paidBookingIds = $this->model->newQuery()
             ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->whereNotNull('paid_at')
-            ->when($from, fn ($q) => $q->whereDate('paid_at', '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate('paid_at', '<=', $to))
+            ->when($fromBound !== null, fn ($q) => $q->where('paid_at', '>=', $fromBound))
+            ->when($toBound !== null, fn ($q) => $q->where('paid_at', '<=', $toBound))
             ->distinct()
             ->pluck('booking_id');
 
@@ -210,6 +215,31 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      * (Chuẩn hóa các ngưỡng paid_at)
      */
     private function paidAtBounds(?string $from, ?string $to): array
+    {
+        $tz = config('app.timezone');
+        $fromBound = null;
+        $toBound = null;
+
+        if ($from !== null && $from !== '') {
+            $fromBound = $this->isDateOnlyString($from)
+                ? Carbon::parse($from, $tz)->startOfDay()->toDateTimeString()
+                : Carbon::parse($from, $tz)->toDateTimeString();
+        }
+
+        if ($to !== null && $to !== '') {
+            $toBound = $this->isDateOnlyString($to)
+                ? Carbon::parse($to, $tz)->endOfDay()->toDateTimeString()
+                : Carbon::parse($to, $tz)->toDateTimeString();
+        }
+
+        return [$fromBound, $toBound];
+    }
+
+    /**
+     * Normalize created_at filter bounds. Date-only "to" uses end of day (inclusive).
+     * (Chuẩn hóa các ngưỡng created_at)
+     */
+    private function createdAtBounds(?string $from, ?string $to): array
     {
         $tz = config('app.timezone');
         $fromBound = null;

@@ -115,4 +115,10 @@ final class Location extends Model
         return $this->belongsToMany(Amenity::class, 'location_amenities')
             ->withPivot('created_at');
     }
+
+    public function tours(): BelongsToMany
+    {
+        return $this->belongsToMany(Tour::class, 'tour_locations')
+            ->withPivot('created_at');
+    }
 }

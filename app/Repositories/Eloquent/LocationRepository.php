@@ -6,6 +6,7 @@ use App\Enums\Constants;
 use App\Enums\Pagination;
 use App\Models\Location;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -56,6 +57,11 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
             if (in_array($driver, ['mysql', 'mariadb'], true)) {
                 $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $query->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
             } else {
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'like', "%{$searchTerm}%")
@@ -268,12 +274,13 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $query = $this->model->newQuery()
             ->selectRaw('category_id, district, COUNT(*) as count')
             ->with('category:id,name');
+        [$fromBound, $toBound] = $this->createdAtBounds($fromDate, $toDate);
 
-        if ($fromDate) {
-            $query->whereDate('created_at', '>=', $fromDate);
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
         }
-        if ($toDate) {
-            $query->whereDate('created_at', '<=', $toDate);
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
         }
 
         return $query->groupBy('category_id', 'district')
@@ -391,5 +398,168 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->orderByDesc('view_count')
             ->limit($limit)
             ->get();
+    }
+
+    /**
+     * Admin list: includes inactive locations; same filters as public list where applicable.
+     */
+    public function getAdminLocations(array $filters = []): LengthAwarePaginator
+    {
+        $query = $this->model->newQuery()
+            ->with(['category', 'subcategory', 'tags']);
+
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        if (isset($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $query->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
+            } else {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%")
+                        ->orWhere('address', 'like', "%{$searchTerm}%");
+                });
+            }
+        }
+
+        if (isset($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        }
+
+        if (isset($filters['category_ids']) && is_array($filters['category_ids']) && count($filters['category_ids']) > 0) {
+            $query->whereIn('category_id', $filters['category_ids']);
+        }
+
+        if (isset($filters['subcategory_id'])) {
+            $query->where('subcategory_id', $filters['subcategory_id']);
+        }
+
+        if (isset($filters['district'])) {
+            $query->where('district', $filters['district']);
+        }
+
+        if (isset($filters['districts']) && is_array($filters['districts']) && count($filters['districts']) > 0) {
+            $query->whereIn('district', $filters['districts']);
+        }
+
+        if (isset($filters['price_min'])) {
+            $query->where('price_min', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_max', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['is_featured'])) {
+            $query->where('is_featured', $filters['is_featured']);
+        }
+
+        if (isset($filters['price_level'])) {
+            $query->where('price_level', $filters['price_level']);
+        }
+
+        if (isset($filters['min_rating'])) {
+            $query->where('avg_rating', '>=', $filters['min_rating']);
+        }
+
+        if (isset($filters['tag'])) {
+            $tags = is_array($filters['tag'])
+                ? $filters['tag']
+                : array_filter(array_map('trim', explode(',', (string) $filters['tag'])));
+
+            if (count($tags) > 0) {
+                $query->whereHas('tags', function ($q) use ($tags) {
+                    $q->whereIn('slug', $tags)->orWhereIn('name', $tags);
+                });
+            }
+        }
+
+        $validSortFields = ['created_at', 'avg_rating', 'review_count', 'view_count', 'price_min'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
+        $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
+        $page = $filters['page'] ?? Pagination::PAGE->value;
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
+    }
+
+    /**
+     * @return array{total: int, active: int, featured: int, total_views: int}
+     */
+    public function getAdminLocationStatsSummary(): array
+    {
+        return [
+            'total' => $this->model->newQuery()->count(),
+            'active' => $this->model->newQuery()->where('status', 'active')->count(),
+            'featured' => $this->model->newQuery()->where('is_featured', true)->count(),
+            'total_views' => (int) $this->model->newQuery()->sum('view_count'),
+        ];
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getDistinctDistrictsForAdmin(): array
+    {
+        return $this->model->newQuery()
+            ->whereNotNull('district')
+            ->where('district', '!=', '')
+            ->distinct()
+            ->orderBy('district')
+            ->pluck('district')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Admin: find a location by ID with all relations for editing.
+     * (Admin: tìm địa điểm theo ID với đầy đủ quan hệ để chỉnh sửa)
+     */
+    public function findWithDetails(int $id): ?Location
+    {
+        return $this->model->newQuery()
+            ->with(['category', 'subcategory', 'tags', 'amenities'])
+            ->find($id);
+    }
+
+    /**
+     * Normalize created_at filter bounds. Date-only "to" uses end of day (inclusive).
+     * (Chuẩn hóa các ngưỡng created_at)
+     */
+    private function createdAtBounds(?string $from, ?string $to): array
+    {
+        $tz = config('app.timezone');
+        $fromBound = null;
+        $toBound = null;
+
+        if ($from !== null && $from !== '') {
+            $fromBound = $this->isDateOnlyString($from)
+                ? Carbon::parse($from, $tz)->startOfDay()->toDateTimeString()
+                : Carbon::parse($from, $tz)->toDateTimeString();
+        }
+
+        if ($to !== null && $to !== '') {
+            $toBound = $this->isDateOnlyString($to)
+                ? Carbon::parse($to, $tz)->endOfDay()->toDateTimeString()
+                : Carbon::parse($to, $tz)->toDateTimeString();
+        }
+
+        return [$fromBound, $toBound];
+    }
+
+    private function isDateOnlyString(string $value): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
     }
 }

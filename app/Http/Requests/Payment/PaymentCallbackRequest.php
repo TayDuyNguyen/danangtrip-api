@@ -11,6 +11,28 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class PaymentCallbackRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $transactionCode = $this->input('transaction_code')
+            ?? $this->input('vnp_TxnRef')
+            ?? $this->input('orderId')
+            ?? $this->input('apptransid');
+
+        $status = $this->input('status');
+        if ($status === null) {
+            if ($this->has('vnp_ResponseCode')) {
+                $status = ((string) $this->input('vnp_ResponseCode') === '00') ? 'success' : 'failed';
+            } elseif ($this->has('resultCode')) {
+                $status = ((int) $this->input('resultCode') === 0) ? 'success' : 'failed';
+            }
+        }
+
+        $this->merge(array_filter([
+            'transaction_code' => $transactionCode,
+            'status' => $status,
+        ], static fn ($value) => $value !== null && $value !== ''));
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      * (Kiểm tra xem người dùng có quyền thực hiện yêu cầu này không)

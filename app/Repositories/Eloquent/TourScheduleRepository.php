@@ -39,7 +39,7 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
 
         $sortField = $filters['sort'] ?? 'start_date';
         $sortOrder = strtolower((string) ($filters['order'] ?? 'desc')) === 'asc' ? 'asc' : 'desc';
-        $allowedSort = ['start_date', 'end_date', 'max_people', 'booked_people', 'status', 'created_at'];
+        $allowedSort = ['start_date', 'end_date', 'max_people', 'booked_people', 'status', 'booking_availability', 'created_at'];
         if (! in_array($sortField, $allowedSort, true)) {
             $sortField = 'start_date';
         }
@@ -60,7 +60,8 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
         return [
             'total_schedules' => (clone $base)->count(),
             'available_schedules' => (clone $base)->where('status', 'available')->count(),
-            'full_schedules' => (clone $base)->where('status', 'full')->count(),
+            // Keep response key for backward compatibility with admin UI cards.
+            'full_schedules' => (clone $base)->where('booking_availability', 'sold_out')->count(),
             'cancelled_schedules' => (clone $base)->where('status', 'cancelled')->count(),
         ];
     }
@@ -81,6 +82,10 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
 
         if (! $ignoreStatusFilter && isset($filters['status']) && $filters['status'] !== '') {
             $query->where('status', $filters['status']);
+        }
+
+        if (! $ignoreStatusFilter && isset($filters['booking_availability']) && $filters['booking_availability'] !== '') {
+            $query->where('booking_availability', $filters['booking_availability']);
         }
 
         if (! empty($filters['from'])) {
@@ -134,5 +139,37 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
         }
 
         return $schedule->bookingItems()->exists();
+    }
+
+    public function increaseBookedPeople(int $id, int $amount): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        return (bool) $schedule->increment('booked_people', $amount);
+    }
+
+    public function decreaseBookedPeople(int $id, int $amount): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        $newBooked = max(0, $schedule->booked_people - $amount);
+
+        return (bool) $schedule->update(['booked_people' => $newBooked]);
+    }
+
+    public function updateBookingAvailability(int $id, string $availability): bool
+    {
+        $schedule = $this->find($id);
+        if (! $schedule) {
+            return false;
+        }
+
+        return $schedule->update(['booking_availability' => $availability]);
     }
 }

@@ -23,7 +23,6 @@ class ReorderTourCategoryRequest extends FormRequest
                 'required',
                 'integer',
                 'distinct',
-                'exists:tour_categories,id',
             ],
             'items.*.sort_order' => [
                 'required',
@@ -43,7 +42,6 @@ class ReorderTourCategoryRequest extends FormRequest
             'items.*.id.required' => 'Category ID is required.',
             'items.*.id.integer' => 'Category ID must be an integer.',
             'items.*.id.distinct' => 'Category IDs must not be duplicated.',
-            'items.*.id.exists' => 'One or more categories do not exist.',
             'items.*.sort_order.required' => 'Sort order is required.',
             'items.*.sort_order.integer' => 'Sort order must be an integer.',
             'items.*.sort_order.min' => 'Sort order must be at least 1.',

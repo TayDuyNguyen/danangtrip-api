@@ -17,8 +17,12 @@ return new class extends Migration
             $table->string('token', 64)->unique();
             $table->timestamp('expires_at');
             $table->timestamp('used_at')->nullable();
-            $table->unsignedBigInteger('previous_token_id')->nullable();
+            $table->foreignId('previous_token_id')->nullable()->constrained('refresh_tokens')->nullOnDelete();
             $table->timestamps();
+
+            $table->index(['user_id', 'created_at']);
+            $table->index('expires_at');
+            $table->index('used_at');
         });
     }
 

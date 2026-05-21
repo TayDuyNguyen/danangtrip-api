@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Exports\ContactsExport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Contact\DeleteContactRequest;
 use App\Http\Requests\Contact\ExportContactRequest;
 use App\Http\Requests\Contact\IndexContactRequest;
 use App\Http\Requests\Contact\ReplyContactRequest;
+use App\Http\Requests\Contact\ShowContactRequest;
 use App\Services\ContactService;
 use Illuminate\Http\JsonResponse;
 use Maatwebsite\Excel\Facades\Excel;
@@ -41,7 +43,7 @@ final class ContactController extends Controller
      * Display contact detail and mark as read.
      * (Hiển thị chi tiết liên hệ và đánh dấu đã đọc)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowContactRequest $request, int $id): JsonResponse
     {
         $result = $this->contactService->getDetail($id);
 
@@ -68,7 +70,7 @@ final class ContactController extends Controller
      * Delete a contact.
      * (Xóa liên hệ)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteContactRequest $request, int $id): JsonResponse
     {
         $result = $this->contactService->deleteContact($id);
 

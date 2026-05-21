@@ -42,7 +42,7 @@ interface TourRepositoryInterface extends RepositoryInterface
      * Get schedules for a tour.
      * (Lấy lịch khởi hành của tour)
      */
-    public function getSchedules(int $id): Collection;
+    public function getSchedules(array $request): Collection;
 
     /**
      * Get ratings for a tour.
@@ -57,10 +57,10 @@ interface TourRepositoryInterface extends RepositoryInterface
     public function getRatingStats(int $id): array;
 
     /**
-     * Get a tour schedule for a specific date.
-     * (Lấy lịch khởi hành của tour cho một ngày cụ thể)
+     * Get a tour schedule by ID.
+     * (Lấy lịch khởi hành của tour theo ID)
      */
-    public function getScheduleByDate(int $id, string $date): ?TourSchedule;
+    public function getScheduleById(int $tourId, int $scheduleId): ?TourSchedule;
 
     /**
      * Update tour rating statistics.
@@ -89,4 +89,12 @@ interface TourRepositoryInterface extends RepositoryInterface
      * @param  int[]  $ids
      */
     public function getByIds(array $ids): Collection;
+
+    public function findAdminDetailById(int $id): ?Tour;
+
+    public function syncLocations(int $tourId, array $locationIds): bool;
+
+    public function getUpcomingBookingAvailabilityValues(int $tourId): array;
+
+    public function updateBookingAvailability(int $tourId, string $availability): bool;
 }

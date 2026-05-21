@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Notification\AdminDeleteNotificationRequest;
 use App\Http\Requests\Notification\AdminListNotificationRequest;
 use App\Http\Requests\Notification\SendAllNotificationRequest;
 use App\Http\Requests\Notification\SendNotificationRequest;
@@ -67,18 +68,9 @@ final class NotificationController extends Controller
      * Delete a notification.
      * (Xóa thông báo)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(AdminDeleteNotificationRequest $request, int $id): JsonResponse
     {
-        // Admin xóa không cần userId kiểm tra quyền sở hữu,
-        // nhưng service hiện tại yêu cầu userId.
-        // Tôi sẽ truyền 0 hoặc refactor service nếu cần.
-        // Thực tế admin có quyền xóa bất cứ cái nào.
-
-        // Refactor: gọi trực tiếp repository hoặc để userId = 0 (logic trong repo cần handle admin)
-        // Hiện tại deleteForUser trong repo có where user_id.
-        // Tôi sẽ thêm phương thức delete cho admin.
-
-        $result = $this->notificationService->deleteNotification(0, $id); // Cần kiểm tra logic này
+        $result = $this->notificationService->deleteNotification(null, $id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])

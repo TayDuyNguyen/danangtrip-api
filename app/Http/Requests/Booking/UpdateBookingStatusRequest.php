@@ -30,7 +30,7 @@ class UpdateBookingStatusRequest extends FormRequest
     {
         return [
             'booking_status' => ['required', 'string', Rule::in(BookingStatus::values())],
-            'cancellation_reason' => ['sometimes', 'required_if:booking_status,'.BookingStatus::CANCELLED->value, 'string', 'max:1000'],
+            'cancellation_reason' => ['sometimes', 'nullable', 'string', 'max:1000'],
         ];
     }
 

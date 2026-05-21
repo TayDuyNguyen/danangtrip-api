@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TourCategoryRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class TourCategoryService
@@ -35,7 +34,6 @@ final class TourCategoryService
                 'data' => $categories,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -64,7 +62,6 @@ final class TourCategoryService
                 'data' => $tours,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -93,7 +90,6 @@ final class TourCategoryService
                     : $categories,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -122,7 +118,6 @@ final class TourCategoryService
                 'data' => $category,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -154,7 +149,6 @@ final class TourCategoryService
                 'data' => $this->tourCategoryRepository->find($id),
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -189,7 +183,6 @@ final class TourCategoryService
                 'message' => 'Tour category deleted successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -218,7 +211,6 @@ final class TourCategoryService
                 'message' => 'Status updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -249,7 +241,6 @@ final class TourCategoryService
                 'message' => 'Categories reordered successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

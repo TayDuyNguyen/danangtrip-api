@@ -47,4 +47,10 @@ interface TourScheduleRepositoryInterface extends RepositoryInterface
      * (Kiểm tra xem lịch khởi hành có bất kỳ đơn đặt chỗ nào không)
      */
     public function hasBookings(int $id): bool;
+
+    public function increaseBookedPeople(int $id, int $amount): bool;
+
+    public function decreaseBookedPeople(int $id, int $amount): bool;
+
+    public function updateBookingAvailability(int $id, string $availability): bool;
 }

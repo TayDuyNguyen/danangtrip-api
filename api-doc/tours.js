@@ -8,7 +8,8 @@
  *
  * @apiParam (Query) {Number} [category_id] Category id
  * @apiParam (Query) {String} [search] Search text (name)
- * @apiParam (Query) {String="active","inactive","pending"} [status] Status filter (default: active)
+ * @apiParam (Query) {String="active","inactive"} [status] Publication/admin visibility (public default: active)
+ * @apiParam (Query) {String="open","sold_out"} [booking_availability] Booking slots filter (legacy: status=sold_out maps to booking_availability=sold_out)
  * @apiParam (Query) {String="created_at","price","rating_avg"} [order_by] Order field
  * @apiParam (Query) {String="asc","desc"} [order_dir] Order direction
  * @apiParam (Query) {Number{1-100}} [per_page] Items per page
@@ -32,7 +33,8 @@
  *         "price": 500000,
  *         "rating_avg": 4.5,
  *         "rating_count": 10,
- *         "status": "active"
+ *         "status": "active",
+ *         "booking_availability": "open"
  *       }
  *     ],
  *     "per_page": 10,

@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\TourBookingAvailability;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class Tour extends Model
@@ -34,8 +36,7 @@ final class Tour extends Model
         'thumbnail',
         'images',
         'video_url',
-        'location_ids',
-        'status', // active, inactive, sold_out
+        'status', // active, inactive (booking capacity: booking_availability)
         'is_featured',
         'is_hot',
         'view_count',
@@ -50,10 +51,9 @@ final class Tour extends Model
             'inclusions' => 'json',
             'exclusions' => 'json',
             'images' => 'json',
-            'location_ids' => 'json',
-            'price_adult' => 'decimal:0',
-            'price_child' => 'decimal:0',
-            'price_infant' => 'decimal:0',
+            'price_adult' => 'decimal:2',
+            'price_child' => 'decimal:2',
+            'price_infant' => 'decimal:2',
             'discount_percent' => 'integer',
             'max_people' => 'integer',
             'min_people' => 'integer',
@@ -63,6 +63,7 @@ final class Tour extends Model
             'is_hot' => 'boolean',
             'view_count' => 'integer',
             'booking_count' => 'integer',
+            'booking_availability' => TourBookingAvailability::class,
         ];
     }
 
@@ -84,5 +85,11 @@ final class Tour extends Model
     public function ratings(): HasMany
     {
         return $this->hasMany(Rating::class);
+    }
+
+    public function locations(): BelongsToMany
+    {
+        return $this->belongsToMany(Location::class, 'tour_locations')
+            ->withPivot('created_at');
     }
 }

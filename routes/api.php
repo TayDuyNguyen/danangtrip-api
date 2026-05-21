@@ -128,6 +128,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/tours/{id}/ratings', [TourController::class, 'ratings'])->whereNumber('id');
     Route::get('/tours/{id}/rating-stats', [TourController::class, 'ratingStats'])->whereNumber('id');
     Route::post('/tours/{id}/check-availability', [TourController::class, 'checkAvailability'])->whereNumber('id')->middleware('throttle:api.standard');
+    Route::post('/bookings/calculate', [BookingController::class, 'calculate'])->middleware('throttle:api.standard');
 
     // Tour Categories: Public access
     // (Danh mục tour: Truy cập công khai)
@@ -162,9 +163,9 @@ Route::prefix('v1')->group(function () {
         // Favorites: List / Add / Remove / Check
         // (Yêu thích: Danh sách / Thêm / Xóa / Kiểm tra)
         Route::get('/user/favorites', [FavoriteController::class, 'index']);
-        Route::get('/user/favorites/check/{location_id}', [FavoriteController::class, 'check'])->whereNumber('location_id');
+        Route::get('/user/favorites/check', [FavoriteController::class, 'check']);
         Route::post('/user/favorites', [FavoriteController::class, 'store']);
-        Route::delete('/user/favorites/{location_id}', [FavoriteController::class, 'destroy'])->whereNumber('location_id');
+        Route::delete('/user/favorites', [FavoriteController::class, 'destroy']);
 
         // Recommendations
         // (Gợi ý)
@@ -194,19 +195,22 @@ Route::prefix('v1')->group(function () {
 
         // Bookings
         // (Đặt tour)
-        Route::post('/bookings/calculate', [BookingController::class, 'calculate'])->middleware('throttle:api.auth');
         Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:api.strict');
         Route::get('/user/bookings', [BookingController::class, 'index']);
         Route::get('/user/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id');
-        Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode']);
+        Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode'])
+            ->where('booking_code', '[A-Za-z0-9_-]{1,20}');
         Route::get('/user/bookings/{id}/invoice', [BookingController::class, 'invoice'])->whereNumber('id');
         Route::post('/user/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id');
 
         // Payments
         // (Thanh toán)
         Route::post('/payments/create', [PaymentController::class, 'create'])->middleware('throttle:api.strict');
-        Route::get('/payments/status/{transaction_code}', [PaymentController::class, 'status']);
-        Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])->middleware('throttle:api.strict');
+        Route::get('/payments/status/{transaction_code}', [PaymentController::class, 'status'])
+            ->where('transaction_code', '[A-Za-z0-9_-]{1,100}');
+        Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])
+            ->where('booking_code', '[A-Za-z0-9_-]{1,20}')
+            ->middleware('throttle:api.strict');
     });
 
     // =========================================================================
@@ -233,7 +237,10 @@ Route::prefix('v1')->group(function () {
 
         // Categories Management
         // (Quản lý Danh mục)
+        Route::get('/categories', [AdminCategoryController::class, 'index'])->middleware('throttle:api.admin');
+        Route::get('/categories/{id}', [AdminCategoryController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
         Route::post('/categories', [AdminCategoryController::class, 'store']);
+        Route::patch('/categories/reorder', [AdminCategoryController::class, 'reorder']);
         Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->whereNumber('id');
         Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->whereNumber('id');
         Route::patch('/categories/{id}/status', [AdminCategoryController::class, 'updateStatus'])->whereNumber('id');
@@ -248,6 +255,10 @@ Route::prefix('v1')->group(function () {
         // Location Management
         // (Quản lý Địa điểm)
         Route::get('/locations/export', [AdminLocationController::class, 'export'])->middleware('throttle:api.exports');
+        Route::get('/locations/stats', [AdminLocationController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/locations/districts', [AdminLocationController::class, 'districts'])->middleware('throttle:api.admin');
+        Route::get('/locations', [AdminLocationController::class, 'index'])->middleware('throttle:api.admin');
+        Route::get('/locations/{id}', [AdminLocationController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
         Route::post('/locations', [AdminLocationController::class, 'store']);
         Route::put('/locations/{id}', [AdminLocationController::class, 'update'])->whereNumber('id');
         Route::delete('/locations/{id}', [AdminLocationController::class, 'destroy'])->whereNumber('id');
@@ -333,7 +344,6 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
-        Route::delete('/bookings/{id}', [AdminBookingController::class, 'destroy'])->whereNumber('id');
 
         // Payments Management
         // (Quản lý Thanh toán)

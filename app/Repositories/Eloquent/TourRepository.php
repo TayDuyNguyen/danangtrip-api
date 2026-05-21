@@ -38,7 +38,19 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         $query = $this->model->newQuery();
 
         if (isset($filters['search'])) {
-            $query->where('name', 'like', '%'.$filters['search'].'%');
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $query->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(itinerary::text, '') || ' ' || coalesce(inclusions::text, '') || ' ' || coalesce(exclusions::text, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
+            } else {
+                $query->where('name', 'like', '%'.$searchTerm.'%');
+            }
         }
 
         if (isset($filters['tour_category_id'])) {
@@ -51,6 +63,22 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
 
         if (isset($filters['price_max'])) {
             $query->where('price_adult', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['duration'])) {
+            $query->where('duration', 'like', '%'.$filters['duration'].'%');
+        }
+
+        if (isset($filters['available_from'])) {
+            $query->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '>=', $filters['available_from']);
+            });
+        }
+
+        if (isset($filters['available_to'])) {
+            $query->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '<=', $filters['available_to']);
+            });
         }
 
         if (isset($filters['is_featured'])) {
@@ -67,10 +95,19 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('status', TourStatus::ACTIVE->value);
         }
 
-        $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'];
+        if (isset($filters['booking_availability'])) {
+            $query->where(
+                'booking_availability',
+                $filters['booking_availability']
+            );
+        }
+
+        $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'];
         $orderBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
         $orderDir = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($orderBy, $orderDir);
+
+        $query->withCount('schedules');
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
@@ -129,17 +166,26 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      * Get schedules for a tour.
      * (Lấy lịch khởi hành của tour)
      */
-    public function getSchedules(int $id): Collection
+    public function getSchedules(array $request): Collection
     {
-        $tour = $this->find($id);
+        $tour = $this->find($request['id']);
         if (! $tour) {
             return new Collection;
         }
 
-        return $tour->schedules()
-            ->where('start_date', '>=', now())
-            ->orderBy('start_date', 'asc')
-            ->get();
+        $query = $tour->schedules()->orderBy('start_date', 'asc');
+
+        if (! empty($request['from_date'])) {
+            $query->where('start_date', '>=', $request['from_date']);
+        } else {
+            $query->where('start_date', '>=', now());
+        }
+
+        if (! empty($request['to_date'])) {
+            $query->where('start_date', '<=', $request['to_date']);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -191,18 +237,18 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     }
 
     /**
-     * Get a tour schedule for a specific date.
-     * (Lấy lịch khởi hành của tour cho một ngày cụ thể)
+     * Get a tour schedule by ID.
+     * (Lấy lịch khởi hành của tour theo ID)
      */
-    public function getScheduleByDate(int $id, string $date): ?TourSchedule
+    public function getScheduleById(int $tourId, int $scheduleId): ?TourSchedule
     {
-        $tour = $this->find($id);
+        $tour = $this->find($tourId);
         if (! $tour) {
             return null;
         }
 
         return $tour->schedules()
-            ->whereDate('start_date', $date)
+            ->where('id', $scheduleId)
             ->first();
     }
 
@@ -277,5 +323,49 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             ->where('status', TourStatus::ACTIVE->value)
             ->with(['category'])
             ->get();
+    }
+
+    public function findAdminDetailById(int $id): ?Tour
+    {
+        return $this->model->newQuery()
+            ->with([
+                'category',
+                'schedules' => function ($query) {
+                    $query->orderBy('start_date', 'desc');
+                },
+            ])
+            ->find($id);
+    }
+
+    public function syncLocations(int $tourId, array $locationIds): bool
+    {
+        $tour = $this->find($tourId);
+        if (! $tour) {
+            return false;
+        }
+
+        $tour->locations()->sync($locationIds);
+
+        return true;
+    }
+
+    public function getUpcomingBookingAvailabilityValues(int $tourId): array
+    {
+        return TourSchedule::query()
+            ->where('tour_id', $tourId)
+            ->whereDate('end_date', '>=', now()->toDateString())
+            ->where('status', 'available')
+            ->pluck('booking_availability')
+            ->all();
+    }
+
+    public function updateBookingAvailability(int $tourId, string $availability): bool
+    {
+        $tour = $this->find($tourId);
+        if (! $tour) {
+            return false;
+        }
+
+        return $tour->update(['booking_availability' => $availability]);
     }
 }

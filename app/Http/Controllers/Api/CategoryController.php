@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
-use App\Enums\Pagination;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Category\IndexCategoryRequest;
+use App\Http\Requests\Category\LocationsBySlugCategoryRequest;
+use App\Http\Requests\Category\ShowCategoryRequest;
 use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 
@@ -31,7 +33,7 @@ class CategoryController extends Controller
      * Display a listing of public categories.
      * (Hiển thị danh sách các danh mục công khai)
      */
-    public function index(): JsonResponse
+    public function index(IndexCategoryRequest $request): JsonResponse
     {
         $result = $this->categoryService->getPublicCategories();
 
@@ -44,7 +46,7 @@ class CategoryController extends Controller
      * Display the specified public category.
      * (Hiển thị danh mục công khai cụ thể)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowCategoryRequest $request, int $id): JsonResponse
     {
         $result = $this->categoryService->getPublicCategoryById($id);
 
@@ -57,9 +59,9 @@ class CategoryController extends Controller
      * Get locations by category slug with pagination.
      * (Lấy danh sách địa điểm theo slug Danh mục kèm phân trang)
      */
-    public function locationsBySlug(string $slug): JsonResponse
+    public function locationsBySlug(LocationsBySlugCategoryRequest $request, string $slug): JsonResponse
     {
-        $perPage = (int) request()->input('per_page', Pagination::PER_PAGE->value);
+        $perPage = (int) $request->validated('per_page');
         $result = $this->categoryService->getLocationsByCategorySlug($slug, $perPage);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value

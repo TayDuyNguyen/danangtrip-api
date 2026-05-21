@@ -100,10 +100,18 @@ final class SearchService
     {
         $filters = ['search' => $q];
 
-        foreach (['tour_category_id', 'price_min', 'price_max', 'is_featured', 'is_hot', 'order_by', 'order_dir', 'page', 'per_page'] as $key) {
+        foreach (['tour_category_id', 'price_min', 'price_max', 'is_featured', 'is_hot', 'sort_by', 'sort_order', 'order_by', 'order_dir', 'page', 'per_page'] as $key) {
             if (isset($data[$key])) {
                 $filters[$key] = $data[$key];
             }
+        }
+
+        // Backward compatibility for old clients sending order_* parameters.
+        if (! isset($filters['sort_by']) && isset($filters['order_by'])) {
+            $filters['sort_by'] = $filters['order_by'];
+        }
+        if (! isset($filters['sort_order']) && isset($filters['order_dir'])) {
+            $filters['sort_order'] = $filters['order_dir'];
         }
 
         return $filters;

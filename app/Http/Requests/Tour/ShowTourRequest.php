@@ -26,6 +26,15 @@ class ShowTourRequest extends FormRequest
                 'integer',
                 'exists:tours,id',
             ],
+            'from_date' => [
+                'sometimes',
+                'date',
+            ],
+            'to_date' => [
+                'sometimes',
+                'date',
+                'after_or_equal:from_date',
+            ],
         ];
     }
 

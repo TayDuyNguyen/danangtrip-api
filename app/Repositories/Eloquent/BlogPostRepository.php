@@ -32,8 +32,14 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
             ->with(['author:id,full_name,avatar', 'categories'])
             ->where('status', 'published')
             ->whereNotNull('published_at')
-            ->where('published_at', '<=', now())
-            ->orderByDesc('published_at');
+            ->where('published_at', '<=', now());
+
+        $sort = $filters['sort'] ?? 'latest';
+        if ($sort === 'popular') {
+            $query->orderByDesc('view_count')->orderByDesc('published_at');
+        } else {
+            $query->orderByDesc('published_at');
+        }
 
         if (! empty($filters['category_id'])) {
             $query->whereHas('categories', function ($q) use ($filters) {

@@ -7,7 +7,6 @@ use App\Enums\Pagination;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use Exception;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class FavoriteService.
@@ -45,7 +44,6 @@ class FavoriteService
                 'data' => $favorites,
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -55,50 +53,61 @@ class FavoriteService
     }
 
     /**
-     * Save a location to user's favorites.
-     * (Lưu một địa điểm vào danh sách yêu thích của người dùng)
+     * Save a location or tour to user's favorites.
+     * (Lưu một địa điểm hoặc tour vào danh sách yêu thích của người dùng)
      */
-    public function saveFavorite(int $userId, int $locationId): array
+    public function saveFavorite(int $userId, ?int $locationId = null, ?int $tourId = null): array
     {
         try {
-            $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            $existing = null;
+            if ($locationId) {
+                $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            } elseif ($tourId) {
+                $existing = $this->favoriteRepository->findByUserAndTour($userId, $tourId);
+            }
 
             if ($existing) {
                 return [
                     'status' => HttpStatusCode::BAD_REQUEST->value,
-                    'message' => 'This location is already in your favorites.',
+                    'message' => 'This item is already in your favorites.',
                 ];
             }
 
             $this->favoriteRepository->create([
                 'user_id' => $userId,
                 'location_id' => $locationId,
+                'tour_id' => $tourId,
             ]);
 
-            $this->locationRepository->increment($locationId, 'favorite_count');
+            if ($locationId) {
+                $this->locationRepository->increment($locationId, 'favorite_count');
+            }
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
-                'message' => 'Location added to favorites successfully.',
+                'message' => 'Added to favorites successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to add location to favorites.',
+                'message' => 'Failed to add to favorites.',
             ];
         }
     }
 
     /**
-     * Remove a location from user's favorites.
-     * (Xóa địa điểm khỏi danh sách yêu thích của người dùng)
+     * Remove a location or tour from user's favorites.
+     * (Xóa địa điểm hoặc tour khỏi danh sách yêu thích của người dùng)
      */
-    public function unsaveFavorite(int $userId, int $locationId): array
+    public function unsaveFavorite(int $userId, ?int $locationId = null, ?int $tourId = null): array
     {
         try {
-            $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            $existing = null;
+            if ($locationId) {
+                $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            } elseif ($tourId) {
+                $existing = $this->favoriteRepository->findByUserAndTour($userId, $tourId);
+            }
 
             if (! $existing) {
                 return [
@@ -108,30 +117,35 @@ class FavoriteService
             }
 
             $this->favoriteRepository->delete($existing->id);
-            $this->locationRepository->decrement($locationId, 'favorite_count', 1, [['favorite_count', '>', 0]]);
+            if ($locationId) {
+                $this->locationRepository->decrement($locationId, 'favorite_count', 1, [['favorite_count', '>', 0]]);
+            }
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'message' => 'Location removed from favorites successfully.',
+                'message' => 'Removed from favorites successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to remove location from favorites.',
+                'message' => 'Failed to remove from favorites.',
             ];
         }
     }
 
     /**
-     * Check if a location is favorited by a user.
-     * (Kiểm tra xem địa điểm đã được người dùng yêu thích chưa)
+     * Check if a location or tour is favorited by a user.
+     * (Kiểm tra xem địa điểm hoặc tour đã được người dùng yêu thích chưa)
      */
-    public function checkFavorite(int $userId, int $locationId): array
+    public function checkFavorite(int $userId, ?int $locationId = null, ?int $tourId = null): array
     {
         try {
-            $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            $existing = null;
+            if ($locationId) {
+                $existing = $this->favoriteRepository->findByUserAndLocation($userId, $locationId);
+            } elseif ($tourId) {
+                $existing = $this->favoriteRepository->findByUserAndTour($userId, $tourId);
+            }
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -140,7 +154,6 @@ class FavoriteService
                 ],
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

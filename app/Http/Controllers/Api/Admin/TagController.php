@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Tag\DeleteTagRequest;
 use App\Http\Requests\Tag\StoreTagRequest;
 use App\Http\Requests\Tag\UpdateTagRequest;
 use App\Services\TagService;
@@ -52,7 +53,7 @@ final class TagController extends Controller
      * Remove the specified tag.
      * (Xóa tag)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteTagRequest $request, int $id): JsonResponse
     {
         $result = $this->tagService->deleteTag($id);
 

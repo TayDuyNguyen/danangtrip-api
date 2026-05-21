@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Exports\BookingsExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\IndexBookingRequest;
+use App\Http\Requests\Booking\ShowBookingRequest;
 use App\Http\Requests\Booking\UpdateBookingStatusRequest;
 use App\Services\BookingService;
 use App\Traits\ApiResponser;
@@ -99,7 +100,7 @@ class BookingController extends Controller
      * Display the specified booking.
      * (Hiển thị chi tiết đơn đặt tour cụ thể)
      */
-    public function show(int $id): JsonResponse
+    public function show(ShowBookingRequest $request, int $id): JsonResponse
     {
         $result = $this->bookingService->getBooking($id);
 

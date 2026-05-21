@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Amenity\DeleteAmenityRequest;
 use App\Http\Requests\Amenity\StoreAmenityRequest;
 use App\Http\Requests\Amenity\UpdateAmenityRequest;
 use App\Services\AmenityService;
@@ -52,7 +53,7 @@ final class AmenityController extends Controller
      * Remove the specified amenity.
      * (Xóa tiện ích)
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(DeleteAmenityRequest $request, int $id): JsonResponse
     {
         $result = $this->amenityService->deleteAmenity($id);
 

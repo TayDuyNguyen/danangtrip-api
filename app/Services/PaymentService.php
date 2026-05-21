@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Enums\BookingStatus;
 use App\Enums\HttpStatusCode;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -17,6 +18,12 @@ use Illuminate\Support\Str;
  */
 class PaymentService
 {
+    private const CALLBACK_GATEWAYS = [
+        PaymentMethod::MOMO->value,
+        PaymentMethod::VNPAY->value,
+        PaymentMethod::ZALOPAY->value,
+    ];
+
     /**
      * PaymentService constructor.
      * (Hàm khởi tạo)
@@ -42,6 +49,13 @@ class PaymentService
                         'message' => 'Booking not found',
                     ];
                 }
+                $currentUserId = Auth::id();
+                if ($currentUserId !== null && (int) $booking->user_id !== (int) $currentUserId) {
+                    return [
+                        'status' => HttpStatusCode::FORBIDDEN->value,
+                        'message' => 'You do not have permission to pay this booking',
+                    ];
+                }
 
                 if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
                     return [
@@ -55,26 +69,34 @@ class PaymentService
                 $payment = $this->paymentRepository->create([
                     'booking_id' => $booking->id,
                     'transaction_code' => $transactionCode,
-                    'amount' => $booking->total_amount,
+                    'amount' => $booking->final_amount ?? $booking->total_amount,
                     'payment_method' => $data['payment_method'],
                     'payment_status' => PaymentStatus::PENDING->value,
                     'payment_gateway' => $data['payment_method'], // Mock gateway
                 ]);
 
                 // Mock payment link creation
-                $paymentLink = "https://mock-gateway.com/pay/{$transactionCode}?method={$data['payment_method']}&amount={$booking->total_amount}";
+                $amount = $booking->final_amount ?? $booking->total_amount;
+                $paymentLink = $this->buildPaymentUrl(
+                    $transactionCode,
+                    (string) $booking->booking_code,
+                    (string) $data['payment_method'],
+                    (string) $amount,
+                    $data['return_url'] ?? null,
+                );
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
                     'data' => [
                         'payment' => $payment,
                         'payment_url' => $paymentLink,
+                        'transaction_code' => $transactionCode,
+                        'booking_code' => $booking->booking_code,
                     ],
                     'message' => 'Payment link created successfully',
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -107,6 +129,13 @@ class PaymentService
                     return [
                         'status' => HttpStatusCode::NOT_FOUND->value,
                         'message' => 'Payment record not found',
+                    ];
+                }
+
+                if (! $this->supportsSignedCallback($payment->payment_gateway)) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Unsupported payment gateway callback',
                     ];
                 }
 
@@ -143,7 +172,6 @@ class PaymentService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -159,8 +187,6 @@ class PaymentService
         if (isset($gatewayData['vnp_SecureHash']) || $g === 'vnpay') {
             $secret = config('services.vnpay.hash_secret') ?? env('VNPAY_HASH_SECRET');
             if (! $secret) {
-                Log::warning('VNPay secret is not configured. Webhook verification failed.');
-
                 return false;
             }
             $params = [];
@@ -180,8 +206,6 @@ class PaymentService
         if (isset($gatewayData['signature']) || $g === 'momo') {
             $secret = config('services.momo.secret_key') ?? env('MOMO_SECRET_KEY');
             if (! $secret) {
-                Log::warning('MoMo secret is not configured. Webhook verification failed.');
-
                 return false;
             }
             $params = $gatewayData;
@@ -197,8 +221,6 @@ class PaymentService
         if (isset($gatewayData['mac']) || $g === 'zalopay') {
             $secret = config('services.zalopay.key1') ?? env('ZALOPAY_KEY1');
             if (! $secret) {
-                Log::warning('ZaloPay secret is not configured. Webhook verification failed.');
-
                 return false;
             }
             $params = $gatewayData;
@@ -211,7 +233,12 @@ class PaymentService
             return hash_equals($calculated, $mac);
         }
 
-        return true;
+        return false;
+    }
+
+    private function supportsSignedCallback(?string $gateway): bool
+    {
+        return in_array(strtolower((string) $gateway), self::CALLBACK_GATEWAYS, true);
     }
 
     /**
@@ -226,6 +253,15 @@ class PaymentService
             return [
                 'status' => HttpStatusCode::NOT_FOUND->value,
                 'message' => 'Payment not found',
+            ];
+        }
+
+        $currentUserId = Auth::id();
+        $bookingUserId = $payment->booking?->user_id;
+        if ($currentUserId === null || $bookingUserId === null || (int) $bookingUserId !== (int) $currentUserId) {
+            return [
+                'status' => HttpStatusCode::FORBIDDEN->value,
+                'message' => 'You do not have permission to view this payment',
             ];
         }
 
@@ -244,7 +280,7 @@ class PaymentService
      * Retry payment for a booking.
      * (Thử thanh toán lại cho một đơn đặt chỗ)
      */
-    public function retryPayment(string $bookingCode): array
+    public function retryPayment(string $bookingCode, ?string $returnUrl = null): array
     {
         $booking = $this->bookingRepository->findByCode($bookingCode);
 
@@ -252,6 +288,13 @@ class PaymentService
             return [
                 'status' => HttpStatusCode::NOT_FOUND->value,
                 'message' => 'Booking not found',
+            ];
+        }
+        $currentUserId = Auth::id();
+        if ($currentUserId !== null && (int) $booking->user_id !== (int) $currentUserId) {
+            return [
+                'status' => HttpStatusCode::FORBIDDEN->value,
+                'message' => 'You do not have permission to retry this booking',
             ];
         }
 
@@ -269,7 +312,27 @@ class PaymentService
         return $this->createPayment([
             'booking_id' => $booking->id,
             'payment_method' => $paymentMethod,
+            'return_url' => $returnUrl,
         ]);
+    }
+
+    private function buildPaymentUrl(
+        string $transactionCode,
+        string $bookingCode,
+        string $paymentMethod,
+        string $amount,
+        ?string $returnUrl = null
+    ): string {
+        if ($returnUrl) {
+            $separator = str_contains($returnUrl, '?') ? '&' : '?';
+
+            return $returnUrl.$separator.http_build_query([
+                'transaction_code' => $transactionCode,
+                'booking_code' => $bookingCode,
+            ]);
+        }
+
+        return "https://mock-gateway.com/pay/{$transactionCode}?method={$paymentMethod}&amount={$amount}";
     }
 
     /**
@@ -310,7 +373,6 @@ class PaymentService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

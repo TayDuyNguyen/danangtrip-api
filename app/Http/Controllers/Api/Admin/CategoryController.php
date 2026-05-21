@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Category\DeleteCategoryRequest;
+use App\Http\Requests\Category\IndexCategoryRequest;
+use App\Http\Requests\Category\ReorderCategoryRequest;
+use App\Http\Requests\Category\ShowCategoryRequest;
 use App\Http\Requests\Category\StoreCategoryRequest;
 use App\Http\Requests\Category\UpdateCategoryRequest;
 use App\Http\Requests\Category\UpdateStatusCategoryRequest;
@@ -23,6 +26,32 @@ final class CategoryController extends Controller
     ) {}
 
     /**
+     * Display a listing of categories for admin.
+     * (Hiển thị danh sách danh mục cho admin)
+     */
+    public function index(IndexCategoryRequest $request): JsonResponse
+    {
+        $result = $this->categoryService->getAdminCategories($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Display the specified category for admin.
+     * (Hiển thị chi tiết danh mục cho admin)
+     */
+    public function show(ShowCategoryRequest $request, int $id): JsonResponse
+    {
+        $result = $this->categoryService->getAdminCategoryById($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Create a new category.
      * (Tạo danh mục mới)
      */
@@ -31,7 +60,20 @@ final class CategoryController extends Controller
         $result = $this->categoryService->createCategory($request->validated());
 
         return $result['status'] === HttpStatusCode::CREATED->value
-            ? $this->created(['category' => $result['data']], 'Category created successfully')
+            ? $this->created($result['data'], 'Category created successfully')
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Reorder categories in bulk.
+     * (Sắp xếp lại danh mục hàng loạt)
+     */
+    public function reorder(ReorderCategoryRequest $request): JsonResponse
+    {
+        $result = $this->categoryService->reorderCategories($request->validated('items'));
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 
@@ -44,7 +86,7 @@ final class CategoryController extends Controller
         $result = $this->categoryService->updateCategory($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
-            ? $this->success(['category' => $result['data']], 'Category updated successfully')
+            ? $this->success($result['data'], 'Category updated successfully')
             : $this->error($result['message'], $result['status']);
     }
 
@@ -70,7 +112,7 @@ final class CategoryController extends Controller
         $result = $this->categoryService->updateCategoryStatus($id, $request->validated('status'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
-            ? $this->success(null, $result['message'])
+            ? $this->success($result['data'], $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 }

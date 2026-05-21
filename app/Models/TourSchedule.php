@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TourScheduleBookingAvailability;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,7 +21,11 @@ final class TourSchedule extends Model
         'price_adult',
         'price_child',
         'price_infant',
-        'status', // available, full, cancelled
+        'status', // available, cancelled
+        'booking_availability', // open, sold_out
+        'departure_code',
+        'departure_place',
+        'booking_deadline',
     ];
 
     protected function casts(): array
@@ -33,6 +38,8 @@ final class TourSchedule extends Model
             'price_adult' => 'decimal:0',
             'price_child' => 'decimal:0',
             'price_infant' => 'decimal:0',
+            'booking_availability' => TourScheduleBookingAvailability::class,
+            'booking_deadline' => 'datetime',
         ];
     }
 

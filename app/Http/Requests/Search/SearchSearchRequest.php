@@ -12,6 +12,26 @@ use Illuminate\Validation\Rule;
  */
 class SearchSearchRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $type = $this->input('type', 'location');
+        $merged = [];
+
+        // Backward compatibility: map legacy tour order_* params to sort_*.
+        if ($type === 'tour') {
+            if (! $this->has('sort_by') && $this->has('order_by')) {
+                $merged['sort_by'] = $this->input('order_by');
+            }
+            if (! $this->has('sort_order') && $this->has('order_dir')) {
+                $merged['sort_order'] = $this->input('order_dir');
+            }
+        }
+
+        if (! empty($merged)) {
+            $this->merge($merged);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -41,14 +61,16 @@ class SearchSearchRequest extends FormRequest
             'sort_order' => ['sometimes', 'string', 'in:asc,desc'],
         ];
 
-        // Tour: order_by / order_dir  (matches IndexTourRequest + TourRepository)
+        // Tour: use sort_by / sort_order (order_by / order_dir kept for backward compatibility).
         $tourOnly = [
             'tour_category_id' => ['sometimes', 'integer', 'exists:tour_categories,id'],
             'price_min' => ['sometimes', 'numeric', 'min:0'],
             'price_max' => ['sometimes', 'numeric', 'min:0'],
             'is_featured' => ['sometimes', 'boolean'],
             'is_hot' => ['sometimes', 'boolean'],
-            'order_by' => ['sometimes', 'string', Rule::in(['created_at', 'price_adult', 'view_count', 'name', 'rating_avg'])],
+            'sort_by' => ['sometimes', 'string', Rule::in(['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'])],
+            'sort_order' => ['sometimes', 'string', 'in:asc,desc'],
+            'order_by' => ['sometimes', 'string', Rule::in(['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'])],
             'order_dir' => ['sometimes', 'string', 'in:asc,desc'],
         ];
 

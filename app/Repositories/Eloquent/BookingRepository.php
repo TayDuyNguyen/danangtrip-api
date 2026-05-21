@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Enums\Pagination;
 use App\Models\Booking;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -31,12 +32,13 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getBookings(array $filters = []): Collection|LengthAwarePaginator
     {
         $query = $this->model->newQuery();
+        [$fromBound, $toBound] = $this->bookedAtBounds($filters['from_date'] ?? null, $filters['to_date'] ?? null);
 
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('booking_code', 'like', '%'.$filters['search'].'%')
                     ->orWhereHas('user', function ($q2) use ($filters) {
-                        $q2->where('name', 'like', '%'.$filters['search'].'%')
+                        $q2->where('full_name', 'like', '%'.$filters['search'].'%')
                             ->orWhere('email', 'like', '%'.$filters['search'].'%');
                     })
                     ->orWhereHas('items.tour', function ($q2) use ($filters) {
@@ -53,12 +55,12 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             $query->where('payment_status', $filters['payment_status']);
         }
 
-        if (isset($filters['from_date'])) {
-            $query->whereDate('booked_at', '>=', $filters['from_date']);
+        if ($fromBound !== null) {
+            $query->where('booked_at', '>=', $fromBound);
         }
 
-        if (isset($filters['to_date'])) {
-            $query->whereDate('booked_at', '<=', $filters['to_date']);
+        if ($toBound !== null) {
+            $query->where('booked_at', '<=', $toBound);
         }
 
         $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
@@ -207,13 +209,14 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         $table = $this->model->getTable();
         $query = $this->model->newQuery()
             ->selectRaw("CAST({$table}.booked_at AS DATE) as date, booking_status, payment_status, COUNT(*) as count, SUM(total_amount) as total_amount");
+        [$fromBound, $toBound] = $this->bookedAtBounds($filters['from'] ?? null, $filters['to'] ?? null);
 
-        if (! empty($filters['from'])) {
-            $query->whereDate('booked_at', '>=', $filters['from']);
+        if ($fromBound !== null) {
+            $query->where('booked_at', '>=', $fromBound);
         }
 
-        if (! empty($filters['to'])) {
-            $query->whereDate('booked_at', '<=', $filters['to']);
+        if ($toBound !== null) {
+            $query->where('booked_at', '<=', $toBound);
         }
 
         if (! empty($filters['status'])) {
@@ -237,6 +240,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getTopTours(int $limit, ?string $from, ?string $to): array
     {
         $table = $this->model->getTable();
+        [$fromBound, $toBound] = $this->bookedAtBounds($from, $to);
 
         return $this->model->newQuery()
             ->join('booking_items', "{$table}.id", '=', 'booking_items.booking_id')
@@ -249,8 +253,8 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
                 SUM(booking_items.subtotal) as total_revenue
             ')
             ->where("{$table}.booking_status", '!=', BookingStatus::CANCELLED->value)
-            ->when($from, fn ($q) => $q->whereDate("{$table}.booked_at", '>=', $from))
-            ->when($to, fn ($q) => $q->whereDate("{$table}.booked_at", '<=', $to))
+            ->when($fromBound !== null, fn ($q) => $q->where("{$table}.booked_at", '>=', $fromBound))
+            ->when($toBound !== null, fn ($q) => $q->where("{$table}.booked_at", '<=', $toBound))
             ->groupBy('tours.id', 'tours.name', 'tours.slug')
             ->orderByDesc('booking_count')
             ->limit($limit)
@@ -274,6 +278,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getStatusCounts(array $filters = []): array
     {
         $query = $this->model->newQuery();
+        [$fromBound, $toBound] = $this->bookedAtBounds($filters['from_date'] ?? null, $filters['to_date'] ?? null);
 
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
@@ -285,12 +290,12 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             });
         }
 
-        if (isset($filters['from_date'])) {
-            $query->whereDate('booked_at', '>=', $filters['from_date']);
+        if ($fromBound !== null) {
+            $query->where('booked_at', '>=', $fromBound);
         }
 
-        if (isset($filters['to_date'])) {
-            $query->whereDate('booked_at', '<=', $filters['to_date']);
+        if ($toBound !== null) {
+            $query->where('booked_at', '<=', $toBound);
         }
 
         return $query->selectRaw('booking_status, COUNT(*) as count')
@@ -298,5 +303,46 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             ->get()
             ->pluck('count', 'booking_status')
             ->toArray();
+    }
+
+    public function createItem(int $bookingId, array $data): void
+    {
+        $booking = $this->model->newQuery()->findOrFail($bookingId);
+        $booking->items()->create($data);
+    }
+
+    public function updateBooking(int $bookingId, array $data): bool
+    {
+        return (bool) $this->update($bookingId, $data);
+    }
+
+    /**
+     * Normalize booked_at filter bounds. Date-only "to" uses end of day (inclusive).
+     * (Chuẩn hóa các ngưỡng booked_at)
+     */
+    private function bookedAtBounds(?string $from, ?string $to): array
+    {
+        $tz = config('app.timezone');
+        $fromBound = null;
+        $toBound = null;
+
+        if ($from !== null && $from !== '') {
+            $fromBound = $this->isDateOnlyString($from)
+                ? Carbon::parse($from, $tz)->startOfDay()->toDateTimeString()
+                : Carbon::parse($from, $tz)->toDateTimeString();
+        }
+
+        if ($to !== null && $to !== '') {
+            $toBound = $this->isDateOnlyString($to)
+                ? Carbon::parse($to, $tz)->endOfDay()->toDateTimeString()
+                : Carbon::parse($to, $tz)->toDateTimeString();
+        }
+
+        return [$fromBound, $toBound];
+    }
+
+    private function isDateOnlyString(string $value): bool
+    {
+        return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
     }
 }

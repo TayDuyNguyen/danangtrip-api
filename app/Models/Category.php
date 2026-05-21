@@ -14,6 +14,7 @@ final class Category extends Model
         'name',
         'slug',
         'icon',
+        'icon_background',
         'description',
         'image',
         'sort_order',

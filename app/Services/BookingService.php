@@ -5,7 +5,8 @@ namespace App\Services;
 use App\Enums\BookingStatus;
 use App\Enums\HttpStatusCode;
 use App\Enums\PaymentStatus;
-use App\Models\Booking;
+use App\Enums\TourScheduleBookingAvailability;
+use App\Enums\TourStatus;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
@@ -27,7 +28,8 @@ class BookingService
     public function __construct(
         protected BookingRepositoryInterface $bookingRepository,
         protected TourScheduleRepositoryInterface $tourScheduleRepository,
-        protected TourRepositoryInterface $tourRepository
+        protected TourRepositoryInterface $tourRepository,
+        protected TourStatusSyncService $tourStatusSyncService
     ) {}
 
     /**
@@ -45,8 +47,6 @@ class BookingService
                 'message' => 'Bookings retrieved successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve bookings',
@@ -76,8 +76,6 @@ class BookingService
                 'message' => 'Booking retrieved successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking',
@@ -114,8 +112,6 @@ class BookingService
                 'message' => 'Booking retrieved successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking by code',
@@ -186,7 +182,10 @@ class BookingService
                 'message' => 'Price calculated successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
+            Log::error('Booking price calculation failed', [
+                'payload' => $data,
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -261,7 +260,7 @@ class BookingService
                 $booking = $this->bookingRepository->create($bookingData);
 
                 // Create Booking Item
-                $booking->items()->create([
+                $this->bookingRepository->createItem((int) $booking->id, [
                     'tour_id' => $data['tour_id'],
                     'tour_schedule_id' => $data['tour_schedule_id'],
                     'item_type' => 'tour',
@@ -278,7 +277,12 @@ class BookingService
                 ]);
 
                 // Update booked_people counter
-                $tourSchedule->increment('booked_people', $requestedSeats);
+                $this->tourScheduleRepository->increaseBookedPeople((int) $tourSchedule->id, $requestedSeats);
+                $tourSchedule = $this->tourScheduleRepository->findForUpdate((int) $tourSchedule->id);
+                if ($tourSchedule->booked_people >= $tourSchedule->max_people) {
+                    $this->tourScheduleRepository->updateBookingAvailability((int) $tourSchedule->id, TourScheduleBookingAvailability::SOLD_OUT->value);
+                }
+                $this->tourStatusSyncService->syncByTourId((int) $tourSchedule->tour_id);
 
                 return [
                     'status' => HttpStatusCode::CREATED->value,
@@ -287,7 +291,11 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
+            Log::error('Booking creation failed', [
+                'payload' => $data,
+                'user_id' => $userId,
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -327,7 +335,7 @@ class BookingService
                     ];
                 }
 
-                $booking->update([
+                $this->bookingRepository->updateBooking((int) $booking->id, [
                     'booking_status' => BookingStatus::CANCELLED->value,
                     'cancelled_at' => now(),
                     'cancellation_reason' => $data['cancellation_reason'],
@@ -338,7 +346,16 @@ class BookingService
                     $schedule = $this->tourScheduleRepository->findForUpdate($item->tour_schedule_id);
                     if ($schedule) {
                         $returnedSeats = $item->quantity_adult + $item->quantity_child;
-                        $schedule->decrement('booked_people', $returnedSeats);
+                        $this->tourScheduleRepository->decreaseBookedPeople((int) $schedule->id, $returnedSeats);
+                        $schedule = $this->tourScheduleRepository->findForUpdate((int) $schedule->id);
+                        if (
+                            $schedule->booking_availability === TourScheduleBookingAvailability::SOLD_OUT
+                            && $schedule->booked_people < $schedule->max_people
+                            && $item->tour?->status !== TourStatus::INACTIVE->value
+                        ) {
+                            $this->tourScheduleRepository->updateBookingAvailability((int) $schedule->id, TourScheduleBookingAvailability::OPEN->value);
+                        }
+                        $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
                     }
                 }
 
@@ -349,7 +366,7 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
+            Log::error('Booking cancellation (user) failed: '.$e->getMessage(), ['exception' => $e]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -382,7 +399,7 @@ class BookingService
                     ];
                 }
 
-                $booking->update([
+                $this->bookingRepository->updateBooking((int) $booking->id, [
                     'booking_status' => BookingStatus::CONFIRMED->value,
                     'confirmed_at' => now(),
                 ]);
@@ -396,8 +413,6 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking confirmation failed',
@@ -429,7 +444,7 @@ class BookingService
                     ];
                 }
 
-                $booking->update([
+                $this->bookingRepository->updateBooking((int) $booking->id, [
                     'booking_status' => BookingStatus::COMPLETED->value,
                     'completed_at' => now(),
                     'payment_status' => PaymentStatus::SUCCESS->value, // Usually completed means paid in full
@@ -442,8 +457,6 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking completion failed',
@@ -475,7 +488,7 @@ class BookingService
                     ];
                 }
 
-                $booking->update([
+                $this->bookingRepository->updateBooking((int) $booking->id, [
                     'booking_status' => BookingStatus::CANCELLED->value,
                     'cancelled_at' => now(),
                     'cancellation_reason' => $data['cancellation_reason'] ?? 'Cancelled by Administrator',
@@ -486,7 +499,16 @@ class BookingService
                     $schedule = $this->tourScheduleRepository->findForUpdate($item->tour_schedule_id);
                     if ($schedule) {
                         $returnedSeats = $item->quantity_adult + $item->quantity_child;
-                        $schedule->decrement('booked_people', $returnedSeats);
+                        $this->tourScheduleRepository->decreaseBookedPeople((int) $schedule->id, $returnedSeats);
+                        $schedule = $this->tourScheduleRepository->findForUpdate((int) $schedule->id);
+                        if (
+                            $schedule->booking_availability === TourScheduleBookingAvailability::SOLD_OUT
+                            && $schedule->booked_people < $schedule->max_people
+                            && $item->tour?->status !== TourStatus::INACTIVE->value
+                        ) {
+                            $this->tourScheduleRepository->updateBookingAvailability((int) $schedule->id, TourScheduleBookingAvailability::OPEN->value);
+                        }
+                        $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
                     }
                 }
 
@@ -499,7 +521,7 @@ class BookingService
                 ];
             });
         } catch (\Exception $e) {
-            Log::error($e);
+            Log::error('Booking cancellation (admin) failed: '.$e->getMessage(), ['exception' => $e]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -543,7 +565,7 @@ class BookingService
                 'message' => 'Booking status updated successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
+            Log::error('Booking status update failed: '.$e->getMessage(), ['exception' => $e]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -567,8 +589,6 @@ class BookingService
                 'message' => 'User bookings retrieved successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve user bookings',
@@ -597,8 +617,6 @@ class BookingService
                 'message' => 'Booking status counts retrieved successfully.',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to retrieve booking status counts.',

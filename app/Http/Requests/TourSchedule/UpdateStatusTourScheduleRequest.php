@@ -40,7 +40,7 @@ class UpdateStatusTourScheduleRequest extends FormRequest
         return [
             'id.required' => 'Schedule ID is required.',
             'id.exists' => 'The selected schedule does not exist.',
-            'status.in' => 'Status must be available, full, or cancelled.',
+            'status.in' => 'Status must be available or cancelled.',
         ];
     }
 }

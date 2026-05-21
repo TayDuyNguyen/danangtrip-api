@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Class SubcategoryService
@@ -44,7 +43,6 @@ final class SubcategoryService
                 'data' => $subcategory,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -89,7 +87,6 @@ final class SubcategoryService
                 'data' => $subcategory,
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -118,7 +115,6 @@ final class SubcategoryService
                 'message' => 'Subcategory deleted successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -149,7 +145,6 @@ final class SubcategoryService
                 'message' => 'Subcategory status updated successfully',
             ];
         } catch (\Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,

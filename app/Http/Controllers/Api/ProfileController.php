@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\AuthenticatedActionRequest;
 use App\Http\Requests\Profile\AvatarProfileRequest;
 use App\Http\Requests\Profile\PasswordProfileRequest;
 use App\Http\Requests\Profile\RatingsProfileRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 /**
  * Class ProfileController
@@ -27,7 +27,7 @@ final class ProfileController extends Controller
      * Get authenticated user profile.
      * (Lấy thông tin cá nhân của người dùng đã xác thực)
      */
-    public function show(Request $request): JsonResponse
+    public function show(AuthenticatedActionRequest $request): JsonResponse
     {
         $userId = $request->user()->id;
         $result = $this->profileService->getProfile($userId);

@@ -9,6 +9,7 @@ use App\Http\Requests\Tour\FeaturedTourRequest;
 use App\Http\Requests\Tour\HotTourRequest;
 use App\Http\Requests\Tour\IndexTourRequest;
 use App\Http\Requests\Tour\RatingsTourRequest;
+use App\Http\Requests\Tour\ShowTourBySlugRequest;
 use App\Http\Requests\Tour\ShowTourRequest;
 use App\Services\TourService;
 use Illuminate\Http\JsonResponse;
@@ -71,9 +72,9 @@ final class TourController extends Controller
      * Display the specified tour by slug.
      * (Chi tiết tour theo slug)
      */
-    public function show(string $slug): JsonResponse
+    public function show(ShowTourBySlugRequest $request): JsonResponse
     {
-        $result = $this->tourService->getTourBySlug($slug);
+        $result = $this->tourService->getTourBySlug($request->validated()['slug']);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -84,9 +85,9 @@ final class TourController extends Controller
      * Display schedules for a tour.
      * (Lịch khởi hành của tour)
      */
-    public function schedules(ShowTourRequest $request, int $id): JsonResponse
+    public function schedules(ShowTourRequest $request): JsonResponse
     {
-        $result = $this->tourService->getSchedules($id);
+        $result = $this->tourService->getSchedules($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
@@ -120,12 +121,12 @@ final class TourController extends Controller
     }
 
     /**
-     * Check availability for a specific date.
-     * (Kiểm tra còn chỗ cho ngày cụ thể)
+     * Check availability for a tour.
+     * (Kiểm tra còn chỗ cho tour)
      */
     public function checkAvailability(CheckAvailabilityTourRequest $request, int $id): JsonResponse
     {
-        $result = $this->tourService->checkAvailability($id, $request->date);
+        $result = $this->tourService->checkAvailability($id, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

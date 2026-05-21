@@ -9,6 +9,7 @@ use App\Http\Requests\Location\AttachTagsLocationRequest;
 use App\Http\Requests\Location\DestroyLocationRequest;
 use App\Http\Requests\Location\DetachAmenityLocationRequest;
 use App\Http\Requests\Location\DetachTagLocationRequest;
+use App\Http\Requests\Location\IndexAdminLocationRequest;
 use App\Http\Requests\Location\PatchFeaturedLocationRequest;
 use App\Http\Requests\Location\PatchStatusLocationRequest;
 use App\Http\Requests\Location\StoreLocationRequest;
@@ -27,6 +28,42 @@ final class LocationController extends Controller
     ) {}
 
     /**
+     * Paginated list for admin (all statuses, filters).
+     */
+    public function index(IndexAdminLocationRequest $request): JsonResponse
+    {
+        $result = $this->locationService->getAdminLocations($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Summary stats for admin list header cards.
+     */
+    public function stats(): JsonResponse
+    {
+        $result = $this->locationService->getAdminLocationStats();
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * District values for admin filters.
+     */
+    public function districts(): JsonResponse
+    {
+        $result = $this->locationService->getAdminDistricts();
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Store a new location.
      * (Tạo địa điểm mới)
      */
@@ -39,6 +76,19 @@ final class LocationController extends Controller
 
         return $result['status'] === HttpStatusCode::CREATED->value
             ? $this->created(['location' => $result['data']], 'Location created successfully')
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Display the specified location (Admin).
+     * (Hiển thị chi tiết địa điểm - Admin)
+     */
+    public function show(int $id): JsonResponse
+    {
+        $result = $this->locationService->getLocationById($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
 

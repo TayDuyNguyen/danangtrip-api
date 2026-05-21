@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use Exception;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -37,7 +36,6 @@ final class TagService
                 'data' => $tags,
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -65,7 +63,6 @@ final class TagService
                 'message' => 'Tag created successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -98,7 +95,6 @@ final class TagService
                 'message' => 'Tag updated successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -130,7 +126,6 @@ final class TagService
                 'message' => 'Tag deleted successfully.',
             ];
         } catch (Exception $e) {
-            Log::error($e);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
