@@ -73,7 +73,7 @@ class UpdateUserRequest extends FormRequest
             'role' => [
                 'sometimes',
                 'string',
-                'in:admin,partner,user',
+                'in:admin,user',
             ],
         ];
     }
