@@ -143,7 +143,7 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
      * Get paginated active locations belonging to a category slug.
      * (Lấy danh sách địa điểm đang hoạt động theo slug danh mục, có phân trang)
      */
-    public function getLocationsBySlug(string $slug, int $perPage): ?LengthAwarePaginator
+    public function getLocationsBySlug(string $slug, array $filters = []): ?LengthAwarePaginator
     {
         $category = $this->model->newQuery()->where('slug', $slug)->where('status', 'active')->first();
 
@@ -151,10 +151,58 @@ final class CategoryRepository extends BaseRepository implements CategoryReposit
             return null;
         }
 
-        return $category->locations()
+        $query = $category->locations()
             ->where('status', 'active')
-            ->orderByDesc('created_at')
-            ->paginate($perPage);
+            ->with(['category', 'subcategory', 'tags']);
+
+        if (isset($filters['search']) && trim((string) $filters['search']) !== '') {
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $query->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
+            } else {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', "%{$searchTerm}%")
+                        ->orWhere('address', 'like', "%{$searchTerm}%");
+                });
+            }
+        }
+
+        if (isset($filters['subcategory_id'])) {
+            $query->where('subcategory_id', $filters['subcategory_id']);
+        }
+
+        if (isset($filters['district'])) {
+            $query->where('district', $filters['district']);
+        }
+
+        if (isset($filters['districts']) && is_array($filters['districts']) && count($filters['districts']) > 0) {
+            $query->whereIn('district', $filters['districts']);
+        }
+
+        if (isset($filters['price_level'])) {
+            $query->where('price_level', $filters['price_level']);
+        }
+
+        if (isset($filters['min_rating'])) {
+            $query->where('avg_rating', '>=', $filters['min_rating']);
+        }
+
+        $validSortFields = ['created_at', 'avg_rating', 'review_count', 'view_count', 'price_min'];
+        $sortBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
+        $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
+        $query->orderBy($sortBy, $sortOrder);
+
+        $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
+        $page = (int) ($filters['page'] ?? Pagination::PAGE->value);
+
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**

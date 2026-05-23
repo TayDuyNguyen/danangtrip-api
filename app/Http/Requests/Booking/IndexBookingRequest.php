@@ -39,6 +39,7 @@ class IndexBookingRequest extends FormRequest
     {
         return [
             'search' => 'nullable|string|max:255',
+            'user_id' => 'nullable|integer|exists:users,id',
             'booking_status' => ['nullable', 'string', Rule::in(array_merge(BookingStatus::values(), ['all']))],
             'payment_status' => ['nullable', 'string', Rule::in(array_merge(PaymentStatus::values(), ['all']))],
             'from_date' => 'nullable|date_format:Y-m-d',
@@ -54,6 +55,8 @@ class IndexBookingRequest extends FormRequest
         return [
             'booking_status.in' => 'The selected booking status is invalid.',
             'payment_status.in' => 'The selected payment status is invalid.',
+            'user_id.integer' => 'The user ID must be an integer.',
+            'user_id.exists' => 'The selected user is invalid.',
             'from_date.date_format' => 'The from date must be in Y-m-d format.',
             'to_date.date_format' => 'The to date must be in Y-m-d format.',
             'to_date.after_or_equal' => 'The to date must be a date after or equal to the from date.',

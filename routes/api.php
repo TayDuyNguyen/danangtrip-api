@@ -343,6 +343,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/status-counts', [AdminBookingController::class, 'statusCounts']);
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
+        Route::get('/bookings/{id}/invoice', [AdminBookingController::class, 'invoice'])->whereNumber('id')->middleware('throttle:api.exports');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
 
         // Payments Management
