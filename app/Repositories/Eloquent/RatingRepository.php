@@ -138,6 +138,14 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('status', $filters['status']);
         }
 
+        if (isset($filters['type'])) {
+            if ($filters['type'] === 'location') {
+                $query->whereNotNull('location_id');
+            } elseif ($filters['type'] === 'tour') {
+                $query->whereNotNull('tour_id');
+            }
+        }
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
