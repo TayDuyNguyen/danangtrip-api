@@ -95,7 +95,7 @@ class InvoicePdfService
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
 
-        $pdf .= "trailer << /Size ".(count($objects) + 1)." /Root 1 0 R >>\n";
+        $pdf .= 'trailer << /Size '.(count($objects) + 1)." /Root 1 0 R >>\n";
         $pdf .= "startxref\n".$xrefOffset."\n%%EOF";
 
         return $pdf;
