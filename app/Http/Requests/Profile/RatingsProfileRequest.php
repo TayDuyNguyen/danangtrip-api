@@ -16,7 +16,13 @@ class RatingsProfileRequest extends FormRequest
         return [
             'status' => [
                 'sometimes',
+                'nullable',
                 'in:pending,approved,rejected',
+            ],
+            'type' => [
+                'sometimes',
+                'nullable',
+                'in:location,tour',
             ],
             'per_page' => [
                 'sometimes',
@@ -36,6 +42,7 @@ class RatingsProfileRequest extends FormRequest
     {
         return [
             'status.in' => 'The selected status is invalid.',
+            'type.in' => 'The selected type is invalid.',
             'per_page.integer' => 'The items per page must be an integer.',
             'per_page.min' => 'The items per page must be at least 1.',
             'per_page.max' => 'The items per page must not exceed 100.',
