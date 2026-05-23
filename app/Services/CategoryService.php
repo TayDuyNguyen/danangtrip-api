@@ -263,10 +263,10 @@ final class CategoryService
      * Get paginated active locations for a category by its slug.
      * (Lấy danh sách địa điểm của danh mục theo slug, có phân trang)
      */
-    public function getLocationsByCategorySlug(string $slug, int $perPage): array
+    public function getLocationsByCategorySlug(string $slug, array $filters): array
     {
         try {
-            $paginator = $this->categoryRepository->getLocationsBySlug($slug, $perPage);
+            $paginator = $this->categoryRepository->getLocationsBySlug($slug, $filters);
 
             if (! $paginator) {
                 return [

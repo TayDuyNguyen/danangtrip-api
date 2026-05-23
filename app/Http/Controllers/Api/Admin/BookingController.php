@@ -9,9 +9,11 @@ use App\Http\Requests\Booking\IndexBookingRequest;
 use App\Http\Requests\Booking\ShowBookingRequest;
 use App\Http\Requests\Booking\UpdateBookingStatusRequest;
 use App\Services\BookingService;
+use App\Services\InvoicePdfService;
 use App\Traits\ApiResponser;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -29,10 +31,10 @@ class BookingController extends Controller
      * BookingController constructor.
      * (Khởi tạo BookingController)
      */
-    public function __construct(protected BookingService $bookingService)
-    {
-        //
-    }
+    public function __construct(
+        protected BookingService $bookingService,
+        protected InvoicePdfService $invoicePdfService
+    ) {}
 
     /**
      * Display a listing of bookings.
@@ -109,6 +111,25 @@ class BookingController extends Controller
         }
 
         return $this->error($result['message'], $result['status']);
+    }
+
+    public function invoice(ShowBookingRequest $request, int $id): Response|JsonResponse
+    {
+        $result = $this->bookingService->getBooking($id);
+
+        if ($result['status'] !== HttpStatusCode::SUCCESS->value) {
+            return $this->error($result['message'], $result['status']);
+        }
+
+        $booking = $result['data'];
+        $pdf = $this->invoicePdfService->render($booking);
+        $filename = 'hoa-don-'.$booking->booking_code.'.pdf';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"; filename*=UTF-8\'\''.rawurlencode($filename),
+            'Content-Length' => (string) strlen($pdf),
+        ]);
     }
 
     /**

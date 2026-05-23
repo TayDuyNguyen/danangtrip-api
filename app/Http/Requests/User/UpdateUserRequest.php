@@ -75,6 +75,11 @@ class UpdateUserRequest extends FormRequest
                 'string',
                 'in:admin,user',
             ],
+            'status' => [
+                'sometimes',
+                'string',
+                'in:active,banned,pending',
+            ],
         ];
     }
 
@@ -100,6 +105,7 @@ class UpdateUserRequest extends FormRequest
             'gender.max' => 'The gender must not exceed 20 characters. (Giới tính không được vượt quá 20 ký tự.)',
             'city.max' => 'The city name must not exceed 100 characters. (Tên thành phố không được vượt quá 100 ký tự.)',
             'role.in' => 'The selected role is invalid. (Vai trò được chọn không hợp lệ.)',
+            'status.in' => 'The selected status is invalid. (Trạng thái được chọn không hợp lệ.)',
         ];
     }
 }
