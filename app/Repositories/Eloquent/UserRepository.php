@@ -89,8 +89,17 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     {
         /** @var User|null $user */
         $user = $this->model->newQuery()
-            ->withCount(['ratings'])
+            ->withCount(['ratings', 'bookings', 'favorites'])
             ->find($id);
+
+        if ($user) {
+            $totalSpend = Booking::query()
+                ->where('user_id', $id)
+                ->whereIn('booking_status', ['completed', 'confirmed'])
+                ->sum('final_amount');
+
+            $user->setAttribute('total_spend', (float) $totalSpend);
+        }
 
         return $user;
     }
@@ -168,7 +177,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
         return Booking::query()
-            ->with(['tourSchedule.tour'])
+            ->with(['items.tour'])
             ->where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, ['*'], 'page', $page);

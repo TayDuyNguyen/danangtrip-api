@@ -218,7 +218,28 @@ final class SearchService
             $tourIds = collect($viewedTourIds)->merge($favoritedTourIds)->merge($bookedTourIds)->unique()->take($limit)->all();
 
             $locations = $this->locationRepository->getByIds($locationIds);
+            foreach ($locations as $location) {
+                $reason = 'popular';
+                if (in_array($location->id, $favoritedLocationIds)) {
+                    $reason = 'similar_favorite';
+                } elseif (in_array($location->id, $viewedLocationIds)) {
+                    $reason = 'viewed';
+                }
+                $location->setAttribute('recommendation_reason', $reason);
+            }
+
             $tours = $this->tourRepository->getByIds($tourIds);
+            foreach ($tours as $tour) {
+                $reason = 'popular';
+                if (in_array($tour->id, $bookedTourIds)) {
+                    $reason = 'booked';
+                } elseif (in_array($tour->id, $favoritedTourIds)) {
+                    $reason = 'similar_favorite';
+                } elseif (in_array($tour->id, $viewedTourIds)) {
+                    $reason = 'viewed';
+                }
+                $tour->setAttribute('recommendation_reason', $reason);
+            }
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
