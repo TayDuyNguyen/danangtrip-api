@@ -20,6 +20,11 @@ interface ContactRepositoryInterface extends RepositoryInterface
     public function getPaginated(array $filters): LengthAwarePaginator;
 
     /**
+     * Get contact status totals for the current search scope.
+     */
+    public function getStats(array $filters): array;
+
+    /**
      * Get all contacts for export with optional status filter.
      * (Lấy tất cả liên hệ để export với bộ lọc trạng thái)
      */
