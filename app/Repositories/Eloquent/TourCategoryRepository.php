@@ -62,6 +62,46 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
         $tourQuery = $category->tours()
             ->where('status', 'active');
 
+        if (isset($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $tourQuery->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);
+            } elseif ($driver === 'pgsql') {
+                $tourQuery->whereRaw(
+                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(itinerary::text, '') || ' ' || coalesce(inclusions::text, '') || ' ' || coalesce(exclusions::text, '')) @@ plainto_tsquery('simple', ?)",
+                    [$searchTerm]
+                );
+            } else {
+                $tourQuery->where('name', 'like', '%'.$searchTerm.'%');
+            }
+        }
+
+        if (isset($filters['price_min'])) {
+            $tourQuery->where('price_adult', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $tourQuery->where('price_adult', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['duration'])) {
+            $tourQuery->where('duration', 'like', '%'.$filters['duration'].'%');
+        }
+
+        if (isset($filters['available_from'])) {
+            $tourQuery->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '>=', $filters['available_from']);
+            });
+        }
+
+        if (isset($filters['available_to'])) {
+            $tourQuery->whereHas('schedules', function ($q) use ($filters) {
+                $q->where('start_date', '<=', $filters['available_to']);
+            });
+        }
+
         if (isset($filters['booking_availability'])) {
             $tourQuery->where('booking_availability', $filters['booking_availability']);
         }

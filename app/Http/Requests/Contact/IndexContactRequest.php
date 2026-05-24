@@ -19,6 +19,12 @@ class IndexContactRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'q' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'status' => [
                 'sometimes',
                 'string',

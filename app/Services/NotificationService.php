@@ -3,9 +3,15 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Mail\AdminNotificationMail;
+use App\Models\Notification;
+use App\Models\User;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * Class NotificationService
@@ -162,10 +168,18 @@ final class NotificationService
     {
         try {
             $notifications = $this->notificationRepository->getAdminNotifications($filters);
+            $data = $notifications->toArray();
+
+            // Calculate global stats
+            $data['stats'] = [
+                'total' => Notification::count(),
+                'read' => Notification::where('is_read', true)->count(),
+                'unread' => Notification::where('is_read', false)->count(),
+            ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $notifications,
+                'data' => $data,
             ];
         } catch (Exception $e) {
 
@@ -192,6 +206,11 @@ final class NotificationService
                 'is_read' => false,
                 'created_at' => now(),
             ]);
+
+            $user = $this->userRepository->find($data['user_id']);
+            if ($user instanceof User) {
+                $this->sendMailToUser($user, $data);
+            }
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
@@ -226,6 +245,8 @@ final class NotificationService
                 ])->toArray();
 
                 $this->notificationRepository->insert($notifications);
+
+                $users->each(fn (User $user) => $this->sendMailToUser($user, $data));
             });
 
             return [
@@ -238,6 +259,32 @@ final class NotificationService
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to send notifications to all users.',
             ];
+        }
+    }
+
+    /**
+     * Send an email copy of the in-app notification.
+     */
+    private function sendMailToUser(User $user, array $data): void
+    {
+        if (empty($user->email)) {
+            return;
+        }
+
+        try {
+            Mail::to($user->email)->send(new AdminNotificationMail(
+                title: $data['title'],
+                content: $data['content'],
+                type: $data['type'],
+                data: $data['data'] ?? null,
+                recipientName: $user->full_name
+            ));
+        } catch (Throwable $e) {
+            Log::warning('Failed to send notification email.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'message' => $e->getMessage(),
+            ]);
         }
     }
 }

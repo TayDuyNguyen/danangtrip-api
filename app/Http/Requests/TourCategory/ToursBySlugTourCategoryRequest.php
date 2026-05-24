@@ -53,6 +53,35 @@ class ToursBySlugTourCategoryRequest extends FormRequest
                 'string',
                 'in:'.implode(',', TourBookingAvailability::values()),
             ],
+            'price_min' => [
+                'sometimes',
+                'integer',
+                'min:0',
+            ],
+            'price_max' => [
+                'sometimes',
+                'integer',
+                'gte:price_min',
+            ],
+            'duration' => [
+                'sometimes',
+                'string',
+                'max:50',
+            ],
+            'available_from' => [
+                'sometimes',
+                'date_format:Y-m-d',
+            ],
+            'available_to' => [
+                'sometimes',
+                'date_format:Y-m-d',
+                'after_or_equal:available_from',
+            ],
+            'search' => [
+                'sometimes',
+                'string',
+                'max:100',
+            ],
         ];
     }
 

@@ -115,3 +115,25 @@ composer test
 - **Backend Framework**: Laravel 12
 - **Database**: Supabase (PostgreSQL)
 - **Environment**: Docker
+
+## Gmail SMTP for Notifications
+
+Admin notifications are saved in the database and also sent to the recipient email through Laravel Mail. To send through Gmail, add these values to `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=tls
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-gmail-address@gmail.com
+MAIL_PASSWORD=your-google-app-password
+MAIL_FROM_ADDRESS=your-gmail-address@gmail.com
+MAIL_FROM_NAME="Da Nang Trip"
+FRONTEND_URL=http://localhost:3000
+```
+
+Use a Google App Password, not the normal Gmail login password. After changing `.env`, clear config cache:
+
+```bash
+docker exec -it danangtrip_app php artisan config:clear
+```

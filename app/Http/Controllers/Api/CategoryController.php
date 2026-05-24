@@ -61,8 +61,7 @@ class CategoryController extends Controller
      */
     public function locationsBySlug(LocationsBySlugCategoryRequest $request, string $slug): JsonResponse
     {
-        $perPage = (int) $request->validated('per_page');
-        $result = $this->categoryService->getLocationsByCategorySlug($slug, $perPage);
+        $result = $this->categoryService->getLocationsByCategorySlug($slug, $request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

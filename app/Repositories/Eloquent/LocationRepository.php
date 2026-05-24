@@ -199,6 +199,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         // Query chính: filter và sort trên alias "distance" từ subquery
         return $this->model->newQuery()
             ->fromSub($subQuery, 'locations_with_distance')
+            ->with(['category', 'subcategory'])
             ->where('distance', '<=', $radius)
             ->orderBy($sortBy, $sortOrder)
             ->limit($limit)

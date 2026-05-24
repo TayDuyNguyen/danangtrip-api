@@ -11,14 +11,16 @@ use App\Http\Requests\Booking\ShowBookingByCodeRequest;
 use App\Http\Requests\Booking\ShowBookingRequest;
 use App\Http\Requests\Booking\StoreBookingRequest;
 use App\Services\BookingService;
+use App\Services\InvoicePdfService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class BookingController extends Controller
 {
-    public function __construct(protected BookingService $bookingService)
-    {
-        //
-    }
+    public function __construct(
+        protected BookingService $bookingService,
+        protected InvoicePdfService $invoicePdfService
+    ) {}
 
     public function calculate(CalculateBookingRequest $request): JsonResponse
     {
@@ -83,7 +85,7 @@ class BookingController extends Controller
         return $this->error($result['message'], $result['status']);
     }
 
-    public function invoice(ShowBookingRequest $request, int $id): JsonResponse
+    public function invoice(ShowBookingRequest $request, int $id): Response|JsonResponse
     {
         $userId = (int) $request->user()->id;
         $result = $this->bookingService->getBooking($id);
@@ -93,7 +95,15 @@ class BookingController extends Controller
         }
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
-            return $this->success($result['data'], 'Invoice data retrieved. PDF generation is not yet available.');
+            $booking = $result['data'];
+            $pdf = $this->invoicePdfService->render($booking);
+            $filename = 'hoa-don-'.$booking->booking_code.'.pdf';
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"; filename*=UTF-8\'\''.rawurlencode($filename),
+                'Content-Length' => (string) strlen($pdf),
+            ]);
         }
 
         return $this->error($result['message'], $result['status']);

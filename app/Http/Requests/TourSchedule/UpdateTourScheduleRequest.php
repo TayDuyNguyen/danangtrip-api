@@ -4,6 +4,7 @@ namespace App\Http\Requests\TourSchedule;
 
 use App\Enums\TourScheduleBookingAvailability;
 use App\Enums\TourScheduleStatus;
+use App\Models\TourSchedule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTourScheduleRequest extends FormRequest
@@ -33,7 +34,7 @@ class UpdateTourScheduleRequest extends FormRequest
                 'date',
                 'date_format:Y-m-d',
                 function ($attribute, $value, $fail) {
-                    $schedule = \App\Models\TourSchedule::find($this->route('id'));
+                    $schedule = TourSchedule::find($this->route('id'));
                     if ($schedule && $schedule->start_date) {
                         $today = date('Y-m-d');
                         $currentDate = $schedule->start_date->format('Y-m-d');
@@ -46,7 +47,7 @@ class UpdateTourScheduleRequest extends FormRequest
                             $fail('Start date must be today or in the future.');
                         }
                     }
-                }
+                },
             ],
             'end_date' => [
                 'sometimes',

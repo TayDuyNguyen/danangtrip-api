@@ -120,6 +120,18 @@ final class NotificationRepository extends BaseRepository implements Notificatio
             $query->where('type', $filters['type']);
         }
 
+        if (isset($filters['is_read'])) {
+            $query->where('is_read', (bool) $filters['is_read']);
+        }
+
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%");
+            });
+        }
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
         return $query->paginate($perPage);

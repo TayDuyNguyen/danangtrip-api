@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Mail\VerifyEmailOtpMail;
 use App\Models\User;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -272,7 +274,6 @@ class AuthService
                 function (User $user, string $password): void {
                     $user->forceFill([
                         'password' => $password,
-                        'remember_token' => Str::random(60),
                     ])->save();
 
                     $this->refreshTokenRepository->deleteAllByUserId((int) $user->id);
@@ -292,7 +293,11 @@ class AuthService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Password has been reset successfully.',
             ];
-        } catch (\Exception $_) {
+        } catch (\Exception $e) {
+            Log::error('Auth reset password failed', [
+                'email' => $data['email'] ?? null,
+                'exception' => $e->getMessage(),
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -346,6 +351,14 @@ class AuthService
                     'message' => 'Email is already verified.',
                 ];
             }
+
+            $otp = (string) random_int(100000, 999999);
+            Cache::put("verify_otp:{$user->email}", $otp, now()->addMinutes(10));
+
+            Mail::to($user->email)->send(new VerifyEmailOtpMail(
+                otp: $otp,
+                recipientName: $user->full_name ?: $user->username
+            ));
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

@@ -46,7 +46,7 @@ interface CategoryRepositoryInterface extends RepositoryInterface
      * Get paginated active locations belonging to a category slug.
      * (Lấy danh sách địa điểm đang hoạt động theo slug danh mục, có phân trang)
      */
-    public function getLocationsBySlug(string $slug, int $perPage): ?LengthAwarePaginator;
+    public function getLocationsBySlug(string $slug, array $filters = []): ?LengthAwarePaginator;
 
     /**
      * Update the status of a category.

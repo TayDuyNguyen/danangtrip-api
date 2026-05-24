@@ -34,6 +34,10 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         $query = $this->model->newQuery();
         [$fromBound, $toBound] = $this->bookedAtBounds($filters['from_date'] ?? null, $filters['to_date'] ?? null);
 
+        if (! empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
+
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('booking_code', 'like', '%'.$filters['search'].'%')
@@ -279,6 +283,10 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     {
         $query = $this->model->newQuery();
         [$fromBound, $toBound] = $this->bookedAtBounds($filters['from_date'] ?? null, $filters['to_date'] ?? null);
+
+        if (! empty($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
+        }
 
         if (isset($filters['search'])) {
             $query->where(function ($q) use ($filters) {
