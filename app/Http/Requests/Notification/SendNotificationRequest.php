@@ -43,6 +43,7 @@ class SendNotificationRequest extends FormRequest
             ],
             'data' => [
                 'sometimes',
+                'nullable',
                 'array',
             ],
         ];
