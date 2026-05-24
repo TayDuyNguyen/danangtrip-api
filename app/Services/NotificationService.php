@@ -162,10 +162,18 @@ final class NotificationService
     {
         try {
             $notifications = $this->notificationRepository->getAdminNotifications($filters);
+            $data = $notifications->toArray();
+
+            // Calculate global stats
+            $data['stats'] = [
+                'total' => \App\Models\Notification::count(),
+                'read' => \App\Models\Notification::where('is_read', true)->count(),
+                'unread' => \App\Models\Notification::where('is_read', false)->count(),
+            ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $notifications,
+                'data' => $data,
             ];
         } catch (Exception $e) {
 
