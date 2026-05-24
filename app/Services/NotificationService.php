@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Notification;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
@@ -166,9 +167,9 @@ final class NotificationService
 
             // Calculate global stats
             $data['stats'] = [
-                'total' => \App\Models\Notification::count(),
-                'read' => \App\Models\Notification::where('is_read', true)->count(),
-                'unread' => \App\Models\Notification::where('is_read', false)->count(),
+                'total' => Notification::count(),
+                'read' => Notification::where('is_read', true)->count(),
+                'unread' => Notification::where('is_read', false)->count(),
             ];
 
             return [
