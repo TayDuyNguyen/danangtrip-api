@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Models\Rating;
 use App\Observers\RatingObserver;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -26,15 +25,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Rating::observe(RatingObserver::class);
-
-        ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
-            $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
-
-            return $frontendUrl.'/reset-password?'.http_build_query([
-                'token' => $token,
-                'email' => $notifiable->getEmailForPasswordReset(),
-            ]);
-        });
 
         $this->configureRateLimiting();
     }

@@ -3,10 +3,10 @@
 namespace App\Jobs;
 
 use App\Mail\AdminNotificationMail;
+use App\Services\BrevoMailService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 class SendAdminNotificationEmail implements ShouldQueue
@@ -35,13 +35,17 @@ class SendAdminNotificationEmail implements ShouldQueue
         try {
             $this->debugLog('info', 'MAIL_DEBUG starting notification email delivery.', $debugContext);
 
-            Mail::to($this->email)->send(new AdminNotificationMail(
-                title: $this->title,
-                content: $this->content,
-                type: $this->type,
-                data: $this->data,
-                recipientName: $this->recipientName
-            ));
+            app(BrevoMailService::class)->sendMailable(
+                email: $this->email,
+                name: $this->recipientName,
+                mailable: $this->makeMailable(),
+                context: [
+                    'mail_type' => 'admin_notification',
+                    'user_id' => $this->userId,
+                    'type' => $this->type,
+                    'title' => $this->title,
+                ],
+            );
 
             $this->debugLog('info', 'MAIL_DEBUG notification email delivered successfully.', [
                 ...$debugContext,
@@ -66,9 +70,20 @@ class SendAdminNotificationEmail implements ShouldQueue
         ]);
     }
 
+    private function makeMailable(): AdminNotificationMail
+    {
+        return new AdminNotificationMail(
+            title: $this->title,
+            content: $this->content,
+            type: $this->type,
+            data: $this->data,
+            recipientName: $this->recipientName
+        );
+    }
+
     private function debugContext(): array
     {
-        $smtpConfig = (array) config('mail.mailers.smtp', []);
+        $brevoApiKey = (string) config('services.brevo.key', '');
 
         return [
             'user_id' => $this->userId,
@@ -76,15 +91,11 @@ class SendAdminNotificationEmail implements ShouldQueue
             'type' => $this->type,
             'title' => $this->title,
             'queue_connection' => (string) config('queue.default'),
-            'mail_default' => (string) config('mail.default'),
-            'smtp' => [
-                'host' => $smtpConfig['host'] ?? null,
-                'port' => $smtpConfig['port'] ?? null,
-                'scheme' => $smtpConfig['scheme'] ?? null,
-                'username' => $smtpConfig['username'] ?? null,
-                'password_set' => ! empty($smtpConfig['password']),
-                'timeout' => $smtpConfig['timeout'] ?? null,
-                'local_domain' => $smtpConfig['local_domain'] ?? null,
+            'transport_strategy' => 'brevo_api',
+            'brevo' => [
+                'api_key_set' => $brevoApiKey !== '',
+                'api_url' => (string) config('services.brevo.url'),
+                'timeout' => (int) config('services.brevo.timeout', 15),
             ],
         ];
     }
