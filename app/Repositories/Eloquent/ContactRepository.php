@@ -30,11 +30,7 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
      */
     public function getPaginated(array $filters): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
-
-        if (! empty($filters['status'])) {
-            $query->where('status', $filters['status']);
-        }
+        $query = $this->applyFilters($this->model->newQuery(), $filters);
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
@@ -43,18 +39,58 @@ class ContactRepository extends BaseRepository implements ContactRepositoryInter
     }
 
     /**
+     * Get contact status totals for the current search scope.
+     */
+    public function getStats(array $filters): array
+    {
+        $statFilters = $filters;
+        unset($statFilters['status']);
+        $query = $this->applyFilters($this->model->newQuery(), $statFilters);
+
+        $counts = (clone $query)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn ($value) => (int) $value);
+
+        return [
+            'total' => (clone $query)->count(),
+            'new' => $counts->get('new', 0),
+            'read' => $counts->get('read', 0),
+            'replied' => $counts->get('replied', 0),
+        ];
+    }
+
+    /**
      * Get all contacts for export with optional status filter.
      * (Lấy tất cả liên hệ để export với bộ lọc trạng thái)
      */
     public function getAllForExport(array $filters): Collection
     {
-        $query = $this->model->newQuery();
+        $query = $this->applyFilters($this->model->newQuery(), $filters);
+
+        return $query->orderBy('created_at', 'desc')->get();
+    }
+
+    private function applyFilters($query, array $filters)
+    {
 
         if (! empty($filters['status'])) {
             $query->where('status', $filters['status']);
         }
 
-        return $query->orderBy('created_at', 'desc')->get();
+        if (! empty($filters['q'])) {
+            $search = $filters['q'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('subject', 'like', "%{$search}%")
+                    ->orWhere('message', 'like', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 
     /**

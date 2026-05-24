@@ -51,10 +51,12 @@ final class ContactService
     {
         try {
             $contacts = $this->contactRepository->getPaginated($filters);
+            $data = $contacts->toArray();
+            $data['stats'] = $this->contactRepository->getStats($filters);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $contacts,
+                'data' => $data,
             ];
         } catch (Exception $e) {
             return [
