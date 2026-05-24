@@ -15,7 +15,7 @@ class SendAdminNotificationEmail implements ShouldQueue
 
     public int $tries = 1;
 
-    public int $timeout = 20;
+    public int $timeout = 60;
 
     public function __construct(
         public readonly string $email,
