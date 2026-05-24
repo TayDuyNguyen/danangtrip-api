@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Mail\ResetPasswordMail;
+use App\Services\BrevoMailService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -129,5 +131,27 @@ final class User extends Authenticatable implements JWTSubject
             'user_id' => $this->id,
             'role' => $this->role,
         ];
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
+        $resetUrl = $frontendUrl.'/reset-password?'.http_build_query([
+            'token' => $token,
+            'email' => $this->getEmailForPasswordReset(),
+        ]);
+
+        app(BrevoMailService::class)->sendMailable(
+            email: $this->email,
+            name: $this->full_name ?: $this->username,
+            mailable: new ResetPasswordMail(
+                resetUrl: $resetUrl,
+                recipientName: $this->full_name ?: $this->username
+            ),
+            context: [
+                'mail_type' => 'reset_password',
+                'user_id' => $this->id,
+            ],
+        );
     }
 }

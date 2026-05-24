@@ -22,6 +22,12 @@ return [
         'key' => env('RESEND_API_KEY'),
     ],
 
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
+        'url' => env('BREVO_API_URL', 'https://api.brevo.com/v3/smtp/email'),
+        'timeout' => (int) env('BREVO_API_TIMEOUT', 15),
+    ],
+
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),

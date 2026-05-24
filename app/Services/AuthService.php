@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 
@@ -24,14 +23,19 @@ use Illuminate\Support\Str;
  */
 class AuthService
 {
+    protected BrevoMailService $brevoMailService;
+
     /**
      * AuthService constructor.
      * (Khởi tạo AuthService)
      */
     public function __construct(
         protected UserRepositoryInterface $userRepository,
-        protected RefreshTokenRepositoryInterface $refreshTokenRepository
-    ) {}
+        protected RefreshTokenRepositoryInterface $refreshTokenRepository,
+        ?BrevoMailService $brevoMailService = null
+    ) {
+        $this->brevoMailService = $brevoMailService ?? app(BrevoMailService::class);
+    }
 
     /**
      * Register a new user.
@@ -355,10 +359,18 @@ class AuthService
             $otp = (string) random_int(100000, 999999);
             Cache::put("verify_otp:{$user->email}", $otp, now()->addMinutes(10));
 
-            Mail::to($user->email)->send(new VerifyEmailOtpMail(
-                otp: $otp,
-                recipientName: $user->full_name ?: $user->username
-            ));
+            $this->brevoMailService->sendMailable(
+                email: $user->email,
+                name: $user->full_name ?: $user->username,
+                mailable: new VerifyEmailOtpMail(
+                    otp: $otp,
+                    recipientName: $user->full_name ?: $user->username
+                ),
+                context: [
+                    'mail_type' => 'verify_email_otp',
+                    'user_id' => $user->id,
+                ],
+            );
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
