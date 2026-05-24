@@ -164,7 +164,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function chunkAll(int $size, callable $callback): bool
     {
-        return $this->model->newQuery()->select('id')->chunk($size, $callback);
+        return $this->model->newQuery()->select('id', 'email', 'full_name')->chunk($size, $callback);
     }
 
     /**
