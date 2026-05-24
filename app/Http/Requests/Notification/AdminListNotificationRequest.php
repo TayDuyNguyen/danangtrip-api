@@ -43,6 +43,15 @@ class AdminListNotificationRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'search' => [
+                'sometimes',
+                'string',
+                'max:255',
+            ],
+            'is_read' => [
+                'sometimes',
+                'boolean',
+            ],
         ];
     }
 

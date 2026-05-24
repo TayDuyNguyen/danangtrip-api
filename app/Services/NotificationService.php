@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Notification;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
@@ -162,10 +163,18 @@ final class NotificationService
     {
         try {
             $notifications = $this->notificationRepository->getAdminNotifications($filters);
+            $data = $notifications->toArray();
+
+            // Calculate global stats
+            $data['stats'] = [
+                'total' => Notification::count(),
+                'read' => Notification::where('is_read', true)->count(),
+                'unread' => Notification::where('is_read', false)->count(),
+            ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $notifications,
+                'data' => $data,
             ];
         } catch (Exception $e) {
 
