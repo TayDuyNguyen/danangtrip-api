@@ -3,14 +3,13 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
-use App\Mail\AdminNotificationMail;
+use App\Jobs\SendAdminNotificationEmail;
 use App\Models\Notification;
 use App\Models\User;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Throwable;
 
 /**
@@ -209,7 +208,7 @@ final class NotificationService
 
             $user = $this->userRepository->find($data['user_id']);
             if ($user instanceof User) {
-                $this->sendMailToUser($user, $data);
+                $this->queueMailToUser($user, $data);
             }
 
             return [
@@ -246,7 +245,7 @@ final class NotificationService
 
                 $this->notificationRepository->insert($notifications);
 
-                $users->each(fn (User $user) => $this->sendMailToUser($user, $data));
+                $users->each(fn (User $user) => $this->queueMailToUser($user, $data));
             });
 
             return [
@@ -265,25 +264,35 @@ final class NotificationService
     /**
      * Send an email copy of the in-app notification.
      */
-    private function sendMailToUser(User $user, array $data): void
+    private function queueMailToUser(User $user, array $data): void
     {
         if (empty($user->email)) {
             return;
         }
 
         try {
-            Mail::to($user->email)->send(new AdminNotificationMail(
+            SendAdminNotificationEmail::dispatch(
+                email: $user->email,
                 title: $data['title'],
                 content: $data['content'],
                 type: $data['type'],
                 data: $data['data'] ?? null,
-                recipientName: $user->full_name
-            ));
+                recipientName: $user->full_name,
+                userId: $user->id,
+            );
+
+            Log::info('Notification email queued.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'type' => $data['type'],
+                'title' => $data['title'],
+            ]);
         } catch (Throwable $e) {
-            Log::warning('Failed to send notification email.', [
+            Log::warning('Failed to queue notification email.', [
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'message' => $e->getMessage(),
+                'exception' => $e::class,
             ]);
         }
     }
