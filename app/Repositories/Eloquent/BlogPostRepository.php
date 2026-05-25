@@ -108,9 +108,23 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
             });
         }
 
+        // Search by title or excerpt if provided
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('excerpt', 'like', "%{$search}%");
+            });
+        }
+
+        $sort = $filters['sort'] ?? 'created_at';
+        $order = $filters['order'] ?? 'desc';
+
+        $query->orderBy($sort, $order);
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
-        return $query->orderByDesc('created_at')->paginate($perPage);
+        return $query->paginate($perPage);
     }
 
     /**

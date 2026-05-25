@@ -277,10 +277,19 @@ final class BlogService
     {
         try {
             $posts = $this->blogPostRepository->getAdminPosts($filters);
+            $data = $posts->toArray();
+
+            // Calculate global stats for blog posts
+            $data['stats'] = [
+                'total' => \App\Models\BlogPost::count(),
+                'published' => \App\Models\BlogPost::where('status', 'published')->count(),
+                'draft' => \App\Models\BlogPost::where('status', 'draft')->count(),
+                'archived' => \App\Models\BlogPost::where('status', 'archived')->count(),
+            ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $posts,
+                'data' => $data,
             ];
         } catch (Exception $e) {
             return [

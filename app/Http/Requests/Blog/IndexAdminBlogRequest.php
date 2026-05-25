@@ -47,6 +47,22 @@ class IndexAdminBlogRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'search' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'sort' => [
+                'sometimes',
+                'string',
+                'in:created_at,view_count,published_at',
+            ],
+            'order' => [
+                'sometimes',
+                'string',
+                'in:asc,desc',
+            ],
         ];
     }
 
