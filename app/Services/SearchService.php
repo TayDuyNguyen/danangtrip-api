@@ -11,6 +11,7 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class SearchService
@@ -50,14 +51,22 @@ final class SearchService
                 $logFilters = array_merge($this->mapLocationFilters($data, $q), ['type' => $type]);
             }
 
-            $this->searchLogRepository->logSearch([
-                'user_id' => $request->user()?->id,
-                'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
-                'query' => $q,
-                'results_count' => $this->resolveResultsCount($paginator),
-                'filters' => $this->normalizeFiltersForLog($logFilters),
-                'created_at' => now(),
-            ]);
+            try {
+                $this->searchLogRepository->logSearch([
+                    'user_id' => $request->user()?->id,
+                    'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
+                    'query' => $q,
+                    'results_count' => $this->resolveResultsCount($paginator),
+                    'filters' => $this->normalizeFiltersForLog($logFilters),
+                    'created_at' => now(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('Search logging failed', [
+                    'query' => $q,
+                    'type' => $type,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

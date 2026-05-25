@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\AuthenticatedActionRequest;
 use App\Http\Requests\Profile\AvatarProfileRequest;
+use App\Http\Requests\Profile\DeleteAccountRequest;
 use App\Http\Requests\Profile\PasswordProfileRequest;
 use App\Http\Requests\Profile\RatingsProfileRequest;
 use App\Http\Requests\Profile\UpdateProfileRequest;
@@ -92,6 +93,22 @@ final class ProfileController extends Controller
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Delete authenticated user's account permanently.
+     * (Xóa vĩnh viễn tài khoản của người dùng đã xác thực)
+     */
+    public function deleteAccount(DeleteAccountRequest $request): JsonResponse
+    {
+        $userId = $request->user()->id;
+        $password = $request->input('password');
+
+        $result = $this->profileService->deleteAccount($userId, $password);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 }

@@ -325,6 +325,18 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     }
 
     /**
+     * Check if a user has any active bookings (pending or confirmed status).
+     * (Kiểm tra xem người dùng có đơn đặt tour nào đang hoạt động không)
+     */
+    public function hasActiveBookings(int $userId): bool
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->whereIn('booking_status', [BookingStatus::PENDING->value, BookingStatus::CONFIRMED->value])
+            ->exists();
+    }
+
+    /**
      * Normalize booked_at filter bounds. Date-only "to" uses end of day (inclusive).
      * (Chuẩn hóa các ngưỡng booked_at)
      */

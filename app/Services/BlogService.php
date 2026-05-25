@@ -277,10 +277,14 @@ final class BlogService
     {
         try {
             $posts = $this->blogPostRepository->getAdminPosts($filters);
+            $data = $posts->toArray();
+
+            // Calculate global stats for blog posts via repository
+            $data['stats'] = $this->blogPostRepository->getStatusCounts();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $posts,
+                'data' => $data,
             ];
         } catch (Exception $e) {
             return [

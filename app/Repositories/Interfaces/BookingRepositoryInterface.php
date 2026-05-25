@@ -81,6 +81,12 @@ interface BookingRepositoryInterface extends RepositoryInterface
      */
     public function getStatusCounts(array $filters = []): array;
 
+    /**
+     * Check if a user has any active bookings (pending or confirmed status).
+     * (Kiểm tra xem người dùng có đơn đặt tour nào đang hoạt động không)
+     */
+    public function hasActiveBookings(int $userId): bool;
+
     public function createItem(int $bookingId, array $data): void;
 
     public function updateBooking(int $bookingId, array $data): bool;

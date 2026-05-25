@@ -178,6 +178,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/user/profile/avatar', [ProfileController::class, 'updateAvatar']);
         Route::put('/user/password', [ProfileController::class, 'changePassword']);
         Route::get('/user/ratings', [ProfileController::class, 'ratings']);
+        Route::delete('/user/account', [ProfileController::class, 'deleteAccount']);
 
         // Notifications
         // (Thông báo)
