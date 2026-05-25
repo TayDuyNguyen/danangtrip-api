@@ -141,6 +141,13 @@ interface LocationRepositoryInterface extends RepositoryInterface
     public function getAdminLocationStatsSummary(): array;
 
     /**
+     * Get counts of active locations grouped by districts, price levels, and ratings.
+     *
+     * @return array{districts: array<string, int>, price_levels: array<int, int>, ratings: array<string, int>}
+     */
+    public function getFilterStats(): array;
+
+    /**
      * Admin: find a location by ID with all relations for editing.
      * (Admin: tìm địa điểm theo ID với đầy đủ quan hệ để chỉnh sửa)
      *

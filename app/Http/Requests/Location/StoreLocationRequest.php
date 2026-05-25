@@ -140,6 +140,24 @@ class StoreLocationRequest extends FormRequest
                 'sometimes',
                 'boolean',
             ],
+            'tags' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'tags.*' => [
+                'integer',
+                'exists:tags,id',
+            ],
+            'amenities' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'amenities.*' => [
+                'integer',
+                'exists:amenities,id',
+            ],
         ];
     }
 

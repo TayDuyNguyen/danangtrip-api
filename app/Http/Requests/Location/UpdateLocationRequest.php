@@ -83,6 +83,94 @@ class UpdateLocationRequest extends FormRequest
                 'sometimes',
                 'boolean',
             ],
+            'short_description' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:500',
+            ],
+            'ward' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+            ],
+            'phone' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:20',
+            ],
+            'email' => [
+                'sometimes',
+                'nullable',
+                'email',
+                'max:100',
+            ],
+            'website' => [
+                'sometimes',
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'opening_hours' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'price_min' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'price_max' => [
+                'sometimes',
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'price_level' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'between:1,4',
+            ],
+            'thumbnail' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'images' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'video_url' => [
+                'sometimes',
+                'nullable',
+                'url',
+                'max:255',
+            ],
+            'tags' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'tags.*' => [
+                'integer',
+                'exists:tags,id',
+            ],
+            'amenities' => [
+                'sometimes',
+                'nullable',
+                'array',
+            ],
+            'amenities.*' => [
+                'integer',
+                'exists:amenities,id',
+            ],
         ];
     }
 

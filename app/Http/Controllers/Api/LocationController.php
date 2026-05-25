@@ -118,6 +118,19 @@ final class LocationController extends Controller
     }
 
     /**
+     * Get aggregate filter statistics for active locations.
+     * (Lấy số liệu thống kê bộ lọc tổng hợp cho địa điểm hoạt động)
+     */
+    public function filterStats(): JsonResponse
+    {
+        $result = $this->locationService->getFilterStats();
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Get images for a location.
      * (Danh sách ảnh của địa điểm)
      */

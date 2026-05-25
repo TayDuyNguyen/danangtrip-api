@@ -51,6 +51,22 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->where('status', 'active')
             ->with(['category', 'subcategory', 'tags']);
 
+        $userId = auth('sanctum')->id();
+        if ($userId) {
+            $query->selectRaw('locations.*, EXISTS(
+                SELECT 1 FROM favorites 
+                WHERE favorites.location_id = locations.id 
+                AND favorites.user_id = ?
+            ) as is_user_favorite', [$userId]);
+            $query->orderByDesc('is_user_favorite');
+        } elseif (isset($filters['favorite_ids']) && is_array($filters['favorite_ids']) && count($filters['favorite_ids']) > 0) {
+            $idsStr = implode(',', array_map('intval', $filters['favorite_ids']));
+            $query->selectRaw("locations.*, CASE WHEN id IN ($idsStr) THEN 1 ELSE 0 END as is_user_favorite");
+            $query->orderByDesc('is_user_favorite');
+        } else {
+            $query->select('locations.*');
+        }
+
         if (isset($filters['search'])) {
             $searchTerm = $filters['search'];
             $driver = $this->model->getConnection()->getDriverName();
@@ -127,6 +143,14 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
+        // Secondary and tertiary sorting as tie-breakers (nổi bật, sau đó là created_at)
+        if ($sortBy !== 'is_featured') {
+            $query->orderBy('is_featured', 'desc');
+        }
+        if ($sortBy !== 'created_at') {
+            $query->orderBy('created_at', 'desc');
+        }
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
@@ -148,10 +172,25 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             return [];
         }
 
-        return $this->model->newQuery()
-            ->where('status', 'active')
-            ->where('name', 'like', $q.'%')
-            ->orderBy('view_count', 'desc')
+        $driver = $this->model->getConnection()->getDriverName();
+        $operator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $words = array_filter(explode(' ', $q), function ($word) {
+            $cleaned = preg_replace('/[^\p{L}\p{N}]/u', '', $word);
+
+            return mb_strlen($cleaned) >= 1;
+        });
+
+        $query = $this->model->newQuery()->where('status', 'active');
+
+        foreach ($words as $word) {
+            if ($driver === 'pgsql') {
+                $query->whereRaw('unaccent(name) ilike unaccent(?)', ['%'.$word.'%']);
+            } else {
+                $query->where('name', $operator, '%'.$word.'%');
+            }
+        }
+
+        return $query->orderBy('view_count', 'desc')
             ->limit($limit)
             ->pluck('name')
             ->values()
@@ -212,7 +251,10 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function findBySlug(string $slug): ?Location
     {
-        return $this->model->newQuery()->where('slug', $slug)->first();
+        return $this->model->newQuery()
+            ->with(['category', 'subcategory', 'tags', 'amenities'])
+            ->where('slug', $slug)
+            ->first();
     }
 
     /**
@@ -489,6 +531,14 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
+        // Secondary and tertiary sorting as tie-breakers (nổi bật, sau đó là created_at)
+        if ($sortBy !== 'is_featured') {
+            $query->orderBy('is_featured', 'desc');
+        }
+        if ($sortBy !== 'created_at') {
+            $query->orderBy('created_at', 'desc');
+        }
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
         $page = $filters['page'] ?? Pagination::PAGE->value;
 
@@ -521,6 +571,48 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->pluck('district')
             ->values()
             ->all();
+    }
+
+    /**
+     * Get counts of active locations grouped by districts, price levels, and ratings.
+     *
+     * @return array{districts: array<string, int>, price_levels: array<int, int>, ratings: array<string, int>}
+     */
+    public function getFilterStats(): array
+    {
+        $activeLocations = $this->model->newQuery()->where('status', 'active');
+
+        // Districts count
+        $districts = (clone $activeLocations)
+            ->select('district')
+            ->selectRaw('count(*) as count')
+            ->whereNotNull('district')
+            ->where('district', '!=', '')
+            ->groupBy('district')
+            ->pluck('count', 'district')
+            ->all();
+
+        // Price levels count
+        $priceLevels = (clone $activeLocations)
+            ->select('price_level')
+            ->selectRaw('count(*) as count')
+            ->whereNotNull('price_level')
+            ->groupBy('price_level')
+            ->pluck('count', 'price_level')
+            ->all();
+
+        // Ratings count (>= 4 and >= 3)
+        $rating4 = (clone $activeLocations)->where('avg_rating', '>=', 4)->count();
+        $rating3 = (clone $activeLocations)->where('avg_rating', '>=', 3)->count();
+
+        return [
+            'districts' => $districts,
+            'price_levels' => $priceLevels,
+            'ratings' => [
+                '4' => $rating4,
+                '3' => $rating3,
+            ],
+        ];
     }
 
     /**
