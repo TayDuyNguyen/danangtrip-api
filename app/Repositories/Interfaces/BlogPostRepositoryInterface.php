@@ -43,6 +43,14 @@ interface BlogPostRepositoryInterface extends RepositoryInterface
     public function getAdminPosts(array $filters): LengthAwarePaginator;
 
     /**
+     * Get counts of blog posts grouped by status.
+     * (Lấy số lượng bài viết blog gom nhóm theo trạng thái)
+     *
+     * @return array
+     */
+    public function getStatusCounts(): array;
+
+    /**
      * Find a blog post by ID with categories and author.
      * (Tìm bài viết Blog theo ID với danh mục và tác giả)
      *

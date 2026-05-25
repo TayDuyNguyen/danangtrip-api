@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
-use App\Models\BlogPost;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use Exception;
@@ -273,6 +272,9 @@ final class BlogService
     /**
      * Get paginated blog posts for admin view (including drafts).
      * (Lấy danh sách bài viết Blog có phân trang cho admin - bao gồm cả draft)
+     *
+     * @param array $filters
+     * @return array
      */
     public function getAdminPosts(array $filters): array
     {
@@ -280,13 +282,8 @@ final class BlogService
             $posts = $this->blogPostRepository->getAdminPosts($filters);
             $data = $posts->toArray();
 
-            // Calculate global stats for blog posts
-            $data['stats'] = [
-                'total' => BlogPost::count(),
-                'published' => BlogPost::where('status', 'published')->count(),
-                'draft' => BlogPost::where('status', 'draft')->count(),
-                'archived' => BlogPost::where('status', 'archived')->count(),
-            ];
+            // Calculate global stats for blog posts via repository
+            $data['stats'] = $this->blogPostRepository->getStatusCounts();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

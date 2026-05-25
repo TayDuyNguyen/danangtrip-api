@@ -200,6 +200,10 @@ final class ProfileService
     /**
      * Delete authenticated user's account permanently.
      * (Xóa vĩnh viễn tài khoản cá nhân)
+     *
+     * @param int $userId
+     * @param string $password
+     * @return array
      */
     public function deleteAccount(int $userId, string $password): array
     {
@@ -208,7 +212,7 @@ final class ProfileService
             if (! $user) {
                 return [
                     'status' => HttpStatusCode::NOT_FOUND->value,
-                    'message' => 'Không tìm thấy người dùng.',
+                    'message' => 'User not found.',
                 ];
             }
 
@@ -216,7 +220,7 @@ final class ProfileService
             if (! Hash::check($password, $user->password)) {
                 return [
                     'status' => HttpStatusCode::BAD_REQUEST->value,
-                    'message' => 'Mật khẩu xác nhận không chính xác.',
+                    'message' => 'The confirmation password is incorrect.',
                 ];
             }
 
@@ -226,7 +230,7 @@ final class ProfileService
             if ($hasActiveBookings) {
                 return [
                     'status' => HttpStatusCode::BAD_REQUEST->value,
-                    'message' => 'Bạn có đơn hàng đang hoạt động. Vui lòng hủy hoặc hoàn thành trước khi xóa tài khoản.',
+                    'message' => 'You have active bookings. Please cancel or complete them before deleting your account.',
                 ];
             }
 
@@ -271,12 +275,12 @@ final class ProfileService
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'message' => 'Tài khoản của bạn đã được xóa thành công.',
+                'message' => 'Your account has been deleted successfully.',
             ];
         } catch (\Exception $e) {
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Đã xảy ra lỗi trong quá trình xóa tài khoản.',
+                'message' => 'An error occurred while deleting your account.',
             ];
         }
     }

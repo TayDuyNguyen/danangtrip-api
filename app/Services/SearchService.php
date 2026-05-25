@@ -77,12 +77,6 @@ final class SearchService
                 ],
             ];
         } catch (\Exception $e) {
-            Log::error('Search failed', [
-                'query' => $data['q'] ?? null,
-                'type' => $data['type'] ?? null,
-                'error' => $e->getMessage(),
-            ]);
-
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to search',

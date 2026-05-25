@@ -100,7 +100,7 @@ final class UserProfileDeleteTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('code', 200)
-            ->assertJsonPath('message', 'Tài khoản của bạn đã được xóa thành công.');
+            ->assertJsonPath('message', 'Your account has been deleted successfully.');
 
         Storage::disk('public')->assertMissing('avatars/avatar.jpg');
         Storage::disk('public')->assertMissing('ratings/10/rating_image.jpg');
@@ -130,7 +130,7 @@ final class UserProfileDeleteTest extends TestCase
 
         $response->assertStatus(400)
             ->assertJsonPath('code', 400)
-            ->assertJsonPath('message', 'Mật khẩu xác nhận không chính xác.');
+            ->assertJsonPath('message', 'The confirmation password is incorrect.');
     }
 
     public function test_delete_user_account_has_active_bookings(): void
@@ -164,7 +164,7 @@ final class UserProfileDeleteTest extends TestCase
 
         $response->assertStatus(400)
             ->assertJsonPath('code', 400)
-            ->assertJsonPath('message', 'Bạn có đơn hàng đang hoạt động. Vui lòng hủy hoặc hoàn thành trước khi xóa tài khoản.');
+            ->assertJsonPath('message', 'You have active bookings. Please cancel or complete them before deleting your account.');
     }
 
     public function test_delete_user_account_validation_error(): void

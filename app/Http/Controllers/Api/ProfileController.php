@@ -99,6 +99,9 @@ final class ProfileController extends Controller
     /**
      * Delete authenticated user's account permanently.
      * (Xóa vĩnh viễn tài khoản của người dùng đã xác thực)
+     *
+     * @param DeleteAccountRequest $request
+     * @return JsonResponse
      */
     public function deleteAccount(DeleteAccountRequest $request): JsonResponse
     {

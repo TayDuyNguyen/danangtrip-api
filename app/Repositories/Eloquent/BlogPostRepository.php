@@ -141,4 +141,20 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
             ->with(['author:id,full_name,avatar', 'categories'])
             ->find($id);
     }
+
+    /**
+     * Get counts of blog posts grouped by status.
+     * (Lấy số lượng bài viết blog gom nhóm theo trạng thái)
+     *
+     * @return array
+     */
+    public function getStatusCounts(): array
+    {
+        return [
+            'total' => $this->model->newQuery()->count(),
+            'published' => $this->model->newQuery()->where('status', 'published')->count(),
+            'draft' => $this->model->newQuery()->where('status', 'draft')->count(),
+            'archived' => $this->model->newQuery()->where('status', 'archived')->count(),
+        ];
+    }
 }

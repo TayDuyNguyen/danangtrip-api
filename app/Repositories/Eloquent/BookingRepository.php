@@ -327,6 +327,9 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     /**
      * Check if a user has any active bookings (pending or confirmed status).
      * (Kiểm tra xem người dùng có đơn đặt tour nào đang hoạt động không)
+     *
+     * @param int $userId
+     * @return bool
      */
     public function hasActiveBookings(int $userId): bool
     {

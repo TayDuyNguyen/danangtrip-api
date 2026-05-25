@@ -24,7 +24,7 @@ final class DeleteAccountRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'password.required' => 'Mật khẩu là bắt buộc.',
+            'password.required' => 'The password is required. (Mật khẩu là bắt buộc.)',
         ];
     }
 }
