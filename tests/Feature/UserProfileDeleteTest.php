@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Rating;
-use App\Repositories\Interfaces\UserRepositoryInterface;
+use App\Models\User;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
-use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
+use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -32,14 +32,14 @@ final class UserProfileDeleteTest extends TestCase
     public function test_delete_user_account_successful(): void
     {
         Storage::fake('public');
-        
+
         $user = new User([
             'id' => 1,
             'password' => Hash::make('password123'),
             'avatar' => 'avatars/avatar.jpg',
         ]);
         $user->id = 1;
-        
+
         Storage::disk('public')->put('avatars/avatar.jpg', 'avatar content');
         Storage::disk('public')->put('ratings/10/rating_image.jpg', 'rating image content');
 

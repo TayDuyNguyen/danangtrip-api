@@ -109,11 +109,13 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
         }
 
         // Search by title or excerpt if provided
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('excerpt', 'like', "%{$search}%");
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $needle = '%'.mb_strtolower($search).'%';
+
+            $query->where(function ($q) use ($needle) {
+                $q->whereRaw('LOWER(title) LIKE ?', [$needle])
+                    ->orWhereRaw("LOWER(COALESCE(excerpt, '')) LIKE ?", [$needle]);
             });
         }
 

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\BlogPost;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use Exception;
@@ -281,10 +282,10 @@ final class BlogService
 
             // Calculate global stats for blog posts
             $data['stats'] = [
-                'total' => \App\Models\BlogPost::count(),
-                'published' => \App\Models\BlogPost::where('status', 'published')->count(),
-                'draft' => \App\Models\BlogPost::where('status', 'draft')->count(),
-                'archived' => \App\Models\BlogPost::where('status', 'archived')->count(),
+                'total' => BlogPost::count(),
+                'published' => BlogPost::where('status', 'published')->count(),
+                'draft' => BlogPost::where('status', 'draft')->count(),
+                'archived' => BlogPost::where('status', 'archived')->count(),
             ];
 
             return [
