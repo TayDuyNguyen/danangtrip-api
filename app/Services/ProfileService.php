@@ -200,10 +200,6 @@ final class ProfileService
     /**
      * Delete authenticated user's account permanently.
      * (Xóa vĩnh viễn tài khoản cá nhân)
-     *
-     * @param int $userId
-     * @param string $password
-     * @return array
      */
     public function deleteAccount(int $userId, string $password): array
     {

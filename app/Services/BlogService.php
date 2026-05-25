@@ -272,9 +272,6 @@ final class BlogService
     /**
      * Get paginated blog posts for admin view (including drafts).
      * (Lấy danh sách bài viết Blog có phân trang cho admin - bao gồm cả draft)
-     *
-     * @param array $filters
-     * @return array
      */
     public function getAdminPosts(array $filters): array
     {

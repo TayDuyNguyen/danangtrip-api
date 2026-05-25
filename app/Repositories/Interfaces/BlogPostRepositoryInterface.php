@@ -45,8 +45,6 @@ interface BlogPostRepositoryInterface extends RepositoryInterface
     /**
      * Get counts of blog posts grouped by status.
      * (Lấy số lượng bài viết blog gom nhóm theo trạng thái)
-     *
-     * @return array
      */
     public function getStatusCounts(): array;
 
