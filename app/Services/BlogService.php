@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -176,7 +177,7 @@ final class BlogService
                     if (empty($data['published_at'])) {
                         if ($post->published_at) {
                             $existingPublishedAt = is_string($post->published_at)
-                                ? new \Carbon\Carbon($post->published_at)
+                                ? new Carbon($post->published_at)
                                 : $post->published_at;
 
                             if ($existingPublishedAt->isPast()) {
