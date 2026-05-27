@@ -123,9 +123,14 @@ final class ProfileService
 
             $this->userRepository->update($userId, ['avatar' => $path]);
 
+            $user = $this->userRepository->find($userId);
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => ['avatar_url' => asset('storage/'.$path)],
+                'data' => [
+                    'avatar_url' => $user->avatar_url,
+                    'user' => $user,
+                ],
                 'message' => 'Avatar updated successfully.',
             ];
         } catch (\Exception $e) {

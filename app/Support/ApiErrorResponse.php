@@ -6,28 +6,50 @@ class ApiErrorResponse
 {
     public static function make(int $code, string $message, mixed $errors = null): array
     {
-        $locale = self::resolveLocale();
-        $errorKey = self::resolveErrorKey($code, $message);
+        $locale = 'en';
+        $normalizedMessage = self::normalizeBilingualMessage($message, $locale);
+        $normalizedErrors = self::normalizeErrors($errors, $locale);
+        $errorKey = self::resolveErrorKey($code, $normalizedMessage);
 
         $response = [
             'code' => $code,
-            'message' => $message,
+            'message' => $normalizedMessage,
             'error_key' => $errorKey,
-            'user_message' => self::resolveUserMessage($code, $message, $errors, $errorKey, $locale),
+            'user_message' => self::resolveUserMessage($code, $normalizedMessage, $normalizedErrors, $errorKey, $locale),
         ];
 
-        if ($errors) {
-            $response['errors'] = $errors;
+        if ($normalizedErrors) {
+            $response['errors'] = $normalizedErrors;
         }
 
         return $response;
     }
 
-    private static function resolveLocale(): string
+    private static function normalizeErrors(mixed $errors, string $locale): mixed
     {
-        $header = strtolower((string) request()->header('Accept-Language', ''));
+        if (! is_array($errors)) {
+            return $errors;
+        }
 
-        return str_starts_with($header, 'vi') ? 'vi' : 'en';
+        $normalized = [];
+
+        foreach ($errors as $key => $value) {
+            if (is_array($value)) {
+                $normalized[$key] = array_map(
+                    static fn ($item) => is_string($item)
+                        ? self::normalizeBilingualMessage($item, $locale)
+                        : $item,
+                    $value
+                );
+                continue;
+            }
+
+            $normalized[$key] = is_string($value)
+                ? self::normalizeBilingualMessage($value, $locale)
+                : $value;
+        }
+
+        return $normalized;
     }
 
     private static function resolveErrorKey(int $code, string $message): string
