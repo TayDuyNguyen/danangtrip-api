@@ -171,9 +171,25 @@ final class BlogService
                     }
                 }
 
-                // If status changed to published, set published_at if null
-                if (! empty($data['status']) && $data['status'] === 'published' && empty($post->published_at) && empty($data['published_at'])) {
-                    $data['published_at'] = now();
+                // Handle published_at logic for status 'published'
+                if (! empty($data['status']) && $data['status'] === 'published') {
+                    if (empty($data['published_at'])) {
+                        if ($post->published_at) {
+                            $existingPublishedAt = is_string($post->published_at)
+                                ? new \Carbon\Carbon($post->published_at)
+                                : $post->published_at;
+
+                            if ($existingPublishedAt->isPast()) {
+                                $data['published_at'] = $post->published_at;
+                            } else {
+                                $data['published_at'] = now();
+                            }
+                        } else {
+                            $data['published_at'] = now();
+                        }
+                    }
+                } elseif (! empty($data['status']) && $data['status'] === 'draft') {
+                    $data['published_at'] = null;
                 }
 
                 $this->blogPostRepository->update($id, $data);
@@ -470,5 +486,14 @@ final class BlogService
                 'message' => 'Failed to delete blog category.',
             ];
         }
+    }
+
+    /**
+     * Check if a blog post slug exists.
+     * (Kiểm tra slug bài viết blog đã tồn tại chưa)
+     */
+    public function checkSlugExists(string $slug): bool
+    {
+        return $this->blogPostRepository->exists(['slug' => $slug]);
     }
 }

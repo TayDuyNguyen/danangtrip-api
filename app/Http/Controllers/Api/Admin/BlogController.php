@@ -16,6 +16,7 @@ use App\Http\Requests\Blog\UpdateBlogRequest;
 use App\Http\Requests\Blog\UpdateStatusBlogRequest;
 use App\Services\BlogService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Class BlogController
@@ -30,6 +31,22 @@ final class BlogController extends Controller
     public function __construct(
         protected BlogService $blogService
     ) {}
+
+    /**
+     * Check if a blog post slug exists.
+     * (Kiểm tra slug bài viết blog đã tồn tại chưa)
+     */
+    public function checkSlug(Request $request): JsonResponse
+    {
+        $slug = $request->query('slug');
+        if (empty($slug)) {
+            return $this->error('Slug parameter is required.', HttpStatusCode::BAD_REQUEST->value);
+        }
+
+        $exists = $this->blogService->checkSlugExists($slug);
+
+        return $this->success(['exists' => $exists], 'Slug check completed.');
+    }
 
     /**
      * Store a new blog post.

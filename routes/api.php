@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
@@ -51,6 +52,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     Route::get('/ping', fn () => response()->json(['status' => 'ok']));
+    Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
     // =========================================================================
     // 1. PUBLIC ROUTES
@@ -304,6 +306,7 @@ Route::prefix('v1')->group(function () {
 
         // Blog Posts Management
         // (Quản lý Bài viết Blog)
+        Route::get('/blog-posts/check-slug', [AdminBlogController::class, 'checkSlug']);
         Route::get('/blog-posts', [AdminBlogController::class, 'index']);
         Route::get('/blog-posts/{id}', [AdminBlogController::class, 'show'])->whereNumber('id');
         Route::post('/blog-posts', [AdminBlogController::class, 'store']);
