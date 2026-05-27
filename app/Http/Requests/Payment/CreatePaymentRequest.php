@@ -25,6 +25,8 @@ class CreatePaymentRequest extends FormRequest
                 'required',
                 'string',
                 Rule::in([
+                    PaymentMethod::BANK_TRANSFER->value,
+                    PaymentMethod::PAYOS->value,
                     PaymentMethod::MOMO->value,
                     PaymentMethod::VNPAY->value,
                     PaymentMethod::ZALOPAY->value,

@@ -90,15 +90,23 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
             $tourQuery->where('duration', 'like', '%'.$filters['duration'].'%');
         }
 
-        if (isset($filters['available_from'])) {
+        if (isset($filters['available_from']) || isset($filters['available_to'])) {
             $tourQuery->whereHas('schedules', function ($q) use ($filters) {
-                $q->where('start_date', '>=', $filters['available_from']);
-            });
-        }
+                $today = now()->toDateString();
 
-        if (isset($filters['available_to'])) {
-            $tourQuery->whereHas('schedules', function ($q) use ($filters) {
-                $q->where('start_date', '<=', $filters['available_to']);
+                if (isset($filters['available_from'])) {
+                    $startDateLimit = $filters['available_from'] < $today ? $today : $filters['available_from'];
+                    $q->where('start_date', '>=', $startDateLimit);
+                } else {
+                    $q->where('start_date', '>=', $today);
+                }
+
+                if (isset($filters['available_to'])) {
+                    $q->where('start_date', '<=', $filters['available_to']);
+                }
+
+                $q->where('status', 'available')
+                    ->where('booking_availability', 'open');
             });
         }
 

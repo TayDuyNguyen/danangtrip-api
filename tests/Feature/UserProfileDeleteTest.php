@@ -10,6 +10,7 @@ use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Mockery;
@@ -91,6 +92,12 @@ final class UserProfileDeleteTest extends TestCase
         $this->app->instance(RatingRepositoryInterface::class, $ratingRepository);
         $this->app->instance(LocationRepositoryInterface::class, $locationRepository);
         $this->app->instance(TourRepositoryInterface::class, $tourRepository);
+
+        DB::shouldReceive('transaction')
+            ->once()
+            ->andReturnUsing(function ($callback) {
+                return $callback();
+            });
 
         $this->actingAs($user);
 

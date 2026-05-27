@@ -34,6 +34,14 @@ class IndexLocationRequest extends FormRequest
                 $merged['districts'] = array_values(array_filter(array_map('trim', explode(',', $rawDistricts)), fn ($v) => $v !== ''));
             }
         }
+        if ($this->has('favorite_ids')) {
+            $rawFavorites = $this->query('favorite_ids');
+            if (is_string($rawFavorites)) {
+                $merged['favorite_ids'] = array_values(array_filter(array_map('intval', explode(',', $rawFavorites))));
+            } elseif (is_array($rawFavorites)) {
+                $merged['favorite_ids'] = array_values(array_filter(array_map('intval', $rawFavorites)));
+            }
+        }
 
         if (! empty($merged)) {
             $this->merge($merged);
@@ -43,6 +51,14 @@ class IndexLocationRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'favorite_ids' => [
+                'sometimes',
+                'array',
+            ],
+            'favorite_ids.*' => [
+                'required',
+                'integer',
+            ],
             'category_id' => [
                 'sometimes',
                 'integer',

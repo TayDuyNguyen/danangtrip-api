@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
@@ -81,6 +82,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations/featured', [LocationController::class, 'featured']);
     Route::get('/locations/nearby', [LocationController::class, 'nearby']);
     Route::get('/locations/districts', [LocationController::class, 'districts']);
+    Route::get('/locations/filter-stats', [LocationController::class, 'filterStats']);
     Route::get('/locations/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+');
     Route::get('/locations/{id}/images', [LocationController::class, 'images'])->whereNumber('id');
     Route::get('/locations/{id}/ratings', [LocationController::class, 'ratings'])->whereNumber('id');
@@ -212,6 +214,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])
             ->where('booking_code', '[A-Za-z0-9_-]{1,20}')
             ->middleware('throttle:api.strict');
+
+        // Cart
+        // (Giỏ hàng)
+        Route::get('/cart', [CartController::class, 'index']);
+        Route::post('/cart/items', [CartController::class, 'store']);
+        Route::put('/cart/items/{id}', [CartController::class, 'update'])->whereNumber('id');
+        Route::delete('/cart/items/{id}', [CartController::class, 'destroy'])->whereNumber('id');
+        Route::delete('/cart', [CartController::class, 'clear']);
+        Route::post('/cart/merge', [CartController::class, 'merge']);
     });
 
     // =========================================================================

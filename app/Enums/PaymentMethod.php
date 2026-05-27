@@ -11,6 +11,7 @@ enum PaymentMethod: string
     case MOMO = 'momo';
     case VNPAY = 'vnpay';
     case ZALOPAY = 'zalopay';
+    case PAYOS = 'payos';
 
     /**
      * Get all values of the enum.

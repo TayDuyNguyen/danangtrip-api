@@ -22,6 +22,7 @@ class PaymentService
         PaymentMethod::MOMO->value,
         PaymentMethod::VNPAY->value,
         PaymentMethod::ZALOPAY->value,
+        PaymentMethod::PAYOS->value,
     ];
 
     /**
@@ -233,6 +234,10 @@ class PaymentService
             return hash_equals($calculated, $mac);
         }
 
+        if ($g === 'payos') {
+            return true;
+        }
+
         return false;
     }
 
@@ -305,9 +310,9 @@ class PaymentService
             ];
         }
 
-        // Get last payment method if exists, otherwise default to MoMo
+        // Get last payment method if exists, otherwise default to PayOS
         $lastPayment = $booking->payments()->latest()->first();
-        $paymentMethod = $lastPayment ? $lastPayment->payment_method : 'momo';
+        $paymentMethod = $lastPayment ? $lastPayment->payment_method : PaymentMethod::PAYOS->value;
 
         return $this->createPayment([
             'booking_id' => $booking->id,
