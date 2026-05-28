@@ -92,7 +92,7 @@ final class SearchService
     {
         $filters = ['search' => $q];
 
-        foreach (['category_id', 'subcategory_id', 'district', 'price_min', 'price_max', 'is_featured', 'sort_by', 'sort_order', 'page', 'per_page'] as $key) {
+        foreach (['category_id', 'subcategory_id', 'district', 'price_min', 'price_max', 'min_rating', 'is_featured', 'sort_by', 'sort_order', 'page', 'per_page'] as $key) {
             if (isset($data[$key])) {
                 $filters[$key] = $data[$key];
             }
@@ -109,7 +109,7 @@ final class SearchService
     {
         $filters = ['search' => $q];
 
-        foreach (['tour_category_id', 'price_min', 'price_max', 'is_featured', 'is_hot', 'sort_by', 'sort_order', 'order_by', 'order_dir', 'page', 'per_page'] as $key) {
+        foreach (['tour_category_id', 'price_min', 'price_max', 'min_rating', 'is_featured', 'is_hot', 'sort_by', 'sort_order', 'order_by', 'order_dir', 'page', 'per_page'] as $key) {
             if (isset($data[$key])) {
                 $filters[$key] = $data[$key];
             }

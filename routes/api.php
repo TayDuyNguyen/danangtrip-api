@@ -318,6 +318,7 @@ Route::prefix('v1')->group(function () {
         // (Quản lý Danh mục Blog)
         Route::get('/blog-categories', [AdminBlogController::class, 'indexCategories']);
         Route::post('/blog-categories', [AdminBlogController::class, 'storeCategory']);
+        Route::patch('/blog-categories/reorder', [AdminBlogController::class, 'reorderCategories']);
         Route::put('/blog-categories/{id}', [AdminBlogController::class, 'updateCategory'])->whereNumber('id');
         Route::delete('/blog-categories/{id}', [AdminBlogController::class, 'destroyCategory'])->whereNumber('id');
 
