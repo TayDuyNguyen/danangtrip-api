@@ -28,7 +28,8 @@ final class ProfileService
         protected RatingRepositoryInterface $ratingRepository,
         protected BookingRepositoryInterface $bookingRepository,
         protected LocationRepositoryInterface $locationRepository,
-        protected TourRepositoryInterface $tourRepository
+        protected TourRepositoryInterface $tourRepository,
+        protected UploadService $uploadService
     ) {}
 
     /**
@@ -113,15 +114,23 @@ final class ProfileService
                 ];
             }
 
-            // Delete old avatar if exists
-            if ($user->avatar) {
+            // Upload new avatar to Cloudinary
+            $uploadResult = $this->uploadService->uploadImage($file, 'avatars');
+            if ($uploadResult['status'] !== HttpStatusCode::CREATED->value) {
+                return [
+                    'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                    'message' => 'Failed to upload avatar to Cloudinary.',
+                ];
+            }
+
+            $url = $uploadResult['data']['url'];
+
+            // Delete old avatar if exists and it was a local file
+            if ($user->avatar && ! str_starts_with($user->avatar, 'http://') && ! str_starts_with($user->avatar, 'https://')) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // Store new avatar
-            $path = $file->store('avatars', 'public');
-
-            $this->userRepository->update($userId, ['avatar' => $path]);
+            $this->userRepository->update($userId, ['avatar' => $url]);
 
             $user = $this->userRepository->find($userId);
 
@@ -254,8 +263,8 @@ final class ProfileService
                     Storage::disk('public')->deleteDirectory('ratings/'.$rating->id);
                 }
 
-                // 2. Xóa avatar của user trên disk nếu có
-                if ($user->avatar) {
+                // 2. Xóa avatar của user trên disk nếu có và nó không phải URL Cloudinary
+                if ($user->avatar && ! str_starts_with($user->avatar, 'http://') && ! str_starts_with($user->avatar, 'https://')) {
                     Storage::disk('public')->delete($user->avatar);
                 }
 

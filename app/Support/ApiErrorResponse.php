@@ -6,7 +6,7 @@ class ApiErrorResponse
 {
     public static function make(int $code, string $message, mixed $errors = null): array
     {
-        $locale = 'en';
+        $locale = self::resolveLocale();
         $normalizedMessage = self::normalizeBilingualMessage($message, $locale);
         $normalizedErrors = self::normalizeErrors($errors, $locale);
         $errorKey = self::resolveErrorKey($code, $normalizedMessage);
@@ -25,6 +25,22 @@ class ApiErrorResponse
         return $response;
     }
 
+    private static function resolveLocale(): string
+    {
+        try {
+            $request = request();
+            if ($request) {
+                $header = strtolower((string) $request->header('Accept-Language', ''));
+
+                return str_starts_with($header, 'vi') ? 'vi' : 'en';
+            }
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        return 'en';
+    }
+
     private static function normalizeErrors(mixed $errors, string $locale): mixed
     {
         if (! is_array($errors)) {
@@ -41,6 +57,7 @@ class ApiErrorResponse
                         : $item,
                     $value
                 );
+
                 continue;
             }
 
