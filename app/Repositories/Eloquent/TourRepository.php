@@ -65,6 +65,10 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('price_adult', '<=', $filters['price_max']);
         }
 
+        if (isset($filters['min_rating'])) {
+            $query->where('rating_avg', '>=', $filters['min_rating']);
+        }
+
         if (isset($filters['duration'])) {
             $query->where('duration', 'like', '%'.$filters['duration'].'%');
         }

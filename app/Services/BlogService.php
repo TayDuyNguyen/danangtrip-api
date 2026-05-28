@@ -398,6 +398,10 @@ final class BlogService
                 $data['slug'] = $this->generateUniqueCategorySlug($data['slug']);
             }
 
+            if (! isset($data['sort_order']) || $data['sort_order'] === null) {
+                $data['sort_order'] = $this->blogCategoryRepository->getNextSortOrder();
+            }
+
             $category = $this->blogCategoryRepository->create($data);
 
             return [
@@ -485,6 +489,36 @@ final class BlogService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to delete blog category.',
+            ];
+        }
+    }
+
+    /**
+     * Reorder blog categories.
+     * (Sắp xếp lại danh mục bài viết)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorderCategories(array $items): array
+    {
+        try {
+            $reordered = $this->blogCategoryRepository->reorder($items);
+
+            if (! $reordered) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Invalid blog category reorder payload.',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Blog categories reordered successfully.',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to reorder blog categories.',
             ];
         }
     }

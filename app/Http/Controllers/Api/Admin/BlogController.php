@@ -8,6 +8,7 @@ use App\Http\Requests\Blog\DeleteBlogCategoryRequest;
 use App\Http\Requests\Blog\DeleteBlogRequest;
 use App\Http\Requests\Blog\IndexAdminBlogRequest;
 use App\Http\Requests\Blog\IndexBlogCategoryRequest;
+use App\Http\Requests\Blog\ReorderBlogCategoryRequest;
 use App\Http\Requests\Blog\ShowBlogRequest;
 use App\Http\Requests\Blog\StoreBlogCategoryRequest;
 use App\Http\Requests\Blog\StoreBlogRequest;
@@ -173,6 +174,19 @@ final class BlogController extends Controller
     public function destroyCategory(DeleteBlogCategoryRequest $request, int $id): JsonResponse
     {
         $result = $this->blogService->deleteCategory($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Reorder blog categories.
+     * (Sắp xếp lại danh mục blog)
+     */
+    public function reorderCategories(ReorderBlogCategoryRequest $request): JsonResponse
+    {
+        $result = $this->blogService->reorderCategories($request->validated('items'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])

@@ -14,6 +14,11 @@ final class BlogCategory extends Model
         'name',
         'slug',
         'description',
+        'sort_order',
+    ];
+
+    protected $casts = [
+        'sort_order' => 'integer',
     ];
 
     public function posts(): BelongsToMany

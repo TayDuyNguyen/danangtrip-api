@@ -46,6 +46,7 @@ class SearchSearchRequest extends FormRequest
             'type' => ['sometimes', 'string', 'in:location,tour'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'min_rating' => ['sometimes', 'numeric', 'min:1', 'max:5'],
             'session_id' => ['sometimes', 'string', 'max:100'],
         ];
 
@@ -91,6 +92,8 @@ class SearchSearchRequest extends FormRequest
             'district.max' => 'The district must not exceed 50 characters. (Quận/huyện không được vượt quá 50 ký tự.)',
             'price_min.min' => 'The minimum price must be at least 0. (Giá tối thiểu phải >= 0.)',
             'price_max.min' => 'The maximum price must be at least 0. (Giá tối đa phải >= 0.)',
+            'min_rating.min' => 'The minimum rating must be at least 1. (Điểm đánh giá tối thiểu phải >= 1.)',
+            'min_rating.max' => 'The minimum rating must not exceed 5. (Điểm đánh giá tối thiểu không được vượt quá 5.)',
             'sort_by.in' => 'The selected sort field is invalid. (Trường sắp xếp không hợp lệ.)',
             'sort_order.in' => 'The selected sort order is invalid. (Kiểu sắp xếp không hợp lệ.)',
             'order_by.in' => 'The selected sort field is invalid. (Trường sắp xếp không hợp lệ.)',
