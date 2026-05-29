@@ -98,6 +98,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:api.standard');
     Route::get('/search/popular', [SearchController::class, 'popular'])->middleware('throttle:api.standard');
     Route::get('/search/trending', [SearchController::class, 'trending'])->middleware('throttle:api.standard');
+    Route::get('/search/trending-insights', [SearchController::class, 'trendInsights'])->middleware('throttle:api.standard');
+    Route::post('/search/interactions', [SearchController::class, 'interact'])->middleware('throttle:api.standard');
 
     // Statistics: Public overview
     // (Thống kê: Tổng quan công khai)
@@ -241,6 +243,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-tours', [AdminDashboardController::class, 'topTours'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-locations', [AdminDashboardController::class, 'topLocations'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/search-trends', [AdminDashboardController::class, 'searchTrends'])->middleware('throttle:api.admin');
         Route::get('/dashboard/user-growth', [AdminDashboardController::class, 'userGrowth'])->middleware('throttle:api.admin');
         Route::get('/dashboard/booking-trend', [AdminDashboardController::class, 'bookingTrend'])->middleware('throttle:api.admin');
         Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports'])->middleware('throttle:api.admin');

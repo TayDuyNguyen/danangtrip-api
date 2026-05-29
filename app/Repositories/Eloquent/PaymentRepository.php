@@ -33,32 +33,8 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     public function getPayments(array $filters): LengthAwarePaginator
     {
         $query = $this->model->newQuery()->with('booking.user');
-        [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
-        if (! empty($filters['payment_status'])) {
-            $query->where('payment_status', $filters['payment_status']);
-        }
-
-        if (! empty($filters['payment_gateway'])) {
-            $query->where('payment_gateway', $filters['payment_gateway']);
-        }
-
-        if ($fromBound !== null) {
-            $query->where('created_at', '>=', $fromBound);
-        }
-
-        if ($toBound !== null) {
-            $query->where('created_at', '<=', $toBound);
-        }
-
-        if (! empty($filters['search'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->where('transaction_code', 'like', '%'.$filters['search'].'%')
-                    ->orWhereHas('booking', function ($qb) use ($filters) {
-                        $qb->where('booking_code', 'like', '%'.$filters['search'].'%');
-                    });
-            });
-        }
+        $this->applyPaymentFilters($query, $filters);
 
         $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
 
@@ -95,6 +71,17 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     public function getExportPayments(array $filters): Collection
     {
         $query = $this->model->newQuery()->with('booking.user');
+
+        $this->applyPaymentFilters($query, $filters);
+
+        return $query->latest()->get();
+    }
+
+    /**
+     * Apply search and status filters to payment query.
+     */
+    private function applyPaymentFilters($query, array $filters): void
+    {
         [$fromBound, $toBound] = $this->createdAtBounds($filters['date_from'] ?? null, $filters['date_to'] ?? null);
 
         if (! empty($filters['payment_status'])) {
@@ -113,7 +100,25 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             $query->where('created_at', '<=', $toBound);
         }
 
-        return $query->latest()->get();
+        if (! empty($filters['search'])) {
+            $search = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+            $operator = $driver === 'pgsql' ? 'ilike' : 'like';
+
+            $query->where(function ($q) use ($search, $operator) {
+                $q->where('transaction_code', $operator, '%'.$search.'%')
+                    ->orWhereHas('booking', function ($qb) use ($search, $operator) {
+                        $qb->where('booking_code', $operator, '%'.$search.'%')
+                            ->orWhere('customer_name', $operator, '%'.$search.'%')
+                            ->orWhere('customer_email', $operator, '%'.$search.'%')
+                            ->orWhereHas('user', function ($qu) use ($search, $operator) {
+                                $qu->where('full_name', $operator, '%'.$search.'%')
+                                    ->orWhere('email', $operator, '%'.$search.'%')
+                                    ->orWhere('username', $operator, '%'.$search.'%');
+                            });
+                    });
+            });
+        }
     }
 
     /**

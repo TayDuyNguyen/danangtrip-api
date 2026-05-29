@@ -40,7 +40,7 @@ final class SearchService
     public function search(array $data, Request $request): array
     {
         try {
-            $q = trim((string) ($data['q'] ?? ''));
+            $q = $this->normalizeQuery((string) ($data['q'] ?? ''));
             $type = $data['type'] ?? 'location';
 
             if ($type === 'tour') {
@@ -51,21 +51,23 @@ final class SearchService
                 $logFilters = array_merge($this->mapLocationFilters($data, $q), ['type' => $type]);
             }
 
-            try {
-                $this->searchLogRepository->logSearch([
-                    'user_id' => $request->user()?->id,
-                    'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
-                    'query' => $q,
-                    'results_count' => $this->resolveResultsCount($paginator),
-                    'filters' => $this->normalizeFiltersForLog($logFilters),
-                    'created_at' => now(),
-                ]);
-            } catch (\Throwable $e) {
-                Log::warning('Search logging failed', [
-                    'query' => $q,
-                    'type' => $type,
-                    'error' => $e->getMessage(),
-                ]);
+            if ($this->shouldLogSearch($q)) {
+                try {
+                    $this->searchLogRepository->logSearch([
+                        'user_id' => $request->user()?->id,
+                        'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
+                        'query' => $q,
+                        'results_count' => $this->resolveResultsCount($paginator),
+                        'filters' => $this->normalizeFiltersForLog($logFilters),
+                        'created_at' => now(),
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::warning('Search logging failed', [
+                        'query' => $q,
+                        'type' => $type,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             return [
@@ -135,13 +137,15 @@ final class SearchService
         try {
             $q = trim((string) ($data['q'] ?? ''));
             $limit = (int) ($data['limit'] ?? 5);
+            $intentSuggestions = $this->buildIntentSuggestions($q, $limit);
 
             $locationSuggestions = $this->locationRepository->getNameSuggestions($q, $limit);
             $tourSuggestions = $this->tourRepository->getNameSuggestions($q, $limit);
 
-            $suggestions = collect($locationSuggestions)
+            $suggestions = collect($intentSuggestions)
+                ->concat($locationSuggestions)
                 ->merge($tourSuggestions)
-                ->unique()
+                ->unique(fn ($item) => is_array($item) ? mb_strtolower((string) ($item['title'] ?? '')) : mb_strtolower((string) $item))
                 ->take($limit)
                 ->values()
                 ->all();
@@ -204,6 +208,128 @@ final class SearchService
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to get trending searches',
+            ];
+        }
+    }
+
+    /**
+     * Get blended trend insights for the search UI.
+     * (Lấy insight xu hướng kết hợp cho giao diện tìm kiếm)
+     */
+    public function trendInsights(array $data): array
+    {
+        try {
+            $limit = (int) ($data['limit'] ?? 10);
+            $keywordLimit = max(1, min($limit, 10));
+            $locationLimit = max(1, min($limit, 10));
+
+            $trendingKeywords = $this->searchLogRepository->getPopularQueries($keywordLimit, 1);
+            $popularKeywords = $this->searchLogRepository->getPopularQueries($keywordLimit, 30);
+            $topLocations = $this->locationRepository->getTopLocations($locationLimit);
+
+            $locationItems = $topLocations->map(function ($location) {
+                return [
+                    'query' => (string) $location->name,
+                    'count' => (int) ($location->view_count ?? 0),
+                    'source' => 'location',
+                    'slug' => (string) ($location->slug ?? ''),
+                    'district' => (string) ($location->district ?? ''),
+                ];
+            })->values();
+
+            $keywordItems = collect($trendingKeywords)->map(function (array $item) {
+                return [
+                    'query' => (string) $item['query'],
+                    'count' => (int) $item['count'],
+                    'source' => 'keyword',
+                ];
+            });
+
+            $fallbackKeywordItems = collect($popularKeywords)->map(function (array $item) {
+                return [
+                    'query' => (string) $item['query'],
+                    'count' => (int) $item['count'],
+                    'source' => 'keyword',
+                ];
+            });
+
+            $blended = $keywordItems
+                ->concat($locationItems)
+                ->when(
+                    $keywordItems->isEmpty(),
+                    fn ($collection) => $collection->concat($fallbackKeywordItems)
+                )
+                ->unique(fn (array $item) => mb_strtolower(trim((string) $item['query'])))
+                ->sortByDesc('count')
+                ->take($limit)
+                ->values()
+                ->all();
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'items' => $blended,
+                    'trending_keywords' => $trendingKeywords,
+                    'popular_keywords' => $popularKeywords,
+                    'top_locations' => $locationItems->all(),
+                ],
+            ];
+        } catch (\Exception $_) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to get search trend insights',
+            ];
+        }
+    }
+
+    /**
+     * Track non-search interactions from the search UI.
+     * (Ghi nhận các tương tác ngoài hành động tìm kiếm trực tiếp trên giao diện search)
+     */
+    public function trackInteraction(array $data, Request $request): array
+    {
+        try {
+            $query = $this->normalizeQuery((string) ($data['query'] ?? ''));
+            if (! $this->shouldLogSearch($query)) {
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => ['logged' => false],
+                ];
+            }
+
+            $filters = array_filter([
+                'event' => $data['event'] ?? null,
+                'type' => $data['type'] ?? null,
+                'clicked_title' => $this->normalizeQuery((string) ($data['clicked_title'] ?? '')),
+                'clicked_slug' => (string) ($data['clicked_slug'] ?? ''),
+                'clicked_type' => $data['clicked_type'] ?? null,
+                'source' => $data['source'] ?? null,
+                'page' => $data['page'] ?? null,
+            ], fn ($value) => $value !== null && $value !== '');
+
+            $this->searchLogRepository->logSearch([
+                'user_id' => $request->user()?->id,
+                'session_id' => $this->resolveSessionId($request, $data['session_id'] ?? null),
+                'query' => $query,
+                'results_count' => 0,
+                'filters' => $filters,
+                'created_at' => now(),
+            ]);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => ['logged' => true],
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Search interaction logging failed', [
+                'event' => $data['event'] ?? null,
+                'query' => $data['query'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => ['logged' => false],
             ];
         }
     }
@@ -305,5 +431,108 @@ final class SearchService
         unset($filtersForLog['session_id']);
 
         return $filtersForLog;
+    }
+
+    /**
+     * Normalize raw query string before search logging.
+     * (Chuẩn hóa từ khóa trước khi ghi log tìm kiếm)
+     */
+    private function normalizeQuery(string $value): string
+    {
+        $normalized = preg_replace('/\s+/u', ' ', trim($value));
+
+        return is_string($normalized) ? $normalized : trim($value);
+    }
+
+    /**
+     * Decide whether the query is meaningful enough to record.
+     * (Xác định từ khóa có đủ ý nghĩa để ghi nhận hay không)
+     */
+    private function shouldLogSearch(string $query): bool
+    {
+        return $query !== '' && mb_strlen($query) >= 2;
+    }
+
+    /**
+     * Build lightweight intent suggestions for travel search.
+     * (Tạo gợi ý theo nhu cầu/ngữ cảnh cho ô tìm kiếm du lịch)
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildIntentSuggestions(string $query, int $limit): array
+    {
+        $normalized = mb_strtolower($this->normalizeQuery($query));
+        if ($normalized === '') {
+            return [];
+        }
+
+        $catalog = [
+            [
+                'tokens' => ['bien', 'biển', 'gan bien', 'gần biển', 'beach', 'resort'],
+                'items' => [
+                    ['title' => 'Bãi biển đẹp ở Đà Nẵng', 'subtitle' => 'Gợi ý các điểm tắm biển nổi bật như Mỹ Khê và Non Nước'],
+                    ['title' => 'Resort gần biển Mỹ Khê', 'subtitle' => 'Khám phá nơi nghỉ dưỡng gần biển cho kỳ nghỉ thư giãn'],
+                ],
+            ],
+            [
+                'tokens' => ['an toi', 'ăn tối', 'hai san', 'hải sản', 'food', 'am thuc', 'ẩm thực'],
+                'items' => [
+                    ['title' => 'Ăn tối ở Đà Nẵng', 'subtitle' => 'Nhà hàng hải sản, quán ăn gia đình và địa điểm mở cửa buổi tối'],
+                    ['title' => 'Hải sản gần biển', 'subtitle' => 'Tìm quán hải sản nổi tiếng gần Mỹ Khê và Sơn Trà'],
+                ],
+            ],
+            [
+                'tokens' => ['gia dinh', 'gia đình', 'tre em', 'trẻ em', 'family'],
+                'items' => [
+                    ['title' => 'Điểm đến cho gia đình', 'subtitle' => 'Gợi ý tour nhẹ nhàng và địa điểm phù hợp cho trẻ em'],
+                    ['title' => 'Tour gia đình 1 ngày', 'subtitle' => 'Lịch trình ngắn phù hợp cho nhóm gia đình và người lớn tuổi'],
+                ],
+            ],
+            [
+                'tokens' => ['dem', 'đêm', 'toi', 'tối', 'night'],
+                'items' => [
+                    ['title' => 'Đà Nẵng về đêm', 'subtitle' => 'Cầu Rồng, chợ đêm, rooftop và điểm vui chơi buổi tối'],
+                    ['title' => 'Quán ăn mở cửa buổi tối', 'subtitle' => 'Gợi ý ăn đêm, cafe và địa điểm ngắm sông Hàn'],
+                ],
+            ],
+            [
+                'tokens' => ['1 ngay', '1 ngày', 'nua ngay', 'nửa ngày', 'short trip'],
+                'items' => [
+                    ['title' => 'Lịch trình Đà Nẵng 1 ngày', 'subtitle' => 'Gợi ý lịch trình ngắn gọn cho du khách ở lại ít ngày'],
+                    ['title' => 'Tour nửa ngày nổi bật', 'subtitle' => 'Chọn nhanh các tour ngắn phù hợp buổi sáng hoặc chiều'],
+                ],
+            ],
+        ];
+
+        $matched = collect($catalog)
+            ->first(function (array $entry) use ($normalized) {
+                foreach ($entry['tokens'] as $token) {
+                    if (str_contains($normalized, (string) $token)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+        if (! is_array($matched)) {
+            return [];
+        }
+
+        return collect($matched['items'])
+            ->take(max(1, min($limit, 3)))
+            ->values()
+            ->map(function (array $item, int $index) {
+                return [
+                    'id' => -1000 - $index,
+                    'type' => 'keyword',
+                    'title' => (string) $item['title'],
+                    'slug' => '',
+                    'subtitle' => (string) $item['subtitle'],
+                    'thumbnail' => null,
+                    'score' => 90 - ($index * 5),
+                ];
+            })
+            ->all();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\SearchLog;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Class SearchLogRepository
@@ -12,6 +13,19 @@ use App\Repositories\Interfaces\SearchLogRepositoryInterface;
  */
 final class SearchLogRepository extends BaseRepository implements SearchLogRepositoryInterface
 {
+    private const DEDUPE_MINUTES = 30;
+
+    private function baseSearchEventsQuery(int $days)
+    {
+        $since = now()->subDays($days);
+
+        return $this->model->newQuery()
+            ->whereNotNull('created_at')
+            ->where('created_at', '>=', $since)
+            ->whereRaw("COALESCE(filters::jsonb ->> 'event', 'search') = 'search'")
+            ->whereRaw('LENGTH(TRIM(query)) >= 2');
+    }
+
     /**
      * Get the associated model class name.
      * (Lấy tên lớp Model liên kết)
@@ -32,7 +46,37 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
      */
     public function logSearch(array $data): void
     {
-        $this->model->create($data);
+        $query = $this->normalizeQuery((string) ($data['query'] ?? ''));
+        if ($query === '') {
+            return;
+        }
+
+        $sessionId = (string) ($data['session_id'] ?? '');
+        $type = data_get($data, 'filters.type');
+        $event = (string) (data_get($data, 'filters.event') ?? 'search');
+        $clickedSlug = (string) (data_get($data, 'filters.clicked_slug') ?? '');
+
+        $exists = $this->model->newQuery()
+            ->where('session_id', $sessionId)
+            ->whereRaw('LOWER(query) = ?', [mb_strtolower($query)])
+            ->whereRaw("COALESCE(filters->>'event', 'search') = ?", [$event])
+            ->when($type, function ($builder, $searchType) {
+                $builder->whereRaw("COALESCE(filters->>'type', '') = ?", [(string) $searchType]);
+            })
+            ->when($clickedSlug !== '', function ($builder) use ($clickedSlug) {
+                $builder->whereRaw("COALESCE(filters->>'clicked_slug', '') = ?", [$clickedSlug]);
+            })
+            ->where('created_at', '>=', now()->subMinutes(self::DEDUPE_MINUTES))
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        $this->model->create([
+            ...$data,
+            'query' => $query,
+        ]);
     }
 
     /**
@@ -41,13 +85,9 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
      */
     public function getPopularQueries(int $limit = 10, int $days = 30): array
     {
-        $since = now()->subDays($days);
-
-        return $this->model->newQuery()
-            ->whereNotNull('created_at')
-            ->where('created_at', '>=', $since)
-            ->selectRaw('query, COUNT(*) as count')
-            ->groupBy('query')
+        return $this->baseSearchEventsQuery($days)
+            ->selectRaw('MIN(query) as query, LOWER(query) as normalized_query, COUNT(*) as count')
+            ->groupByRaw('LOWER(query)')
             ->orderByDesc('count')
             ->limit($limit)
             ->get()
@@ -71,14 +111,10 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
             return [];
         }
 
-        $since = now()->subDays($days);
-
-        return $this->model->newQuery()
-            ->whereNotNull('created_at')
-            ->where('created_at', '>=', $since)
+        return $this->baseSearchEventsQuery($days)
             ->where('query', 'ilike', '%'.$q.'%')
-            ->selectRaw('query, COUNT(*) as count')
-            ->groupBy('query')
+            ->selectRaw('MIN(query) as query, LOWER(query) as normalized_query, COUNT(*) as count')
+            ->groupByRaw('LOWER(query)')
             ->orderByDesc('count')
             ->limit($limit)
             ->pluck('query')
@@ -93,22 +129,70 @@ final class SearchLogRepository extends BaseRepository implements SearchLogRepos
      */
     public function getPopularQueriesByFilters(array $filters = [], int $limit = 10, int $days = 30): array
     {
-        $since = now()->subDays($days);
-
-        $query = $this->model->newQuery()
-            ->whereNotNull('created_at')
-            ->where('created_at', '>=', $since);
+        $query = $this->baseSearchEventsQuery($days);
 
         if (! empty($filters)) {
             $query->whereRaw('filters::jsonb @> ?::jsonb', [json_encode($filters)]);
         }
 
-        return $query->selectRaw('query, COUNT(*) as count')
-            ->groupBy('query')
+        return $query->selectRaw('MIN(query) as query, LOWER(query) as normalized_query, COUNT(*) as count')
+            ->groupByRaw('LOWER(query)')
             ->orderByDesc('count')
             ->limit($limit)
             ->get()
             ->map(fn ($row) => ['query' => (string) $row->query, 'count' => (int) $row->count])
             ->all();
+    }
+
+    public function getZeroResultQueries(int $limit = 10, int $days = 30): array
+    {
+        return $this->baseSearchEventsQuery($days)
+            ->where('results_count', 0)
+            ->selectRaw('MIN(query) as query, LOWER(query) as normalized_query, COUNT(*) as count')
+            ->groupByRaw('LOWER(query)')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => ['query' => (string) $row->query, 'count' => (int) $row->count])
+            ->all();
+    }
+
+    public function getTopInteractionQueries(array $events, int $limit = 10, int $days = 30): array
+    {
+        $normalizedEvents = collect($events)
+            ->map(fn ($event) => trim((string) $event))
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($normalizedEvents === []) {
+            return [];
+        }
+
+        $since = now()->subDays($days);
+
+        return $this->model->newQuery()
+            ->whereNotNull('created_at')
+            ->where('created_at', '>=', $since)
+            ->whereRaw('LENGTH(TRIM(query)) >= 2')
+            ->whereIn(DB::raw("COALESCE(filters::jsonb ->> 'event', 'search')"), $normalizedEvents)
+            ->selectRaw('MIN(query) as query, LOWER(query) as normalized_query, COUNT(*) as count')
+            ->groupByRaw('LOWER(query)')
+            ->orderByDesc('count')
+            ->limit($limit)
+            ->get()
+            ->map(fn ($row) => ['query' => (string) $row->query, 'count' => (int) $row->count])
+            ->all();
+    }
+
+    /**
+     * Normalize stored search query.
+     * (Chuẩn hóa từ khóa tìm kiếm trước khi lưu)
+     */
+    private function normalizeQuery(string $query): string
+    {
+        $normalized = preg_replace('/\s+/u', ' ', trim($query));
+
+        return is_string($normalized) ? $normalized : trim($query);
     }
 }

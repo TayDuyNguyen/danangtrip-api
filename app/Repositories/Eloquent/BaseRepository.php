@@ -18,6 +18,9 @@ abstract class BaseRepository implements RepositoryInterface
     /** @var Model */
     protected $model;
 
+    /** @var array */
+    protected $withRelations = [];
+
     /**
      * BaseRepository constructor.
      * (Khởi tạo BaseRepository)
@@ -45,6 +48,19 @@ abstract class BaseRepository implements RepositoryInterface
     }
 
     /**
+     * Set the relationships that should be eager loaded.
+     * (Thiết lập các quan hệ cần nạp trước)
+     *
+     * @param array $relations
+     * @return $this
+     */
+    public function with(array $relations)
+    {
+        $this->withRelations = $relations;
+        return $this;
+    }
+
+    /**
      * Get all records.
      * (Lấy tất cả bản ghi)
      *
@@ -52,7 +68,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function all()
     {
-        return $this->model->all();
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->get();
     }
 
     /**
@@ -115,7 +136,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function show($id)
     {
-        return $this->model->findOrFail($id);
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->findOrFail($id);
     }
 
     /**
@@ -127,7 +153,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function find($id)
     {
-        return $this->model->newQuery()->find($id);
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->find($id);
     }
 
     /**
@@ -148,7 +179,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function firstWhere(array $where): ?Model
     {
-        return $this->model->newQuery()->where($where)->first();
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->where($where)->first();
     }
 
     /**
@@ -157,7 +193,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function getWhere(array $where): Collection
     {
-        return $this->model->newQuery()->where($where)->get();
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->where($where)->get();
     }
 
     /**
@@ -302,7 +343,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function findOneBy(array $filter, bool $toArray = true)
     {
-        $data = $this->model->newQuery()->where($filter)->first();
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        $data = $query->where($filter)->first();
 
         if (! $toArray) {
             return $data;
@@ -319,7 +365,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function findBy(array $filter, bool $toArray = true)
     {
-        $result = $this->model->newQuery()->where($filter)->get();
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        $result = $query->where($filter)->get();
 
         if (! $toArray) {
             return $result;
@@ -334,7 +385,12 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function paginate(int $perPage): LengthAwarePaginator
     {
-        return $this->model->newQuery()->paginate($perPage);
+        $query = $this->model->newQuery();
+        if (! empty($this->withRelations)) {
+            $query->with($this->withRelations);
+            $this->withRelations = [];
+        }
+        return $query->paginate($perPage);
     }
 
     /**

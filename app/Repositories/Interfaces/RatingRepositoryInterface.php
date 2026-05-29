@@ -69,5 +69,5 @@ interface RatingRepositoryInterface extends RepositoryInterface
      * Get rating stats grouped by date and status.
      * (Lấy thống kê đánh giá theo ngày và trạng thái)
      */
-    public function getStatsByDateAndStatus(?string $fromDate = null, ?string $toDate = null, ?string $status = null): array;
+    public function getStatsByDateAndStatus(array $filters): array;
 }
