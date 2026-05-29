@@ -49,4 +49,21 @@ interface SearchLogRepositoryInterface extends RepositoryInterface
      * @return array<int, array{query:string,count:int}> Popular queries and counts.
      */
     public function getPopularQueriesByFilters(array $filters = [], int $limit = 10, int $days = 30): array;
+
+    /**
+     * Get queries that returned no results.
+     * (Lấy các từ khóa tìm kiếm không có kết quả)
+     *
+     * @return array<int, array{query:string,count:int}>
+     */
+    public function getZeroResultQueries(int $limit = 10, int $days = 30): array;
+
+    /**
+     * Get top queries by interaction events such as suggestion/result clicks.
+     * (Lấy các từ khóa có nhiều tương tác như click suggestion/kết quả)
+     *
+     * @param  string[]  $events
+     * @return array<int, array{query:string,count:int}>
+     */
+    public function getTopInteractionQueries(array $events, int $limit = 10, int $days = 30): array;
 }

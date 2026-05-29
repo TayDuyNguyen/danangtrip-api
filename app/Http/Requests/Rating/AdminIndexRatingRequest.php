@@ -18,6 +18,10 @@ class AdminIndexRatingRequest extends FormRequest
                 'sometimes',
                 'in:pending,approved,rejected',
             ],
+            'type' => [
+                'sometimes',
+                'in:location,tour',
+            ],
             'location_id' => [
                 'sometimes',
                 'integer',
@@ -47,6 +51,17 @@ class AdminIndexRatingRequest extends FormRequest
                 'integer',
                 'min:1',
                 'max:100',
+            ],
+            'score' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'max:5',
+            ],
+            'search' => [
+                'sometimes',
+                'string',
+                'nullable',
             ],
         ];
     }

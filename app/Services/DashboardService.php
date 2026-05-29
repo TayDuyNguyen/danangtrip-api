@@ -8,6 +8,7 @@ use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use App\Repositories\Interfaces\SearchLogRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use Carbon\Carbon;
@@ -34,6 +35,7 @@ final class DashboardService
         protected BlogPostRepositoryInterface $blogPostRepository,
         protected BookingRepositoryInterface $bookingRepository,
         protected PaymentRepositoryInterface $paymentRepository,
+        protected SearchLogRepositoryInterface $searchLogRepository,
     ) {}
 
     /**
@@ -249,6 +251,53 @@ final class DashboardService
     }
 
     /**
+     * Get search trend dashboard widget data.
+     * (Lấy dữ liệu widget xu hướng tìm kiếm cho dashboard)
+     */
+    public function getSearchTrends(array $filters): array
+    {
+        try {
+            $limit = (int) ($filters['limit'] ?? 5);
+            $days = (int) ($filters['days'] ?? 7);
+
+            $keywords = $this->searchLogRepository->getPopularQueries($limit, $days);
+            $clickedQueries = $this->searchLogRepository->getTopInteractionQueries(
+                ['suggestion_click', 'trending_click', 'result_click'],
+                $limit,
+                $days
+            );
+            $zeroResultKeywords = $this->searchLogRepository->getZeroResultQueries($limit, $days);
+            $locations = $this->locationRepository->getTopLocations($limit)
+                ->map(fn ($location) => [
+                    'id' => (int) $location->id,
+                    'name' => (string) $location->name,
+                    'slug' => (string) ($location->slug ?? ''),
+                    'district' => (string) ($location->district ?? ''),
+                    'view_count' => (int) ($location->view_count ?? 0),
+                    'favorite_count' => (int) ($location->favorite_count ?? 0),
+                ])
+                ->values()
+                ->all();
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'days' => $days,
+                    'keywords' => $keywords,
+                    'clicked_queries' => $clickedQueries,
+                    'zero_result_keywords' => $zeroResultKeywords,
+                    'locations' => $locations,
+                ],
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve search trends.',
+            ];
+        }
+    }
+
+    /**
      * Get user growth grouped by month for the last 12 months.
      * (Lấy số lượng người dùng mới theo tháng trong 12 tháng gần nhất)
      */
@@ -389,11 +438,7 @@ final class DashboardService
     public function getRatingReports(array $filters): array
     {
         try {
-            $from = $filters['from'] ?? null;
-            $to = $filters['to'] ?? null;
-            $status = $filters['status'] ?? null;
-
-            $data = $this->ratingRepository->getStatsByDateAndStatus($from, $to, $status);
+            $data = $this->ratingRepository->getStatsByDateAndStatus($filters);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

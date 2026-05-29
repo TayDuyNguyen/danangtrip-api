@@ -10,6 +10,7 @@ use App\Http\Requests\Dashboard\LocationReportsDashboardRequest;
 use App\Http\Requests\Dashboard\RatingReportsDashboardRequest;
 use App\Http\Requests\Dashboard\RevenueDashboardRequest;
 use App\Http\Requests\Dashboard\RevenueDetailDashboardRequest;
+use App\Http\Requests\Dashboard\SearchTrendsDashboardRequest;
 use App\Http\Requests\Dashboard\TopLocationsDashboardRequest;
 use App\Http\Requests\Dashboard\TopToursDashboardRequest;
 use App\Http\Requests\Dashboard\UserReportsDashboardRequest;
@@ -86,6 +87,19 @@ final class DashboardController extends Controller
     public function topLocations(TopLocationsDashboardRequest $request): JsonResponse
     {
         $result = $this->dashboardService->getTopLocations($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get search trend widget data.
+     * (Lấy dữ liệu widget xu hướng tìm kiếm)
+     */
+    public function searchTrends(SearchTrendsDashboardRequest $request): JsonResponse
+    {
+        $result = $this->dashboardService->getSearchTrends($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])
