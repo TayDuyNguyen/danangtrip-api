@@ -51,12 +51,12 @@ abstract class BaseRepository implements RepositoryInterface
      * Set the relationships that should be eager loaded.
      * (Thiết lập các quan hệ cần nạp trước)
      *
-     * @param array $relations
      * @return $this
      */
     public function with(array $relations)
     {
         $this->withRelations = $relations;
+
         return $this;
     }
 
@@ -73,6 +73,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->get();
     }
 
@@ -141,6 +142,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->findOrFail($id);
     }
 
@@ -158,6 +160,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->find($id);
     }
 
@@ -184,6 +187,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->where($where)->first();
     }
 
@@ -198,6 +202,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->where($where)->get();
     }
 
@@ -390,6 +395,7 @@ abstract class BaseRepository implements RepositoryInterface
             $query->with($this->withRelations);
             $this->withRelations = [];
         }
+
         return $query->paginate($perPage);
     }
 

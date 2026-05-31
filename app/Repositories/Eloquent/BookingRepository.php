@@ -173,17 +173,15 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getRecentTourIds(int $userId, int $limit = 10): array
     {
         return $this->model->newQuery()
-            ->where('user_id', $userId)
-            ->whereHas('items', function ($q) {
-                $q->whereNotNull('tour_id');
-            })
-            ->with('items')
-            ->orderByDesc('created_at')
+            ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
+            ->where('bookings.user_id', $userId)
+            ->whereNotNull('booking_items.tour_id')
+            ->orderByDesc('bookings.created_at')
             ->limit($limit)
-            ->get()
-            ->pluck('items.*.tour_id')
-            ->flatten()
+            ->pluck('booking_items.tour_id')
+            ->map(fn ($id) => (int) $id)
             ->unique()
+            ->values()
             ->all();
     }
 

@@ -2,10 +2,17 @@
 
 namespace App\Providers;
 
+use App\Models\BlogPost;
+use App\Models\Category;
+use App\Models\Location;
 use App\Models\Rating;
+use App\Models\Setting;
+use App\Models\Tour;
+use App\Models\TourCategory;
 use App\Observers\RatingObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -25,6 +32,29 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Rating::observe(RatingObserver::class);
+
+        // Centralized cache invalidation for the unified homepage cached payload
+        $clearHomeCache = function () {
+            Cache::forget('public_homepage_data');
+        };
+
+        Setting::saved($clearHomeCache);
+        Setting::deleted($clearHomeCache);
+
+        Category::saved($clearHomeCache);
+        Category::deleted($clearHomeCache);
+
+        Location::saved($clearHomeCache);
+        Location::deleted($clearHomeCache);
+
+        TourCategory::saved($clearHomeCache);
+        TourCategory::deleted($clearHomeCache);
+
+        Tour::saved($clearHomeCache);
+        Tour::deleted($clearHomeCache);
+
+        BlogPost::saved($clearHomeCache);
+        BlogPost::deleted($clearHomeCache);
 
         $this->configureRateLimiting();
     }

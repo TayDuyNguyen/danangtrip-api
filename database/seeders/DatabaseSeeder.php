@@ -25,6 +25,8 @@ class DatabaseSeeder extends Seeder
             BookingSeeder::class,
             InteractionSeeder::class,
             SqlSeeder::class,
+            SettingSeeder::class,
+            CrawlerSeeder::class,
         ]);
     }
 }

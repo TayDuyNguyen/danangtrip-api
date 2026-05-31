@@ -5,42 +5,25 @@ namespace App\Repositories\Interfaces;
 use App\Models\Favorite;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-/**
- * Interface FavoriteRepositoryInterface.
- * (Giao diện Repository cho Yêu thích)
- */
 interface FavoriteRepositoryInterface extends RepositoryInterface
 {
-    /**
-     * Get paginated list of favorites for a user.
-     * (Lấy danh sách yêu thích có phân trang cho người dùng)
-     */
     public function getPaginatedByUser(int $userId, int $perPage): LengthAwarePaginator;
 
     /**
-     * Find a favorite by user and location.
-     * (Tìm yêu thích theo người dùng và địa điểm)
+     * @return array{location_ids:int[], tour_ids:int[]}
      */
+    public function getFavoriteIdsByUser(int $userId): array;
+
     public function findByUserAndLocation(int $userId, int $locationId): ?Favorite;
 
-    /**
-     * Find a favorite by user and tour.
-     * (Tìm yêu thích theo người dùng và tour)
-     */
     public function findByUserAndTour(int $userId, int $tourId): ?Favorite;
 
     /**
-     * Get recent favorited location IDs by user.
-     * (Lấy danh sách ID địa điểm yêu thích gần đây của người dùng)
-     *
      * @return int[]
      */
     public function getRecentLocationIds(int $userId, int $limit = 10): array;
 
     /**
-     * Get recent favorited tour IDs by user.
-     * (Lấy danh sách ID tour yêu thích gần đây của người dùng)
-     *
      * @return int[]
      */
     public function getRecentTourIds(int $userId, int $limit = 10): array;

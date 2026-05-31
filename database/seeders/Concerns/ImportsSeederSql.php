@@ -10,7 +10,11 @@ trait ImportsSeederSql
 {
     protected function importSeederSql(string $fileName): void
     {
-        $sqlPath = base_path('../DATN_Tài liệu/seeder'.DIRECTORY_SEPARATOR.$fileName);
+        $sqlPath = base_path('../DATN_Document/database-seeders'.DIRECTORY_SEPARATOR.$fileName);
+
+        if (! File::exists($sqlPath)) {
+            $sqlPath = base_path('../DATN_Tài liệu/seeder'.DIRECTORY_SEPARATOR.$fileName);
+        }
 
         if (! File::exists($sqlPath)) {
             throw new RuntimeException("Missing seeder SQL file: {$sqlPath}");

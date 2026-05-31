@@ -51,7 +51,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             ->where('status', 'active')
             ->with(['category', 'subcategory', 'tags']);
 
-        $userId = auth('sanctum')->id();
+        $userId = auth('api')->id();
         if ($userId) {
             $query->selectRaw('locations.*, EXISTS(
                 SELECT 1 FROM favorites 

@@ -206,23 +206,23 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('created_at', '<=', $toBound);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $driver = $this->model->getConnection()->getDriverName();
             $operator = $driver === 'pgsql' ? 'ilike' : 'like';
 
             $query->where(function ($q) use ($search, $operator) {
-                $q->where('comment', $operator, '%' . $search . '%')
+                $q->where('comment', $operator, '%'.$search.'%')
                     ->orWhereHas('user', function ($uq) use ($search, $operator) {
-                        $uq->where('full_name', $operator, '%' . $search . '%')
-                            ->orWhere('username', $operator, '%' . $search . '%')
-                            ->orWhere('email', $operator, '%' . $search . '%');
+                        $uq->where('full_name', $operator, '%'.$search.'%')
+                            ->orWhere('username', $operator, '%'.$search.'%')
+                            ->orWhere('email', $operator, '%'.$search.'%');
                     })
                     ->orWhereHas('location', function ($lq) use ($search, $operator) {
-                        $lq->where('name', $operator, '%' . $search . '%');
+                        $lq->where('name', $operator, '%'.$search.'%');
                     })
                     ->orWhereHas('tour', function ($tq) use ($search, $operator) {
-                        $tq->where('name', $operator, '%' . $search . '%');
+                        $tq->where('name', $operator, '%'.$search.'%');
                     });
             });
         }
@@ -238,10 +238,10 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             ->selectRaw('CAST(created_at AS DATE) as date, status, COUNT(*) as count');
 
         // Map 'from' / 'to' to 'date_from' / 'date_to' if necessary
-        if (isset($filters['from']) && !isset($filters['date_from'])) {
+        if (isset($filters['from']) && ! isset($filters['date_from'])) {
             $filters['date_from'] = $filters['from'];
         }
-        if (isset($filters['to']) && !isset($filters['date_to'])) {
+        if (isset($filters['to']) && ! isset($filters['date_to'])) {
             $filters['date_to'] = $filters['to'];
         }
 

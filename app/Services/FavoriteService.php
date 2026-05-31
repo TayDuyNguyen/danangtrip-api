@@ -36,6 +36,14 @@ class FavoriteService
     public function getFavorites(int $userId, array $params): array
     {
         try {
+            $idsOnly = filter_var($params['ids_only'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($idsOnly) {
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->favoriteRepository->getFavoriteIdsByUser($userId),
+                ];
+            }
+
             $perPage = $params['per_page'] ?? Pagination::PER_PAGE->value;
             $favorites = $this->favoriteRepository->getPaginatedByUser($userId, (int) $perPage);
 

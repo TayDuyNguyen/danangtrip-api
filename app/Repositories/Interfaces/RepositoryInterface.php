@@ -154,9 +154,7 @@ interface RepositoryInterface
      * Set the relationships that should be eager loaded.
      * (Thiết lập các quan hệ cần nạp trước)
      *
-     * @param array $relations
      * @return $this
      */
     public function with(array $relations);
 }
-

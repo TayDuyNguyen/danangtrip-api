@@ -9,7 +9,9 @@ use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardControll
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Api\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
+use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\Admin\TourCategoryController as AdminTourCategoryController;
@@ -25,14 +27,17 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\PublicStatisticsController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TourCategoryController;
 use App\Http\Controllers\Api\TourController;
@@ -52,6 +57,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     Route::get('/ping', fn () => response()->json(['status' => 'ok']));
+    Route::get('/home', [HomeController::class, 'index'])->middleware('throttle:api.standard');
     Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
     // =========================================================================
@@ -123,6 +129,15 @@ Route::prefix('v1')->group(function () {
     // Contacts: Public submit
     // (Liên hệ: Gửi công khai)
     Route::post('/contacts', [ContactController::class, 'store'])->middleware('throttle:api.strict');
+
+    // Config: Public configurations
+    // (Cấu hình: Cấu hình công khai)
+    Route::get('/config', [SettingController::class, 'publicConfig'])->middleware('throttle:api.standard');
+
+    // Promotions: Public access
+    // (Khuyến mãi: Truy cập công khai)
+    Route::get('/promotions', [PromotionController::class, 'index'])->middleware('throttle:api.standard');
+    Route::post('/promotions/validate', [PromotionController::class, 'validate'])->middleware('throttle:api.standard');
 
     // Tours: Public access
     // (Tour: Truy cập công khai)
@@ -395,5 +410,19 @@ Route::prefix('v1')->group(function () {
         Route::post('/notifications/send', [AdminNotificationController::class, 'send']);
         Route::post('/notifications/send-all', [AdminNotificationController::class, 'sendAll']);
         Route::delete('/notifications/{id}', [AdminNotificationController::class, 'destroy'])->whereNumber('id');
+
+        // Website Settings Management
+        // (Quản lý Cấu hình Website)
+        Route::get('/settings', [AdminSettingController::class, 'index'])->middleware('throttle:api.admin');
+        Route::put('/settings', [AdminSettingController::class, 'update'])->middleware('throttle:api.admin');
+
+        // Promotions Management
+        // (Quản lý Khuyến mãi / Mã giảm giá)
+        Route::get('/promotions', [AdminPromotionController::class, 'index'])->middleware('throttle:api.admin');
+        Route::post('/promotions', [AdminPromotionController::class, 'store']);
+        Route::get('/promotions/{id}', [AdminPromotionController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
+        Route::put('/promotions/{id}', [AdminPromotionController::class, 'update'])->whereNumber('id');
+        Route::patch('/promotions/{id}/status', [AdminPromotionController::class, 'updateStatus'])->whereNumber('id');
+        Route::delete('/promotions/{id}', [AdminPromotionController::class, 'destroy'])->whereNumber('id');
     });
 });
