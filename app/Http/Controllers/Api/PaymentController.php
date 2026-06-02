@@ -72,7 +72,11 @@ final class PaymentController extends Controller
     public function retry(RetryPaymentRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $result = $this->paymentService->retryPayment($validated['booking_code'], $validated['return_url'] ?? null);
+        $result = $this->paymentService->retryPayment(
+            $validated['booking_code'],
+            $validated['return_url'] ?? null,
+            $validated['payment_method'] ?? null,
+        );
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'] ?? null, $result['message'])
