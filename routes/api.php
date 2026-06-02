@@ -58,6 +58,9 @@ Route::prefix('v1')->group(function () {
 
     Route::get('/ping', fn () => response()->json(['status' => 'ok']));
     Route::get('/home', [HomeController::class, 'index'])->middleware('throttle:api.standard');
+    Route::get('/home/locations', [HomeController::class, 'locations'])->middleware('throttle:api.standard');
+    Route::get('/home/tours', [HomeController::class, 'tours'])->middleware('throttle:api.standard');
+    Route::get('/home/blogs', [HomeController::class, 'blogs'])->middleware('throttle:api.standard');
     Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
     // =========================================================================

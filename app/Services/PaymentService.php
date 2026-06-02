@@ -285,7 +285,7 @@ class PaymentService
      * Retry payment for a booking.
      * (Thử thanh toán lại cho một đơn đặt chỗ)
      */
-    public function retryPayment(string $bookingCode, ?string $returnUrl = null): array
+    public function retryPayment(string $bookingCode, ?string $returnUrl = null, ?string $paymentMethod = null): array
     {
         $booking = $this->bookingRepository->findByCode($bookingCode);
 
@@ -310,9 +310,9 @@ class PaymentService
             ];
         }
 
-        // Get last payment method if exists, otherwise default to PayOS
+        // Use the requested method when the customer changes gateway; otherwise reuse the last method.
         $lastPayment = $booking->payments()->latest()->first();
-        $paymentMethod = $lastPayment ? $lastPayment->payment_method : PaymentMethod::PAYOS->value;
+        $paymentMethod = $paymentMethod ?: ($lastPayment ? $lastPayment->payment_method : PaymentMethod::PAYOS->value);
 
         return $this->createPayment([
             'booking_id' => $booking->id,
