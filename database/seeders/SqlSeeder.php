@@ -15,5 +15,7 @@ class SqlSeeder extends Seeder
     public function run(): void
     {
         $this->importSeederSql('10_system_tables.sql');
+        $this->importSeederSql('17_promotions_seed.sql');
+        $this->importSeederSql('18_landing_pages_seed.sql');
     }
 }

@@ -24,6 +24,11 @@ interface BookingRepositoryInterface extends RepositoryInterface
     public function findByCode(string $code): ?Booking;
 
     /**
+     * Find and lock a booking row for an atomic status transition.
+     */
+    public function findForUpdate(int $id): ?Booking;
+
+    /**
      * Update the status of a booking.
      */
     public function updateStatus(int $id, string $status): bool;
