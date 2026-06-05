@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\TourScheduleBookingAvailability;
 use App\Enums\TourStatus;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
+use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,8 @@ class BookingService
         protected BookingRepositoryInterface $bookingRepository,
         protected TourScheduleRepositoryInterface $tourScheduleRepository,
         protected TourRepositoryInterface $tourRepository,
-        protected TourStatusSyncService $tourStatusSyncService
+        protected TourStatusSyncService $tourStatusSyncService,
+        protected PaymentRepositoryInterface $paymentRepository
     ) {}
 
     /**
@@ -428,7 +430,7 @@ class BookingService
     {
         try {
             return DB::transaction(function () use ($id) {
-                $booking = $this->bookingRepository->find($id);
+                $booking = $this->bookingRepository->findForUpdate($id);
 
                 if (! $booking) {
                     return [
@@ -444,19 +446,48 @@ class BookingService
                     ];
                 }
 
-                $this->bookingRepository->updateBooking((int) $booking->id, [
+                $completedAt = now();
+                $successfulPayment = $this->paymentRepository->findSuccessfulByBookingId((int) $booking->id);
+
+                if (! $successfulPayment) {
+                    $this->paymentRepository->create([
+                        'booking_id' => $booking->id,
+                        'transaction_code' => 'ADMIN-COMPLETE-'.$booking->id.'-'.$completedAt->format('YmdHis'),
+                        'amount' => $booking->final_amount,
+                        'payment_method' => $booking->payment_method,
+                        'payment_status' => PaymentStatus::SUCCESS->value,
+                        'payment_gateway' => 'ADMIN',
+                        'gateway_response' => [
+                            'source' => 'admin_complete_booking',
+                        ],
+                        'paid_at' => $completedAt,
+                    ]);
+                }
+
+                $completionData = [
                     'booking_status' => BookingStatus::COMPLETED->value,
-                    'completed_at' => now(),
-                    'payment_status' => PaymentStatus::SUCCESS->value, // Usually completed means paid in full
-                ]);
+                    'completed_at' => $completedAt,
+                    'payment_status' => PaymentStatus::SUCCESS->value,
+                ];
+
+                if (! $this->bookingRepository->updateBooking((int) $booking->id, $completionData)) {
+                    throw new \RuntimeException('Unable to persist completed booking status.');
+                }
+
+                $booking->fill($completionData);
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $booking->fresh(),
+                    'data' => $booking,
                     'message' => 'Booking completed successfully.',
                 ];
             });
         } catch (\Exception $e) {
+            Log::error('Booking completion failed', [
+                'booking_id' => $id,
+                'exception' => $e,
+            ]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking completion failed',

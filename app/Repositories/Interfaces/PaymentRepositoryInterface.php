@@ -31,6 +31,11 @@ interface PaymentRepositoryInterface extends RepositoryInterface
     public function findByTransactionCodeForUpdate(string $transactionCode): ?Payment;
 
     /**
+     * Find a successful payment for a booking.
+     */
+    public function findSuccessfulByBookingId(int $bookingId): ?Payment;
+
+    /**
      * Get payments for export.
      * (Lấy danh sách thanh toán để xuất file)
      */

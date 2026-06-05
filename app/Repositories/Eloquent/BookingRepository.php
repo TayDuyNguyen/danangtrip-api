@@ -107,6 +107,16 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     }
 
     /**
+     * Find and lock a booking row for an atomic status transition.
+     */
+    public function findForUpdate(int $id): ?Booking
+    {
+        return $this->model->newQuery()
+            ->lockForUpdate()
+            ->find($id);
+    }
+
+    /**
      * Update the status of a booking.
      * (Cập nhật trạng thái của đơn đặt chỗ)
      */

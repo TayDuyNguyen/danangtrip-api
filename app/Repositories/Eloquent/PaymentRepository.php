@@ -65,6 +65,18 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     }
 
     /**
+     * Find a successful payment for a booking.
+     */
+    public function findSuccessfulByBookingId(int $bookingId): ?Payment
+    {
+        return $this->model->newQuery()
+            ->where('booking_id', $bookingId)
+            ->where('payment_status', PaymentStatus::SUCCESS->value)
+            ->latest('id')
+            ->first();
+    }
+
+    /**
      * Get payments for export.
      * (Lấy danh sách thanh toán để xuất file)
      */
