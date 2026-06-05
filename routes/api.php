@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardControll
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Api\Admin\LandingPageController as AdminLandingPageController;
 use App\Http\Controllers\Api\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
@@ -427,5 +428,14 @@ Route::prefix('v1')->group(function () {
         Route::put('/promotions/{id}', [AdminPromotionController::class, 'update'])->whereNumber('id');
         Route::patch('/promotions/{id}/status', [AdminPromotionController::class, 'updateStatus'])->whereNumber('id');
         Route::delete('/promotions/{id}', [AdminPromotionController::class, 'destroy'])->whereNumber('id');
+
+        // Landing Pages Management
+        // (Quản lý Landing Pages)
+        Route::get('/landing-pages', [AdminLandingPageController::class, 'index'])->middleware('throttle:api.admin');
+        Route::post('/landing-pages', [AdminLandingPageController::class, 'store']);
+        Route::get('/landing-pages/{id}', [AdminLandingPageController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
+        Route::put('/landing-pages/{id}', [AdminLandingPageController::class, 'update'])->whereNumber('id');
+        Route::patch('/landing-pages/{id}/status', [AdminLandingPageController::class, 'updateStatus'])->whereNumber('id');
+        Route::delete('/landing-pages/{id}', [AdminLandingPageController::class, 'destroy'])->whereNumber('id');
     });
 });

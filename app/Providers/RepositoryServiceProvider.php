@@ -48,6 +48,8 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
+use App\Repositories\Interfaces\LandingPageRepositoryInterface;
+use App\Repositories\Eloquent\LandingPageRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -87,6 +89,7 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(RefreshTokenRepositoryInterface::class, RefreshTokenRepository::class);
         $this->app->bind(SettingRepositoryInterface::class, SettingRepository::class);
         $this->app->bind(PromotionRepositoryInterface::class, PromotionRepository::class);
+        $this->app->bind(LandingPageRepositoryInterface::class, LandingPageRepository::class);
     }
 
     /**

@@ -26,12 +26,12 @@ class HomeControllerTest extends TestCase
         parent::setUp();
 
         $this->withoutMiddleware();
-        Cache::forget('public_homepage_data');
+        Cache::forget('public_homepage_data_v2');
     }
 
     protected function tearDown(): void
     {
-        Cache::forget('public_homepage_data');
+        Cache::forget('public_homepage_data_v2');
         parent::tearDown();
     }
 
@@ -125,14 +125,14 @@ class HomeControllerTest extends TestCase
     {
         $this->mockAllRepositoriesWithSuccess();
 
-        $this->assertFalse(Cache::has('public_homepage_data'));
+        $this->assertFalse(Cache::has('public_homepage_data_v2'));
 
         // First request should populate cache
         $this->getJson('/api/v1/home')->assertOk();
 
-        $this->assertTrue(Cache::has('public_homepage_data'));
+        $this->assertTrue(Cache::has('public_homepage_data_v2'));
 
-        $cachedData = Cache::get('public_homepage_data');
+        $cachedData = Cache::get('public_homepage_data_v2');
         $this->assertArrayHasKey('statistics', $cachedData);
         $this->assertArrayHasKey('categories', $cachedData);
         $this->assertArrayHasKey('featured_locations', $cachedData);
@@ -153,12 +153,12 @@ class HomeControllerTest extends TestCase
 
         $this->app->instance(SettingRepositoryInterface::class, $mockSettingRepo);
 
-        $this->assertFalse(Cache::has('public_homepage_data'));
+        $this->assertFalse(Cache::has('public_homepage_data_v2'));
 
         // Firing request should bypass cache due to setting failure (status is 500 inside config result)
         $response = $this->getJson('/api/v1/home');
         $response->assertOk();
 
-        $this->assertFalse(Cache::has('public_homepage_data'));
+        $this->assertFalse(Cache::has('public_homepage_data_v2'));
     }
 }
