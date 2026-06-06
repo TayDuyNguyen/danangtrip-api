@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Search\InteractionSearchRequest;
 use App\Http\Requests\Search\PopularSearchRequest;
 use App\Http\Requests\Search\RecommendationSearchRequest;
 use App\Http\Requests\Search\SearchSearchRequest;
@@ -73,6 +74,32 @@ final class SearchController extends Controller
     public function trending(TrendingSearchRequest $request): JsonResponse
     {
         $result = $this->searchService->trending($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get blended search insights from query logs and top viewed places.
+     * (Lấy insight tìm kiếm kết hợp từ log tìm kiếm và địa điểm được xem nhiều)
+     */
+    public function trendInsights(TrendingSearchRequest $request): JsonResponse
+    {
+        $result = $this->searchService->trendInsights($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Log search UI interactions such as clicking a suggestion or result.
+     * (Ghi nhận tương tác trên giao diện tìm kiếm như click gợi ý hoặc kết quả)
+     */
+    public function interact(InteractionSearchRequest $request): JsonResponse
+    {
+        $result = $this->searchService->trackInteraction($request->validated(), $request);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

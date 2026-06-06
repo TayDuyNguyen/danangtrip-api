@@ -8,6 +8,7 @@ use App\Http\Requests\Blog\DeleteBlogCategoryRequest;
 use App\Http\Requests\Blog\DeleteBlogRequest;
 use App\Http\Requests\Blog\IndexAdminBlogRequest;
 use App\Http\Requests\Blog\IndexBlogCategoryRequest;
+use App\Http\Requests\Blog\ReorderBlogCategoryRequest;
 use App\Http\Requests\Blog\ShowBlogRequest;
 use App\Http\Requests\Blog\StoreBlogCategoryRequest;
 use App\Http\Requests\Blog\StoreBlogRequest;
@@ -16,6 +17,7 @@ use App\Http\Requests\Blog\UpdateBlogRequest;
 use App\Http\Requests\Blog\UpdateStatusBlogRequest;
 use App\Services\BlogService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 /**
  * Class BlogController
@@ -30,6 +32,22 @@ final class BlogController extends Controller
     public function __construct(
         protected BlogService $blogService
     ) {}
+
+    /**
+     * Check if a blog post slug exists.
+     * (Kiểm tra slug bài viết blog đã tồn tại chưa)
+     */
+    public function checkSlug(Request $request): JsonResponse
+    {
+        $slug = $request->query('slug');
+        if (empty($slug)) {
+            return $this->error('Slug parameter is required.', HttpStatusCode::BAD_REQUEST->value);
+        }
+
+        $exists = $this->blogService->checkSlugExists($slug);
+
+        return $this->success(['exists' => $exists], 'Slug check completed.');
+    }
 
     /**
      * Store a new blog post.
@@ -156,6 +174,19 @@ final class BlogController extends Controller
     public function destroyCategory(DeleteBlogCategoryRequest $request, int $id): JsonResponse
     {
         $result = $this->blogService->deleteCategory($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success(null, $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Reorder blog categories.
+     * (Sắp xếp lại danh mục blog)
+     */
+    public function reorderCategories(ReorderBlogCategoryRequest $request): JsonResponse
+    {
+        $result = $this->blogService->reorderCategories($request->validated('items'));
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success(null, $result['message'])

@@ -23,10 +23,43 @@ class RatingReportsDashboardRequest extends FormRequest
                 'date_format:Y-m-d',
                 'after_or_equal:from',
             ],
+            'date_from' => [
+                'sometimes',
+                'date',
+            ],
+            'date_to' => [
+                'sometimes',
+                'date',
+                'after_or_equal:date_from',
+            ],
             'status' => [
                 'sometimes',
-                'string',
                 'in:pending,approved,rejected',
+            ],
+            'type' => [
+                'sometimes',
+                'in:location,tour',
+            ],
+            'location_id' => [
+                'sometimes',
+                'integer',
+                'exists:locations,id',
+            ],
+            'tour_id' => [
+                'sometimes',
+                'integer',
+                'exists:tours,id',
+            ],
+            'score' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'max:5',
+            ],
+            'search' => [
+                'sometimes',
+                'string',
+                'nullable',
             ],
         ];
     }

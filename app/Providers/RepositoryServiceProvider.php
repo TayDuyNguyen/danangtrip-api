@@ -12,10 +12,12 @@ use App\Repositories\Eloquent\FavoriteRepository;
 use App\Repositories\Eloquent\LocationRepository;
 use App\Repositories\Eloquent\NotificationRepository;
 use App\Repositories\Eloquent\PaymentRepository;
+use App\Repositories\Eloquent\PromotionRepository;
 use App\Repositories\Eloquent\RatingImageRepository;
 use App\Repositories\Eloquent\RatingRepository;
 use App\Repositories\Eloquent\RefreshTokenRepository;
 use App\Repositories\Eloquent\SearchLogRepository;
+use App\Repositories\Eloquent\SettingRepository;
 use App\Repositories\Eloquent\SubcategoryRepository;
 use App\Repositories\Eloquent\TagRepository;
 use App\Repositories\Eloquent\TourCategoryRepository;
@@ -33,10 +35,12 @@ use App\Repositories\Interfaces\FavoriteRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
+use App\Repositories\Interfaces\PromotionRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\SearchLogRepositoryInterface;
+use App\Repositories\Interfaces\SettingRepositoryInterface;
 use App\Repositories\Interfaces\SubcategoryRepositoryInterface;
 use App\Repositories\Interfaces\TagRepositoryInterface;
 use App\Repositories\Interfaces\TourCategoryRepositoryInterface;
@@ -44,6 +48,8 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
+use App\Repositories\Interfaces\LandingPageRepositoryInterface;
+use App\Repositories\Eloquent\LandingPageRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -81,6 +87,9 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(BookingRepositoryInterface::class, BookingRepository::class);
         $this->app->bind(PaymentRepositoryInterface::class, PaymentRepository::class);
         $this->app->bind(RefreshTokenRepositoryInterface::class, RefreshTokenRepository::class);
+        $this->app->bind(SettingRepositoryInterface::class, SettingRepository::class);
+        $this->app->bind(PromotionRepositoryInterface::class, PromotionRepository::class);
+        $this->app->bind(LandingPageRepositoryInterface::class, LandingPageRepository::class);
     }
 
     /**

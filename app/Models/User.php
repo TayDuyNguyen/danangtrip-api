@@ -105,6 +105,13 @@ final class User extends Authenticatable implements JWTSubject
     ];
 
     /**
+     * @var list<string>
+     */
+    protected $appends = [
+        'avatar_url',
+    ];
+
+    /**
      * Get the attributes that should be cast.
      * (Danh sách các thuộc tính cần cast)
      *
@@ -118,6 +125,24 @@ final class User extends Authenticatable implements JWTSubject
             'password' => 'hashed',
             'birthdate' => 'date',
         ];
+    }
+
+    /**
+     * Public URL for the user's avatar (null when not set).
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        $avatar = $this->attributes['avatar'] ?? null;
+
+        if (! $avatar) {
+            return null;
+        }
+
+        if (str_starts_with($avatar, 'http://') || str_starts_with($avatar, 'https://')) {
+            return $avatar;
+        }
+
+        return '/api/v1/media/'.ltrim($avatar, '/');
     }
 
     public function getJWTIdentifier()

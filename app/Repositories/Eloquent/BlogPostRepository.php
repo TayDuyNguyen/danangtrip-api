@@ -108,9 +108,25 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
             });
         }
 
+        // Search by title or excerpt if provided
+        $search = trim((string) ($filters['search'] ?? ''));
+        if ($search !== '') {
+            $needle = '%'.mb_strtolower($search).'%';
+
+            $query->where(function ($q) use ($needle) {
+                $q->whereRaw('LOWER(title) LIKE ?', [$needle])
+                    ->orWhereRaw("LOWER(COALESCE(excerpt, '')) LIKE ?", [$needle]);
+            });
+        }
+
+        $sort = $filters['sort'] ?? 'created_at';
+        $order = $filters['order'] ?? 'desc';
+
+        $query->orderBy($sort, $order);
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
-        return $query->orderByDesc('created_at')->paginate($perPage);
+        return $query->paginate($perPage);
     }
 
     /**
@@ -124,5 +140,19 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
         return $this->model->newQuery()
             ->with(['author:id,full_name,avatar', 'categories'])
             ->find($id);
+    }
+
+    /**
+     * Get counts of blog posts grouped by status.
+     * (Lấy số lượng bài viết blog gom nhóm theo trạng thái)
+     */
+    public function getStatusCounts(): array
+    {
+        return [
+            'total' => $this->model->newQuery()->count(),
+            'published' => $this->model->newQuery()->where('status', 'published')->count(),
+            'draft' => $this->model->newQuery()->where('status', 'draft')->count(),
+            'archived' => $this->model->newQuery()->where('status', 'archived')->count(),
+        ];
     }
 }

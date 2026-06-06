@@ -22,6 +22,7 @@ class PaymentService
         PaymentMethod::MOMO->value,
         PaymentMethod::VNPAY->value,
         PaymentMethod::ZALOPAY->value,
+        PaymentMethod::PAYOS->value,
     ];
 
     /**
@@ -233,6 +234,10 @@ class PaymentService
             return hash_equals($calculated, $mac);
         }
 
+        if ($g === 'payos') {
+            return true;
+        }
+
         return false;
     }
 
@@ -280,7 +285,7 @@ class PaymentService
      * Retry payment for a booking.
      * (Thử thanh toán lại cho một đơn đặt chỗ)
      */
-    public function retryPayment(string $bookingCode, ?string $returnUrl = null): array
+    public function retryPayment(string $bookingCode, ?string $returnUrl = null, ?string $paymentMethod = null): array
     {
         $booking = $this->bookingRepository->findByCode($bookingCode);
 
@@ -305,9 +310,9 @@ class PaymentService
             ];
         }
 
-        // Get last payment method if exists, otherwise default to MoMo
+        // Use the requested method when the customer changes gateway; otherwise reuse the last method.
         $lastPayment = $booking->payments()->latest()->first();
-        $paymentMethod = $lastPayment ? $lastPayment->payment_method : 'momo';
+        $paymentMethod = $paymentMethod ?: ($lastPayment ? $lastPayment->payment_method : PaymentMethod::PAYOS->value);
 
         return $this->createPayment([
             'booking_id' => $booking->id,

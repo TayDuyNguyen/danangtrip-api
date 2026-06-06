@@ -381,9 +381,11 @@ final class RatingService
                     return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
                 }
 
-                if ($rating->status !== 'pending') {
-                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending'];
+                if ($rating->status !== 'pending' && $rating->status !== 'approved') {
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not pending or approved'];
                 }
+
+                $wasApproved = $rating->status === 'approved';
 
                 $this->ratingRepository->update($ratingId, [
                     'status' => 'rejected',
@@ -391,6 +393,14 @@ final class RatingService
                     'approved_by' => $adminId,
                     'approved_at' => null,
                 ]);
+
+                if ($wasApproved) {
+                    if ($rating->location_id) {
+                        $this->locationRepository->updateStats((int) $rating->location_id);
+                    } elseif ($rating->tour_id) {
+                        $this->tourRepository->updateStats((int) $rating->tour_id);
+                    }
+                }
 
                 $targetName = $rating->location?->name ?? $rating->tour?->name ?? 'item';
 

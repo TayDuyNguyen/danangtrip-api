@@ -5,23 +5,16 @@ namespace App\Http\Requests\Favorite;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Class IndexFavoriteRequest
- * Validates query parameters for listing favorite locations.
- * (Xác thực tham số truy vấn cho danh sách địa điểm yêu thích)
+ * Validates query parameters for listing favorites.
  */
 class IndexFavoriteRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -33,18 +26,38 @@ class IndexFavoriteRequest extends FormRequest
                 'min:1',
                 'max:100',
             ],
+            'ids_only' => [
+                'sometimes',
+                'boolean',
+            ],
         ];
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('ids_only')) {
+            return;
+        }
+
+        $normalized = filter_var($this->input('ids_only'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if ($normalized !== null) {
+            $this->merge([
+                'ids_only' => $normalized,
+            ]);
+        }
+    }
+
     /**
-     * Get custom messages for validator errors.
+     * @return array<string, string>
      */
     public function messages(): array
     {
         return [
-            'per_page.integer' => 'The per_page must be an integer. (per_page phải là số nguyên.)',
-            'per_page.min' => 'The per_page must be at least 1. (per_page phải ít nhất là 1.)',
-            'per_page.max' => 'The per_page must not exceed 100. (per_page không được vượt quá 100.)',
+            'per_page.integer' => 'The per_page must be an integer.',
+            'per_page.min' => 'The per_page must be at least 1.',
+            'per_page.max' => 'The per_page must not exceed 100.',
+            'ids_only.boolean' => 'The ids_only field must be true or false.',
         ];
     }
 }

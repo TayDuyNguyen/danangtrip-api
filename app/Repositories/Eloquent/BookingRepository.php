@@ -107,6 +107,16 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     }
 
     /**
+     * Find and lock a booking row for an atomic status transition.
+     */
+    public function findForUpdate(int $id): ?Booking
+    {
+        return $this->model->newQuery()
+            ->lockForUpdate()
+            ->find($id);
+    }
+
+    /**
      * Update the status of a booking.
      * (Cập nhật trạng thái của đơn đặt chỗ)
      */
@@ -173,17 +183,15 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function getRecentTourIds(int $userId, int $limit = 10): array
     {
         return $this->model->newQuery()
-            ->where('user_id', $userId)
-            ->whereHas('items', function ($q) {
-                $q->whereNotNull('tour_id');
-            })
-            ->with('items')
-            ->orderByDesc('created_at')
+            ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
+            ->where('bookings.user_id', $userId)
+            ->whereNotNull('booking_items.tour_id')
+            ->orderByDesc('bookings.created_at')
             ->limit($limit)
-            ->get()
-            ->pluck('items.*.tour_id')
-            ->flatten()
+            ->pluck('booking_items.tour_id')
+            ->map(fn ($id) => (int) $id)
             ->unique()
+            ->values()
             ->all();
     }
 
@@ -322,6 +330,18 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function updateBooking(int $bookingId, array $data): bool
     {
         return (bool) $this->update($bookingId, $data);
+    }
+
+    /**
+     * Check if a user has any active bookings (pending or confirmed status).
+     * (Kiểm tra xem người dùng có đơn đặt tour nào đang hoạt động không)
+     */
+    public function hasActiveBookings(int $userId): bool
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->whereIn('booking_status', [BookingStatus::PENDING->value, BookingStatus::CONFIRMED->value])
+            ->exists();
     }
 
     /**

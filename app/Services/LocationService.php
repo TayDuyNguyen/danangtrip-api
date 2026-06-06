@@ -135,11 +135,24 @@ final class LocationService
                 $data['slug'] = $this->locationRepository->generateUniqueSlug($data['name']);
             }
 
+            $tags = array_key_exists('tags', $data) ? ($data['tags'] ?? []) : null;
+            $amenities = array_key_exists('amenities', $data) ? ($data['amenities'] ?? []) : null;
+            unset($data['tags'], $data['amenities']);
+
             $location = $this->locationRepository->create($data);
+
+            if ($location) {
+                if ($tags !== null) {
+                    $this->locationRepository->sync($location->id, 'tags', $tags);
+                }
+                if ($amenities !== null) {
+                    $this->locationRepository->sync($location->id, 'amenities', $amenities);
+                }
+            }
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
-                'data' => $location,
+                'data' => $this->locationRepository->findWithDetails($location->id) ?? $location,
             ];
         } catch (\Throwable $e) {
 
@@ -166,9 +179,20 @@ final class LocationService
                 $data['slug'] = $this->locationRepository->generateUniqueSlug($data['name'], 'slug', $id);
             }
 
+            $tags = array_key_exists('tags', $data) ? ($data['tags'] ?? []) : null;
+            $amenities = array_key_exists('amenities', $data) ? ($data['amenities'] ?? []) : null;
+            unset($data['tags'], $data['amenities']);
+
             $this->locationRepository->update($id, $data);
 
-            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $this->locationRepository->find($id)];
+            if ($tags !== null) {
+                $this->locationRepository->sync($id, 'tags', $tags);
+            }
+            if ($amenities !== null) {
+                $this->locationRepository->sync($id, 'amenities', $amenities);
+            }
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $this->locationRepository->findWithDetails($id) ?? $this->locationRepository->find($id)];
         } catch (\Exception $e) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to update location'];
@@ -220,6 +244,20 @@ final class LocationService
         } catch (\Exception $_) {
 
             return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get districts'];
+        }
+    }
+
+    /**
+     * Get aggregate filter stats (districts, price levels, ratings).
+     */
+    public function getFilterStats(): array
+    {
+        try {
+            $stats = $this->locationRepository->getFilterStats();
+
+            return ['status' => HttpStatusCode::SUCCESS->value, 'data' => $stats];
+        } catch (\Exception $e) {
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to get filter stats'];
         }
     }
 

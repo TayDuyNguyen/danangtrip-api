@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\BlogCategoryRepositoryInterface;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -171,9 +172,25 @@ final class BlogService
                     }
                 }
 
-                // If status changed to published, set published_at if null
-                if (! empty($data['status']) && $data['status'] === 'published' && empty($post->published_at) && empty($data['published_at'])) {
-                    $data['published_at'] = now();
+                // Handle published_at logic for status 'published'
+                if (! empty($data['status']) && $data['status'] === 'published') {
+                    if (empty($data['published_at'])) {
+                        if ($post->published_at) {
+                            $existingPublishedAt = is_string($post->published_at)
+                                ? new Carbon($post->published_at)
+                                : $post->published_at;
+
+                            if ($existingPublishedAt->isPast()) {
+                                $data['published_at'] = $post->published_at;
+                            } else {
+                                $data['published_at'] = now();
+                            }
+                        } else {
+                            $data['published_at'] = now();
+                        }
+                    }
+                } elseif (! empty($data['status']) && $data['status'] === 'draft') {
+                    $data['published_at'] = null;
                 }
 
                 $this->blogPostRepository->update($id, $data);
@@ -277,10 +294,14 @@ final class BlogService
     {
         try {
             $posts = $this->blogPostRepository->getAdminPosts($filters);
+            $data = $posts->toArray();
+
+            // Calculate global stats for blog posts via repository
+            $data['stats'] = $this->blogPostRepository->getStatusCounts();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $posts,
+                'data' => $data,
             ];
         } catch (Exception $e) {
             return [
@@ -377,6 +398,10 @@ final class BlogService
                 $data['slug'] = $this->generateUniqueCategorySlug($data['slug']);
             }
 
+            if (! isset($data['sort_order']) || $data['sort_order'] === null) {
+                $data['sort_order'] = $this->blogCategoryRepository->getNextSortOrder();
+            }
+
             $category = $this->blogCategoryRepository->create($data);
 
             return [
@@ -466,5 +491,44 @@ final class BlogService
                 'message' => 'Failed to delete blog category.',
             ];
         }
+    }
+
+    /**
+     * Reorder blog categories.
+     * (Sắp xếp lại danh mục bài viết)
+     *
+     * @param  array<int, array{id:int, sort_order:int}>  $items
+     */
+    public function reorderCategories(array $items): array
+    {
+        try {
+            $reordered = $this->blogCategoryRepository->reorder($items);
+
+            if (! $reordered) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Invalid blog category reorder payload.',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'message' => 'Blog categories reordered successfully.',
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to reorder blog categories.',
+            ];
+        }
+    }
+
+    /**
+     * Check if a blog post slug exists.
+     * (Kiểm tra slug bài viết blog đã tồn tại chưa)
+     */
+    public function checkSlugExists(string $slug): bool
+    {
+        return $this->blogPostRepository->exists(['slug' => $slug]);
     }
 }

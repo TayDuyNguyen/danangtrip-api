@@ -149,4 +149,12 @@ interface RepositoryInterface
      * (Tạo slug duy nhất cho model)
      */
     public function generateUniqueSlug(string $value, string $column = 'slug', ?int $ignoreId = null): string;
+
+    /**
+     * Set the relationships that should be eager loaded.
+     * (Thiết lập các quan hệ cần nạp trước)
+     *
+     * @return $this
+     */
+    public function with(array $relations);
 }

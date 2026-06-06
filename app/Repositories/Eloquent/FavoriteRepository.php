@@ -37,6 +37,22 @@ final class FavoriteRepository extends BaseRepository implements FavoriteReposit
     }
 
     /**
+     * @return array{location_ids:int[], tour_ids:int[]}
+     */
+    public function getFavoriteIdsByUser(int $userId): array
+    {
+        $rows = $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->select(['location_id', 'tour_id'])
+            ->get();
+
+        return [
+            'location_ids' => $rows->pluck('location_id')->filter()->map(fn ($id) => (int) $id)->values()->all(),
+            'tour_ids' => $rows->pluck('tour_id')->filter()->map(fn ($id) => (int) $id)->values()->all(),
+        ];
+    }
+
+    /**
      * Find a favorite by user and location.
      * (Tìm yêu thích theo người dùng và địa điểm)
      */

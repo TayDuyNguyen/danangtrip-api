@@ -7,17 +7,19 @@ class ApiErrorResponse
     public static function make(int $code, string $message, mixed $errors = null): array
     {
         $locale = self::resolveLocale();
-        $errorKey = self::resolveErrorKey($code, $message);
+        $normalizedMessage = self::normalizeBilingualMessage($message, $locale);
+        $normalizedErrors = self::normalizeErrors($errors, $locale);
+        $errorKey = self::resolveErrorKey($code, $normalizedMessage);
 
         $response = [
             'code' => $code,
-            'message' => $message,
+            'message' => $normalizedMessage,
             'error_key' => $errorKey,
-            'user_message' => self::resolveUserMessage($code, $message, $errors, $errorKey, $locale),
+            'user_message' => self::resolveUserMessage($code, $normalizedMessage, $normalizedErrors, $errorKey, $locale),
         ];
 
-        if ($errors) {
-            $response['errors'] = $errors;
+        if ($normalizedErrors) {
+            $response['errors'] = $normalizedErrors;
         }
 
         return $response;
@@ -25,9 +27,46 @@ class ApiErrorResponse
 
     private static function resolveLocale(): string
     {
-        $header = strtolower((string) request()->header('Accept-Language', ''));
+        try {
+            $request = request();
+            if ($request) {
+                $header = strtolower((string) $request->header('Accept-Language', ''));
 
-        return str_starts_with($header, 'vi') ? 'vi' : 'en';
+                return str_starts_with($header, 'vi') ? 'vi' : 'en';
+            }
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        return 'en';
+    }
+
+    private static function normalizeErrors(mixed $errors, string $locale): mixed
+    {
+        if (! is_array($errors)) {
+            return $errors;
+        }
+
+        $normalized = [];
+
+        foreach ($errors as $key => $value) {
+            if (is_array($value)) {
+                $normalized[$key] = array_map(
+                    static fn ($item) => is_string($item)
+                        ? self::normalizeBilingualMessage($item, $locale)
+                        : $item,
+                    $value
+                );
+
+                continue;
+            }
+
+            $normalized[$key] = is_string($value)
+                ? self::normalizeBilingualMessage($value, $locale)
+                : $value;
+        }
+
+        return $normalized;
     }
 
     private static function resolveErrorKey(int $code, string $message): string

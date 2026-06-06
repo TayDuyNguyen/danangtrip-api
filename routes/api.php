@@ -9,7 +9,10 @@ use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardControll
 use App\Http\Controllers\Api\Admin\LocationController as AdminLocationController;
 use App\Http\Controllers\Api\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Api\Admin\PaymentController as AdminPaymentController;
+use App\Http\Controllers\Api\Admin\LandingPageController as AdminLandingPageController;
+use App\Http\Controllers\Api\Admin\PromotionController as AdminPromotionController;
 use App\Http\Controllers\Api\Admin\RatingController as AdminRatingController;
+use App\Http\Controllers\Api\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Api\Admin\SubcategoryController as AdminSubcategoryController;
 use App\Http\Controllers\Api\Admin\TagController as AdminTagController;
 use App\Http\Controllers\Api\Admin\TourCategoryController as AdminTourCategoryController;
@@ -20,17 +23,22 @@ use App\Http\Controllers\Api\AmenityController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\LocationController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\PublicStatisticsController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TourCategoryController;
 use App\Http\Controllers\Api\TourController;
@@ -50,6 +58,11 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function () {
 
     Route::get('/ping', fn () => response()->json(['status' => 'ok']));
+    Route::get('/home', [HomeController::class, 'index'])->middleware('throttle:api.standard');
+    Route::get('/home/locations', [HomeController::class, 'locations'])->middleware('throttle:api.standard');
+    Route::get('/home/tours', [HomeController::class, 'tours'])->middleware('throttle:api.standard');
+    Route::get('/home/blogs', [HomeController::class, 'blogs'])->middleware('throttle:api.standard');
+    Route::get('/media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
     // =========================================================================
     // 1. PUBLIC ROUTES
@@ -81,6 +94,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/locations/featured', [LocationController::class, 'featured']);
     Route::get('/locations/nearby', [LocationController::class, 'nearby']);
     Route::get('/locations/districts', [LocationController::class, 'districts']);
+    Route::get('/locations/filter-stats', [LocationController::class, 'filterStats']);
     Route::get('/locations/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+');
     Route::get('/locations/{id}/images', [LocationController::class, 'images'])->whereNumber('id');
     Route::get('/locations/{id}/ratings', [LocationController::class, 'ratings'])->whereNumber('id');
@@ -94,6 +108,8 @@ Route::prefix('v1')->group(function () {
     Route::get('/search/suggestions', [SearchController::class, 'suggestions'])->middleware('throttle:api.standard');
     Route::get('/search/popular', [SearchController::class, 'popular'])->middleware('throttle:api.standard');
     Route::get('/search/trending', [SearchController::class, 'trending'])->middleware('throttle:api.standard');
+    Route::get('/search/trending-insights', [SearchController::class, 'trendInsights'])->middleware('throttle:api.standard');
+    Route::post('/search/interactions', [SearchController::class, 'interact'])->middleware('throttle:api.standard');
 
     // Statistics: Public overview
     // (Thống kê: Tổng quan công khai)
@@ -117,6 +133,15 @@ Route::prefix('v1')->group(function () {
     // Contacts: Public submit
     // (Liên hệ: Gửi công khai)
     Route::post('/contacts', [ContactController::class, 'store'])->middleware('throttle:api.strict');
+
+    // Config: Public configurations
+    // (Cấu hình: Cấu hình công khai)
+    Route::get('/config', [SettingController::class, 'publicConfig'])->middleware('throttle:api.standard');
+
+    // Promotions: Public access
+    // (Khuyến mãi: Truy cập công khai)
+    Route::get('/promotions', [PromotionController::class, 'index'])->middleware('throttle:api.standard');
+    Route::post('/promotions/validate', [PromotionController::class, 'validate'])->middleware('throttle:api.standard');
 
     // Tours: Public access
     // (Tour: Truy cập công khai)
@@ -178,6 +203,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/user/profile/avatar', [ProfileController::class, 'updateAvatar']);
         Route::put('/user/password', [ProfileController::class, 'changePassword']);
         Route::get('/user/ratings', [ProfileController::class, 'ratings']);
+        Route::delete('/user/account', [ProfileController::class, 'deleteAccount']);
 
         // Notifications
         // (Thông báo)
@@ -211,6 +237,15 @@ Route::prefix('v1')->group(function () {
         Route::post('/payments/retry/{booking_code}', [PaymentController::class, 'retry'])
             ->where('booking_code', '[A-Za-z0-9_-]{1,20}')
             ->middleware('throttle:api.strict');
+
+        // Cart
+        // (Giỏ hàng)
+        Route::get('/cart', [CartController::class, 'index']);
+        Route::post('/cart/items', [CartController::class, 'store']);
+        Route::put('/cart/items/{id}', [CartController::class, 'update'])->whereNumber('id');
+        Route::delete('/cart/items/{id}', [CartController::class, 'destroy'])->whereNumber('id');
+        Route::delete('/cart', [CartController::class, 'clear']);
+        Route::post('/cart/merge', [CartController::class, 'merge']);
     });
 
     // =========================================================================
@@ -227,6 +262,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-tours', [AdminDashboardController::class, 'topTours'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-locations', [AdminDashboardController::class, 'topLocations'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/search-trends', [AdminDashboardController::class, 'searchTrends'])->middleware('throttle:api.admin');
         Route::get('/dashboard/user-growth', [AdminDashboardController::class, 'userGrowth'])->middleware('throttle:api.admin');
         Route::get('/dashboard/booking-trend', [AdminDashboardController::class, 'bookingTrend'])->middleware('throttle:api.admin');
         Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports'])->middleware('throttle:api.admin');
@@ -292,6 +328,7 @@ Route::prefix('v1')->group(function () {
 
         // Blog Posts Management
         // (Quản lý Bài viết Blog)
+        Route::get('/blog-posts/check-slug', [AdminBlogController::class, 'checkSlug']);
         Route::get('/blog-posts', [AdminBlogController::class, 'index']);
         Route::get('/blog-posts/{id}', [AdminBlogController::class, 'show'])->whereNumber('id');
         Route::post('/blog-posts', [AdminBlogController::class, 'store']);
@@ -303,6 +340,7 @@ Route::prefix('v1')->group(function () {
         // (Quản lý Danh mục Blog)
         Route::get('/blog-categories', [AdminBlogController::class, 'indexCategories']);
         Route::post('/blog-categories', [AdminBlogController::class, 'storeCategory']);
+        Route::patch('/blog-categories/reorder', [AdminBlogController::class, 'reorderCategories']);
         Route::put('/blog-categories/{id}', [AdminBlogController::class, 'updateCategory'])->whereNumber('id');
         Route::delete('/blog-categories/{id}', [AdminBlogController::class, 'destroyCategory'])->whereNumber('id');
 
@@ -376,5 +414,28 @@ Route::prefix('v1')->group(function () {
         Route::post('/notifications/send', [AdminNotificationController::class, 'send']);
         Route::post('/notifications/send-all', [AdminNotificationController::class, 'sendAll']);
         Route::delete('/notifications/{id}', [AdminNotificationController::class, 'destroy'])->whereNumber('id');
+
+        // Website Settings Management
+        // (Quản lý Cấu hình Website)
+        Route::get('/settings', [AdminSettingController::class, 'index'])->middleware('throttle:api.admin');
+        Route::put('/settings', [AdminSettingController::class, 'update'])->middleware('throttle:api.admin');
+
+        // Promotions Management
+        // (Quản lý Khuyến mãi / Mã giảm giá)
+        Route::get('/promotions', [AdminPromotionController::class, 'index'])->middleware('throttle:api.admin');
+        Route::post('/promotions', [AdminPromotionController::class, 'store']);
+        Route::get('/promotions/{id}', [AdminPromotionController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
+        Route::put('/promotions/{id}', [AdminPromotionController::class, 'update'])->whereNumber('id');
+        Route::patch('/promotions/{id}/status', [AdminPromotionController::class, 'updateStatus'])->whereNumber('id');
+        Route::delete('/promotions/{id}', [AdminPromotionController::class, 'destroy'])->whereNumber('id');
+
+        // Landing Pages Management
+        // (Quản lý Landing Pages)
+        Route::get('/landing-pages', [AdminLandingPageController::class, 'index'])->middleware('throttle:api.admin');
+        Route::post('/landing-pages', [AdminLandingPageController::class, 'store']);
+        Route::get('/landing-pages/{id}', [AdminLandingPageController::class, 'show'])->whereNumber('id')->middleware('throttle:api.admin');
+        Route::put('/landing-pages/{id}', [AdminLandingPageController::class, 'update'])->whereNumber('id');
+        Route::patch('/landing-pages/{id}/status', [AdminLandingPageController::class, 'updateStatus'])->whereNumber('id');
+        Route::delete('/landing-pages/{id}', [AdminLandingPageController::class, 'destroy'])->whereNumber('id');
     });
 });

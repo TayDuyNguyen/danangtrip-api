@@ -24,6 +24,11 @@ interface BookingRepositoryInterface extends RepositoryInterface
     public function findByCode(string $code): ?Booking;
 
     /**
+     * Find and lock a booking row for an atomic status transition.
+     */
+    public function findForUpdate(int $id): ?Booking;
+
+    /**
      * Update the status of a booking.
      */
     public function updateStatus(int $id, string $status): bool;
@@ -80,6 +85,12 @@ interface BookingRepositoryInterface extends RepositoryInterface
      * (Lấy số lượng đơn đặt tour theo trạng thái)
      */
     public function getStatusCounts(array $filters = []): array;
+
+    /**
+     * Check if a user has any active bookings (pending or confirmed status).
+     * (Kiểm tra xem người dùng có đơn đặt tour nào đang hoạt động không)
+     */
+    public function hasActiveBookings(int $userId): bool;
 
     public function createItem(int $bookingId, array $data): void;
 

@@ -65,19 +65,31 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $query->where('price_adult', '<=', $filters['price_max']);
         }
 
+        if (isset($filters['min_rating'])) {
+            $query->where('rating_avg', '>=', $filters['min_rating']);
+        }
+
         if (isset($filters['duration'])) {
             $query->where('duration', 'like', '%'.$filters['duration'].'%');
         }
 
-        if (isset($filters['available_from'])) {
+        if (isset($filters['available_from']) || isset($filters['available_to'])) {
             $query->whereHas('schedules', function ($q) use ($filters) {
-                $q->where('start_date', '>=', $filters['available_from']);
-            });
-        }
+                $today = now()->toDateString();
 
-        if (isset($filters['available_to'])) {
-            $query->whereHas('schedules', function ($q) use ($filters) {
-                $q->where('start_date', '<=', $filters['available_to']);
+                if (isset($filters['available_from'])) {
+                    $startDateLimit = $filters['available_from'] < $today ? $today : $filters['available_from'];
+                    $q->where('start_date', '>=', $startDateLimit);
+                } else {
+                    $q->where('start_date', '>=', $today);
+                }
+
+                if (isset($filters['available_to'])) {
+                    $q->where('start_date', '<=', $filters['available_to']);
+                }
+
+                $q->where('status', 'available')
+                    ->where('booking_availability', 'open');
             });
         }
 
@@ -156,7 +168,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     {
         return $this->model->newQuery()
             ->with(['category', 'schedules' => function ($query) {
-                $query->where('start_date', '>=', now())->orderBy('start_date', 'asc');
+                $query->where('start_date', '>', now()->toDateString())->orderBy('start_date', 'asc');
             }])
             ->where('slug', $slug)
             ->first();
@@ -176,9 +188,11 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         $query = $tour->schedules()->orderBy('start_date', 'asc');
 
         if (! empty($request['from_date'])) {
-            $query->where('start_date', '>=', $request['from_date']);
+            $today = now()->toDateString();
+            $startDateLimit = $request['from_date'] <= $today ? now()->addDay()->toDateString() : $request['from_date'];
+            $query->where('start_date', '>=', $startDateLimit);
         } else {
-            $query->where('start_date', '>=', now());
+            $query->where('start_date', '>', now()->toDateString());
         }
 
         if (! empty($request['to_date'])) {
@@ -296,10 +310,25 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             return [];
         }
 
-        return $this->model->newQuery()
-            ->where('status', TourStatus::ACTIVE->value)
-            ->where('name', 'like', $q.'%')
-            ->orderBy('view_count', 'desc')
+        $driver = $this->model->getConnection()->getDriverName();
+        $operator = $driver === 'pgsql' ? 'ilike' : 'like';
+        $words = array_filter(explode(' ', $q), function ($word) {
+            $cleaned = preg_replace('/[^\p{L}\p{N}]/u', '', $word);
+
+            return mb_strlen($cleaned) >= 1;
+        });
+
+        $query = $this->model->newQuery()->where('status', TourStatus::ACTIVE->value);
+
+        foreach ($words as $word) {
+            if ($driver === 'pgsql') {
+                $query->whereRaw('unaccent(name) ilike unaccent(?)', ['%'.$word.'%']);
+            } else {
+                $query->where('name', $operator, '%'.$word.'%');
+            }
+        }
+
+        return $query->orderBy('view_count', 'desc')
             ->limit($limit)
             ->pluck('name')
             ->values()
