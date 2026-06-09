@@ -32,6 +32,15 @@ COPY . /var/www
 # Install dependencies for production
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader \
     && mkdir -p /run/php /var/log/supervisor \
+        /var/www/storage/app/public \
+        /var/www/storage/app/private \
+        /var/www/storage/framework/cache/data \
+        /var/www/storage/framework/sessions \
+        /var/www/storage/framework/testing \
+        /var/www/storage/framework/views \
+        /var/www/storage/logs \
+        /var/www/bootstrap/cache \
+    && chmod -R ug+rwX /var/www/storage /var/www/bootstrap/cache \
     && chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 # Copy runtime configs
