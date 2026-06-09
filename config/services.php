@@ -67,4 +67,20 @@ return [
         'notify_url' => env('ZALOPAY_NOTIFY_URL'),
     ],
 
+    'sepay' => [
+        'merchant_id' => env('SEPAY_MERCHANT_ID'),
+        'secret_key' => env('SEPAY_SECRET_KEY'),
+        'environment' => env('SEPAY_ENV', 'sandbox'),
+        'verify_ipn_signature' => (bool) env('SEPAY_VERIFY_IPN_SIGNATURE', false),
+        'payment_prefix' => env('SEPAY_PAYMENT_PREFIX', 'DNT'),
+    ],
+
+    'vietqr' => [
+        'bank_code' => env('VIETQR_BANK_CODE'),
+        'account_no' => env('VIETQR_ACCOUNT_NO'),
+        'account_name' => env('VIETQR_ACCOUNT_NAME'),
+        'template' => env('VIETQR_TEMPLATE', 'compact2'),
+        'image_base_url' => env('VIETQR_IMAGE_BASE_URL', 'https://img.vietqr.io/image'),
+    ],
+
 ];

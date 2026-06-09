@@ -41,7 +41,7 @@ class SettingControllerTest extends TestCase
                     'is_public' => true,
                 ]),
                 new Setting([
-                    'key' => 'payment.payos',
+                    'key' => 'payment.sepay',
                     'value' => 'true',
                     'value_type' => 'boolean',
                     'is_public' => true,
@@ -56,7 +56,7 @@ class SettingControllerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('code', 200)
             ->assertJsonPath('data.general.hotline', '1900 1800')
-            ->assertJsonPath('data.payment.payos', true);
+            ->assertJsonPath('data.payment.sepay', true);
     }
 
     /**
@@ -75,7 +75,7 @@ class SettingControllerTest extends TestCase
                     'is_public' => true,
                 ]),
                 new Setting([
-                    'key' => 'payment.payos',
+                    'key' => 'payment.sepay',
                     'value' => 'true',
                     'value_type' => 'boolean',
                     'is_public' => true,
@@ -90,7 +90,7 @@ class SettingControllerTest extends TestCase
             ->assertOk()
             ->assertJsonPath('code', 200)
             ->assertJsonPath('data.general.hotline', '1900 1800')
-            ->assertJsonPath('data.payment.payos', true);
+            ->assertJsonPath('data.payment.sepay', true);
     }
 
     /**
@@ -119,7 +119,7 @@ class SettingControllerTest extends TestCase
                     'zalo' => 'https://zalo.me/new',
                 ],
                 'payment' => [
-                    'payos' => true,
+                    'sepay' => true,
                     'cod' => false,
                     'vnpay' => false,
                     'momo' => false,
@@ -244,7 +244,7 @@ class SettingControllerTest extends TestCase
                     'zalo' => 'https://zalo.me/new',
                 ],
                 'payment' => [
-                    'payos' => true,
+                    'sepay' => true,
                     'cod' => false,
                     'vnpay' => false,
                     'momo' => false,

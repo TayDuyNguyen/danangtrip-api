@@ -18,6 +18,10 @@ class AdminIndexRatingRequest extends FormRequest
                 'sometimes',
                 'in:pending,approved,rejected',
             ],
+            'is_new' => [
+                'sometimes',
+                'boolean',
+            ],
             'type' => [
                 'sometimes',
                 'in:location,tour',

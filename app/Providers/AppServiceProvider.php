@@ -4,12 +4,15 @@ namespace App\Providers;
 
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\ChatCache;
+use App\Models\ChatKnowledgeBase;
 use App\Models\Location;
 use App\Models\Rating;
 use App\Models\Setting;
 use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Observers\RatingObserver;
+use App\Services\Chat\ChatKnowledgeSyncService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,23 +41,82 @@ class AppServiceProvider extends ServiceProvider
             Cache::forget('public_homepage_data');
         };
 
-        Setting::saved($clearHomeCache);
-        Setting::deleted($clearHomeCache);
+        $clearChatbotCache = function () {
+            ChatCache::query()->delete();
+        };
 
-        Category::saved($clearHomeCache);
-        Category::deleted($clearHomeCache);
+        $syncChatKnowledge = function ($model): void {
+            app(ChatKnowledgeSyncService::class)->syncModel($model);
+        };
 
-        Location::saved($clearHomeCache);
-        Location::deleted($clearHomeCache);
+        $deactivateChatKnowledge = function (string $type, int $referenceId): void {
+            ChatKnowledgeBase::query()
+                ->where('type', $type)
+                ->where('reference_id', $referenceId)
+                ->update(['is_active' => false]);
+        };
 
-        TourCategory::saved($clearHomeCache);
-        TourCategory::deleted($clearHomeCache);
+        Setting::saved(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            app(ChatKnowledgeSyncService::class)->syncPolicies();
+        });
+        Setting::deleted(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            app(ChatKnowledgeSyncService::class)->syncPolicies();
+        });
 
-        Tour::saved($clearHomeCache);
-        Tour::deleted($clearHomeCache);
+        Category::saved(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+        });
+        Category::deleted(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+        });
 
-        BlogPost::saved($clearHomeCache);
-        BlogPost::deleted($clearHomeCache);
+        Location::saved(function (Location $location) use ($clearHomeCache, $clearChatbotCache, $syncChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $syncChatKnowledge($location);
+        });
+        Location::deleted(function (Location $location) use ($clearHomeCache, $clearChatbotCache, $deactivateChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $deactivateChatKnowledge('location', (int) $location->id);
+        });
+
+        TourCategory::saved(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+        });
+        TourCategory::deleted(function () use ($clearHomeCache, $clearChatbotCache): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+        });
+
+        Tour::saved(function (Tour $tour) use ($clearHomeCache, $clearChatbotCache, $syncChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $syncChatKnowledge($tour);
+        });
+        Tour::deleted(function (Tour $tour) use ($clearHomeCache, $clearChatbotCache, $deactivateChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $deactivateChatKnowledge('tour', (int) $tour->id);
+        });
+
+        BlogPost::saved(function (BlogPost $blogPost) use ($clearHomeCache, $clearChatbotCache, $syncChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $syncChatKnowledge($blogPost);
+        });
+        BlogPost::deleted(function (BlogPost $blogPost) use ($clearHomeCache, $clearChatbotCache, $deactivateChatKnowledge): void {
+            $clearHomeCache();
+            $clearChatbotCache();
+            $deactivateChatKnowledge('blog', (int) $blogPost->id);
+        });
 
         $this->configureRateLimiting();
     }

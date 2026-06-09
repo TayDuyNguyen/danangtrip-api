@@ -19,6 +19,11 @@ class ExportUserRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'q' => [
+                'sometimes',
+                'string',
+                'max:100',
+            ],
             'role' => [
                 'sometimes',
                 'string',

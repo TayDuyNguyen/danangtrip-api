@@ -64,6 +64,16 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             ->first();
     }
 
+    public function findLatestPendingByBookingIdForUpdate(int $bookingId): ?Payment
+    {
+        return $this->model->newQuery()
+            ->where('booking_id', $bookingId)
+            ->where('payment_status', PaymentStatus::PENDING->value)
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+    }
+
     /**
      * Find a successful payment for a booking.
      */

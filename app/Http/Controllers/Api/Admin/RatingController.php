@@ -82,6 +82,20 @@ final class RatingController extends Controller
     }
 
     /**
+     * Mark a rating as viewed by admin (set is_new = 0).
+     * Does NOT affect public display.
+     * (Đánh dấu đánh giá là đã xem - không ảnh hưởng hiển thị công khai)
+     */
+    public function markViewed(int $id): JsonResponse
+    {
+        $result = $this->ratingService->markViewed($id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'] ?? null, $result['message'] ?? 'Rating marked as viewed')
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
      * Export ratings to Excel.
      * (Xuất danh sách đánh giá ra file Excel)
      */

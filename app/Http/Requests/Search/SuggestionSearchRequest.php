@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Search;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Class SuggestionSearchRequest
@@ -32,6 +33,42 @@ class SuggestionSearchRequest extends FormRequest
                 'string',
                 'min:1',
                 'max:255',
+            ],
+            'type' => [
+                'sometimes',
+                'string',
+                Rule::in(['all', 'location', 'tour']),
+            ],
+            'category_id' => [
+                'sometimes',
+                'integer',
+                'exists:categories,id',
+            ],
+            'tour_category_id' => [
+                'sometimes',
+                'integer',
+                'exists:tour_categories,id',
+            ],
+            'district' => [
+                'sometimes',
+                'string',
+                'max:50',
+            ],
+            'price_min' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+            ],
+            'price_max' => [
+                'sometimes',
+                'numeric',
+                'min:0',
+            ],
+            'min_rating' => [
+                'sometimes',
+                'numeric',
+                'min:1',
+                'max:5',
             ],
             'limit' => [
                 'sometimes',

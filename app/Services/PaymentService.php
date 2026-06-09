@@ -22,6 +22,7 @@ class PaymentService
         PaymentMethod::MOMO->value,
         PaymentMethod::VNPAY->value,
         PaymentMethod::ZALOPAY->value,
+        PaymentMethod::SEPAY->value,
         PaymentMethod::PAYOS->value,
     ];
 
@@ -31,7 +32,9 @@ class PaymentService
      */
     public function __construct(
         protected PaymentRepositoryInterface $paymentRepository,
-        protected BookingRepositoryInterface $bookingRepository
+        protected BookingRepositoryInterface $bookingRepository,
+        protected SepayPaymentService $sepayPaymentService,
+        protected BookingPaymentNotificationService $paymentNotificationService
     ) {}
 
     /**
@@ -67,18 +70,32 @@ class PaymentService
 
                 $transactionCode = 'PAY-'.strtoupper(Str::random(10));
 
+                $paymentGateway = $this->usesSepayQr($data['payment_method'])
+                    ? 'sepay'
+                    : $data['payment_method'];
+
                 $payment = $this->paymentRepository->create([
                     'booking_id' => $booking->id,
                     'transaction_code' => $transactionCode,
                     'amount' => $booking->final_amount ?? $booking->total_amount,
                     'payment_method' => $data['payment_method'],
                     'payment_status' => PaymentStatus::PENDING->value,
-                    'payment_gateway' => $data['payment_method'], // Mock gateway
+                    'payment_gateway' => $paymentGateway,
                 ]);
 
-                // Mock payment link creation
                 $amount = $booking->final_amount ?? $booking->total_amount;
-                $paymentLink = $this->buildPaymentUrl(
+                $checkout = null;
+
+                if ($this->usesSepayQr($data['payment_method'])) {
+                    $checkout = $this->sepayPaymentService->buildCheckoutPayload($payment, $booking, $data['return_url'] ?? null);
+                    $this->paymentRepository->update((int) $payment->id, [
+                        'gateway_response' => [
+                            'checkout' => $checkout,
+                        ],
+                    ]);
+                }
+
+                $paymentLink = $checkout['return_url'] ?? $this->buildPaymentUrl(
                     $transactionCode,
                     (string) $booking->booking_code,
                     (string) $data['payment_method'],
@@ -93,6 +110,7 @@ class PaymentService
                         'payment_url' => $paymentLink,
                         'transaction_code' => $transactionCode,
                         'booking_code' => $booking->booking_code,
+                        'sepay_checkout' => $checkout,
                     ],
                     'message' => 'Payment link created successfully',
                 ];
@@ -165,6 +183,7 @@ class PaymentService
                 if ($status === 'success') {
                     $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::SUCCESS->value);
                     $this->bookingRepository->updateStatus($payment->booking_id, BookingStatus::CONFIRMED->value);
+                    $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $payment->booking_id);
                 }
 
                 return [
@@ -234,7 +253,7 @@ class PaymentService
             return hash_equals($calculated, $mac);
         }
 
-        if ($g === 'payos') {
+        if ($g === 'payos' || $g === 'sepay') {
             return true;
         }
 
@@ -270,12 +289,34 @@ class PaymentService
             ];
         }
 
+        $sepayCheckout = $payment->gateway_response['checkout'] ?? null;
+        if (
+            $payment->payment_status === PaymentStatus::PENDING->value
+            && $payment->payment_gateway === 'sepay'
+            && $payment->booking
+            && (! is_array($sepayCheckout) || empty($sepayCheckout['qr_image_url']) || empty($sepayCheckout['bank']['account_no']))
+        ) {
+            $sepayCheckout = $this->sepayPaymentService->buildCheckoutPayload($payment, $payment->booking);
+            $this->paymentRepository->update((int) $payment->id, [
+                'gateway_response' => [
+                    'checkout' => $sepayCheckout,
+                ],
+            ]);
+        }
+
         return [
             'status' => HttpStatusCode::SUCCESS->value,
             'data' => [
+                'id' => $payment->id,
                 'payment_status' => $payment->payment_status,
                 'transaction_code' => $payment->transaction_code,
                 'booking_id' => $payment->booking_id,
+                'amount' => $payment->amount,
+                'payment_method' => $payment->payment_method,
+                'payment_gateway' => $payment->payment_gateway,
+                'gateway_response' => $payment->gateway_response,
+                'paid_at' => $payment->paid_at,
+                'sepay_checkout' => $sepayCheckout,
             ],
             'message' => 'Payment status retrieved successfully',
         ];
@@ -312,7 +353,7 @@ class PaymentService
 
         // Use the requested method when the customer changes gateway; otherwise reuse the last method.
         $lastPayment = $booking->payments()->latest()->first();
-        $paymentMethod = $paymentMethod ?: ($lastPayment ? $lastPayment->payment_method : PaymentMethod::PAYOS->value);
+        $paymentMethod = $paymentMethod ?: ($lastPayment ? $lastPayment->payment_method : PaymentMethod::SEPAY->value);
 
         return $this->createPayment([
             'booking_id' => $booking->id,
@@ -338,6 +379,11 @@ class PaymentService
         }
 
         return "https://mock-gateway.com/pay/{$transactionCode}?method={$paymentMethod}&amount={$amount}";
+    }
+
+    private function usesSepayQr(string $paymentMethod): bool
+    {
+        return in_array($paymentMethod, [PaymentMethod::SEPAY->value, PaymentMethod::PAYOS->value], true);
     }
 
     /**

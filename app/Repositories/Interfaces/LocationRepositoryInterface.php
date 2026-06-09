@@ -71,9 +71,9 @@ interface LocationRepositoryInterface extends RepositoryInterface
      *
      * @param  string  $q  Name prefix.
      * @param  int  $limit  Max items to return.
-     * @return string[] Suggested location names.
+     * @return array<int, array<string, mixed>> Suggested location records.
      */
-    public function getNameSuggestions(string $q, int $limit = 5): array;
+    public function getNameSuggestions(string $q, int $limit = 5, array $filters = []): array;
 
     /**
      * Get locations by IDs.

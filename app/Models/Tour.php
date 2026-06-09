@@ -41,7 +41,14 @@ final class Tour extends Model
         'is_hot',
         'view_count',
         'booking_count',
+        'rating_avg',
+        'rating_count',
         'created_by',
+    ];
+
+    protected $appends = [
+        'avg_rating',
+        'review_count',
     ];
 
     protected function casts(): array
@@ -63,6 +70,8 @@ final class Tour extends Model
             'is_hot' => 'boolean',
             'view_count' => 'integer',
             'booking_count' => 'integer',
+            'rating_avg' => 'decimal:2',
+            'rating_count' => 'integer',
             'booking_availability' => TourBookingAvailability::class,
         ];
     }
@@ -91,5 +100,15 @@ final class Tour extends Model
     {
         return $this->belongsToMany(Location::class, 'tour_locations')
             ->withPivot('created_at');
+    }
+
+    public function getAvgRatingAttribute(): string
+    {
+        return (string) ($this->attributes['rating_avg'] ?? '0.00');
+    }
+
+    public function getReviewCountAttribute(): int
+    {
+        return (int) ($this->attributes['rating_count'] ?? 0);
     }
 }
