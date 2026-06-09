@@ -25,7 +25,7 @@ return [
             ',',
             env(
                 'ALLOWED_ORIGINS',
-                'http://localhost:5173,http://localhost:3000,https://danangtrip-web.duytayqt.workers.dev,https://danangtrip-admin.pages.dev'
+                'http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://danangtrip-web.vercel.app,https://danangtrip-web.duytayqt.workers.dev,https://danangtrip-admin.pages.dev'
             )
         )
     )),
@@ -33,11 +33,13 @@ return [
     /*
     | Cloudflare Pages preview: https://{hash}.danangtrip-admin.pages.dev
     | Cloudflare Workers preview: https://{hash}.danangtrip-web.duytayqt.workers.dev
+    | Vercel preview: https://danangtrip-web-{branch-or-hash}.vercel.app
     | URL production (không có prefix) vẫn khai báo trong ALLOWED_ORIGINS.
     */
     'allowed_origins_patterns' => [
         '#^https://[\w-]+\.danangtrip-admin\.pages\.dev$#',
         '#^https://[\w-]+\.danangtrip-web\.duytayqt\.workers\.dev$#',
+        '#^https://danangtrip-web(?:-[\w-]+)?\.vercel\.app$#',
     ],
 
     'allowed_headers' => ['*'],
