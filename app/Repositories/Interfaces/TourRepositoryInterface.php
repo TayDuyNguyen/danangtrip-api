@@ -78,9 +78,9 @@ interface TourRepositoryInterface extends RepositoryInterface
      * Get tour name suggestions by prefix.
      * (Lấy gợi ý tên tour theo tiền tố)
      *
-     * @return string[]
+     * @return array<int, array<string, mixed>>
      */
-    public function getNameSuggestions(string $q, int $limit = 5): array;
+    public function getNameSuggestions(string $q, int $limit = 5, array $filters = []): array;
 
     /**
      * Get tours by IDs.

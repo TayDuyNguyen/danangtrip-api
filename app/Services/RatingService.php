@@ -478,6 +478,43 @@ final class RatingService
     }
 
     /**
+     * Admin: mark a rating as viewed (set is_new = 0).
+     * Does NOT affect public display status.
+     * (Admin: đánh dấu đánh giá là đã xem - không ảnh hưởng hiển thị công khai)
+     */
+    public function markViewed(int $ratingId): array
+    {
+        try {
+            $rating = $this->ratingRepository->find($ratingId);
+            if (! $rating) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
+            }
+
+            if (! $rating->is_new) {
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'message' => 'Already viewed',
+                    'data' => $rating,
+                ];
+            }
+
+            $this->ratingRepository->update($ratingId, ['is_new' => false]);
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->ratingRepository->find($ratingId),
+                'message' => 'Rating marked as viewed',
+            ];
+        } catch (\Exception $e) {
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to mark rating as viewed',
+            ];
+        }
+    }
+
+    /**
      * Admin: Collection for export.
      * (Admin: Phục vụ xuất file excel)
      */

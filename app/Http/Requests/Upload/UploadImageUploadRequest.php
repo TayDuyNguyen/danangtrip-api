@@ -24,7 +24,7 @@ class UploadImageUploadRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:255',
-                'regex:/^[A-Za-z0-9_\\/\\-]+\$/',
+                'regex:/^[A-Za-z0-9_\/\-]+$/',
             ],
         ];
     }

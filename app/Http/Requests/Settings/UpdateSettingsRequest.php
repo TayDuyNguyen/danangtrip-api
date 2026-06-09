@@ -6,6 +6,20 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSettingsRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $settings = $this->input('settings', []);
+
+        if (is_array($settings) && isset($settings['payment']) && is_array($settings['payment'])) {
+            if (! array_key_exists('sepay', $settings['payment']) && array_key_exists('payos', $settings['payment'])) {
+                $settings['payment']['sepay'] = $settings['payment']['payos'];
+            }
+
+            unset($settings['payment']['payos']);
+            $this->merge(['settings' => $settings]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -45,7 +59,7 @@ class UpdateSettingsRequest extends FormRequest
 
             // Payment settings
             'settings.payment' => 'required|array',
-            'settings.payment.payos' => 'required|boolean',
+            'settings.payment.sepay' => 'required|boolean',
             'settings.payment.cod' => 'required|boolean',
             'settings.payment.vnpay' => 'required|boolean',
             'settings.payment.momo' => 'required|boolean',
@@ -74,7 +88,7 @@ class UpdateSettingsRequest extends FormRequest
             $payment = $this->input('settings.payment', []);
             $anyEnabled = false;
 
-            foreach (['payos', 'cod', 'vnpay', 'momo', 'zalopay'] as $gateway) {
+            foreach (['sepay', 'cod', 'vnpay', 'momo', 'zalopay'] as $gateway) {
                 if (isset($payment[$gateway]) && filter_var($payment[$gateway], FILTER_VALIDATE_BOOLEAN) === true) {
                     $anyEnabled = true;
                     break;

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Enums\HttpStatusCode;
 use App\Repositories\Interfaces\ContactRepositoryInterface;
 use Exception;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Class ContactService
@@ -18,7 +20,8 @@ final class ContactService
      * (Khởi tạo ContactService)
      */
     public function __construct(
-        protected ContactRepositoryInterface $contactRepository
+        protected ContactRepositoryInterface $contactRepository,
+        protected ContactReplyMailService $contactReplyMailService
     ) {}
 
     /**
@@ -119,13 +122,24 @@ final class ContactService
                 ];
             }
 
+            if (! empty($contact->email)) {
+                $this->contactReplyMailService->send($contact, $reply);
+            }
+
             $this->contactRepository->reply($id, $reply, $adminId);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Reply sent successfully.',
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            Log::error('Failed to send contact reply.', [
+                'contact_id' => $id,
+                'admin_id' => $adminId,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to send reply.',

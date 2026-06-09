@@ -84,4 +84,10 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Lấy tất cả người dùng để export với bộ lọc tùy chọn)
      */
     public function getAllForExport(array $filters): Collection;
+
+    /**
+     * Get counts of users by status and role.
+     * (Lấy số lượng người dùng theo trạng thái và vai trò)
+     */
+    public function getUserStatusCounts(): array;
 }

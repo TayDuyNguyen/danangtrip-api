@@ -36,6 +36,10 @@ class RatingReportsDashboardRequest extends FormRequest
                 'sometimes',
                 'in:pending,approved,rejected',
             ],
+            'is_new' => [
+                'sometimes',
+                'boolean',
+            ],
             'type' => [
                 'sometimes',
                 'in:location,tour',
@@ -60,6 +64,11 @@ class RatingReportsDashboardRequest extends FormRequest
                 'sometimes',
                 'string',
                 'nullable',
+            ],
+            'user_id' => [
+                'sometimes',
+                'integer',
+                'exists:users,id',
             ],
         ];
     }

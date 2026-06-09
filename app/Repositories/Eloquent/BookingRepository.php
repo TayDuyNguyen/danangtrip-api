@@ -122,7 +122,13 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function updateStatus(int $id, string $status): bool
     {
-        return (bool) $this->update($id, ['booking_status' => $status]);
+        $data = ['booking_status' => $status];
+
+        if ($status === BookingStatus::CONFIRMED->value) {
+            $data['confirmed_at'] = now();
+        }
+
+        return (bool) $this->update($id, $data);
     }
 
     /**
@@ -261,13 +267,15 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
                 tours.id, 
                 tours.name, 
                 tours.slug, 
+                tours.thumbnail,
+                tours.rating_avg as avg_rating,
                 COUNT(DISTINCT booking_items.booking_id) as booking_count, 
                 SUM(booking_items.subtotal) as total_revenue
             ')
             ->where("{$table}.booking_status", '!=', BookingStatus::CANCELLED->value)
             ->when($fromBound !== null, fn ($q) => $q->where("{$table}.booked_at", '>=', $fromBound))
             ->when($toBound !== null, fn ($q) => $q->where("{$table}.booked_at", '<=', $toBound))
-            ->groupBy('tours.id', 'tours.name', 'tours.slug')
+            ->groupBy('tours.id', 'tours.name', 'tours.slug', 'tours.thumbnail', 'tours.rating_avg')
             ->orderByDesc('booking_count')
             ->limit($limit)
             ->get()

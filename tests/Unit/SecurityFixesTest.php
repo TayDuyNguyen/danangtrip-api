@@ -11,7 +11,9 @@ use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Services\AuthService;
+use App\Services\BookingPaymentNotificationService;
 use App\Services\PaymentService;
+use App\Services\SepayPaymentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
@@ -45,7 +47,7 @@ class SecurityFixesTest extends TestCase
 
         $bookingRepository = Mockery::mock(BookingRepositoryInterface::class);
 
-        $service = new PaymentService($paymentRepository, $bookingRepository);
+        $service = $this->makePaymentService($paymentRepository, $bookingRepository);
 
         $result = $service->handleCallback([
             'transaction_code' => 'PAY-TEST123',
@@ -76,7 +78,7 @@ class SecurityFixesTest extends TestCase
 
         $bookingRepository = Mockery::mock(BookingRepositoryInterface::class);
 
-        $service = new PaymentService($paymentRepository, $bookingRepository);
+        $service = $this->makePaymentService($paymentRepository, $bookingRepository);
 
         $result = $service->getStatus('PAY-STATUS1');
 
@@ -113,5 +115,17 @@ class SecurityFixesTest extends TestCase
 
         $this->assertSame(HttpStatusCode::SUCCESS->value, $result['status']);
         $this->assertSame('Password has been reset successfully.', $result['message']);
+    }
+
+    private function makePaymentService(
+        PaymentRepositoryInterface $paymentRepository,
+        BookingRepositoryInterface $bookingRepository
+    ): PaymentService {
+        return new PaymentService(
+            $paymentRepository,
+            $bookingRepository,
+            Mockery::mock(SepayPaymentService::class),
+            Mockery::mock(BookingPaymentNotificationService::class),
+        );
     }
 }

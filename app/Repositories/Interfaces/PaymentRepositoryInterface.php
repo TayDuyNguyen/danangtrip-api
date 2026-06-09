@@ -31,6 +31,11 @@ interface PaymentRepositoryInterface extends RepositoryInterface
     public function findByTransactionCodeForUpdate(string $transactionCode): ?Payment;
 
     /**
+     * Find latest pending payment for a booking and lock the row.
+     */
+    public function findLatestPendingByBookingIdForUpdate(int $bookingId): ?Payment;
+
+    /**
      * Find a successful payment for a booking.
      */
     public function findSuccessfulByBookingId(int $bookingId): ?Payment;

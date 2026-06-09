@@ -29,10 +29,12 @@ class UserService
     {
         try {
             $users = $this->userRepository->getUsersPaginated($filters);
+            $data = $users->toArray();
+            $data['stats'] = $this->userRepository->getUserStatusCounts();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $users,
+                'data' => $data,
             ];
         } catch (\Exception $e) {
 
@@ -249,11 +251,15 @@ class UserService
     {
         try {
             if ($currentAdminId && $id === $currentAdminId) {
-                if (isset($data['role']) || isset($data['status'])) {
-                    return [
-                        'status' => HttpStatusCode::FORBIDDEN->value,
-                        'message' => 'You cannot change your own role or status.',
-                    ];
+                $user = $this->userRepository->find($id);
+                if ($user) {
+                    if ((isset($data['role']) && $data['role'] !== $user->role) || 
+                        (isset($data['status']) && $data['status'] !== $user->status)) {
+                        return [
+                            'status' => HttpStatusCode::FORBIDDEN->value,
+                            'message' => 'You cannot change your own role or status.',
+                        ];
+                    }
                 }
             }
 

@@ -108,6 +108,11 @@ final class SettingService
             }
         }
 
+        if (isset($nested['payment']['payos']) && ! isset($nested['payment']['sepay'])) {
+            $nested['payment']['sepay'] = $nested['payment']['payos'];
+        }
+        unset($nested['payment']['payos']);
+
         return $nested;
     }
 }

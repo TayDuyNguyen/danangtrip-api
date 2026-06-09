@@ -137,15 +137,34 @@ final class SearchService
         try {
             $q = trim((string) ($data['q'] ?? ''));
             $limit = (int) ($data['limit'] ?? 5);
-            $intentSuggestions = $this->buildIntentSuggestions($q, $limit);
+            $type = (string) ($data['type'] ?? 'all');
+            $locationFilters = $this->mapLocationSuggestionFilters($data);
+            $tourFilters = $this->mapTourSuggestionFilters($data);
+            $hasScopedFilters = count($locationFilters) > 0 || count($tourFilters) > 0;
+            $intentSuggestions = $type === 'all' && ! $hasScopedFilters
+                ? $this->buildIntentSuggestions($q, $limit)
+                : [];
 
-            $locationSuggestions = $this->locationRepository->getNameSuggestions($q, $limit);
-            $tourSuggestions = $this->tourRepository->getNameSuggestions($q, $limit);
+            $locationSuggestions = $type === 'tour'
+                ? []
+                : $this->locationRepository->getNameSuggestions($q, $limit, $locationFilters);
+            $tourSuggestions = $type === 'location'
+                ? []
+                : $this->tourRepository->getNameSuggestions($q, $limit, $tourFilters);
 
             $suggestions = collect($intentSuggestions)
                 ->concat($locationSuggestions)
                 ->merge($tourSuggestions)
-                ->unique(fn ($item) => is_array($item) ? mb_strtolower((string) ($item['title'] ?? '')) : mb_strtolower((string) $item))
+                ->unique(function ($item) {
+                    if (! is_array($item)) {
+                        return mb_strtolower((string) $item);
+                    }
+
+                    $type = (string) ($item['type'] ?? 'keyword');
+                    $label = (string) ($item['title'] ?? $item['name'] ?? '');
+
+                    return $type.':'.mb_strtolower($label);
+                })
                 ->take($limit)
                 ->values()
                 ->all();
@@ -163,6 +182,40 @@ final class SearchService
                 'message' => 'Failed to get search suggestions',
             ];
         }
+    }
+
+    /**
+     * Build location filters for suggestion queries.
+     * (Xây dựng bộ lọc địa điểm cho autocomplete)
+     */
+    private function mapLocationSuggestionFilters(array $data): array
+    {
+        $filters = [];
+
+        foreach (['category_id', 'district', 'price_min', 'price_max', 'min_rating'] as $key) {
+            if (isset($data[$key])) {
+                $filters[$key] = $data[$key];
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Build tour filters for suggestion queries.
+     * (Xây dựng bộ lọc tour cho autocomplete)
+     */
+    private function mapTourSuggestionFilters(array $data): array
+    {
+        $filters = [];
+
+        foreach (['tour_category_id', 'price_min', 'price_max', 'min_rating'] as $key) {
+            if (isset($data[$key])) {
+                $filters[$key] = $data[$key];
+            }
+        }
+
+        return $filters;
     }
 
     /**
@@ -253,14 +306,50 @@ final class SearchService
                 ];
             });
 
-            $blended = $keywordItems
-                ->concat($locationItems)
-                ->when(
-                    $keywordItems->isEmpty(),
-                    fn ($collection) => $collection->concat($fallbackKeywordItems)
-                )
-                ->unique(fn (array $item) => mb_strtolower(trim((string) $item['query'])))
-                ->sortByDesc('count')
+            $topBookedTours = collect($this->bookingRepository->getTopTours($limit, null, null))
+                ->map(function (array $tour) {
+                    return [
+                        'query' => (string) ($tour['name'] ?? ''),
+                        'count' => (int) ($tour['booking_count'] ?? 0),
+                        'source' => 'tour',
+                        'slug' => (string) ($tour['slug'] ?? ''),
+                    ];
+                });
+
+            $topClickedLocations = collect($this->searchLogRepository->getTopClickedItems(
+                ['suggestion_click', 'trending_click', 'result_click'],
+                ['location'],
+                $limit,
+                30
+            ))->map(function (array $location) {
+                return [
+                    'query' => (string) ($location['name'] ?? ''),
+                    'count' => (int) ($location['count'] ?? 0),
+                    'source' => 'location',
+                    'slug' => (string) ($location['slug'] ?? ''),
+                ];
+            });
+
+            $fallbackTrendItems = $keywordItems
+                ->concat($fallbackKeywordItems);
+
+            $trendItems = collect();
+            for ($index = 0; $trendItems->count() < $limit && $index < max($topBookedTours->count(), $topClickedLocations->count()); $index++) {
+                if ($topBookedTours->has($index)) {
+                    $trendItems->push($topBookedTours->get($index));
+                }
+                if ($topClickedLocations->has($index)) {
+                    $trendItems->push($topClickedLocations->get($index));
+                }
+            }
+
+            if ($trendItems->isEmpty()) {
+                $trendItems = $fallbackTrendItems;
+            }
+
+            $trendItems = $trendItems
+                ->filter(fn (array $item) => trim((string) ($item['query'] ?? '')) !== '' && (int) ($item['count'] ?? 0) > 0)
+                ->unique(fn (array $item) => ((string) ($item['source'] ?? 'keyword')).':'.mb_strtolower(trim((string) $item['query'])))
                 ->take($limit)
                 ->values()
                 ->all();
@@ -268,7 +357,7 @@ final class SearchService
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
-                    'items' => $blended,
+                    'items' => $trendItems,
                     'trending_keywords' => $trendingKeywords,
                     'popular_keywords' => $popularKeywords,
                     'top_locations' => $locationItems->all(),
