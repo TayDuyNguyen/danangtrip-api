@@ -52,14 +52,14 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function getUsersPaginated(array $filters): LengthAwarePaginator
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->newQuery()->withCount(['ratings', 'bookings']);
 
         if (! empty($filters['q'])) {
-            $search = $filters['q'];
+            $search = mb_strtolower(trim((string) $filters['q']));
             $query->where(function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('username', 'like', "%{$search}%");
+                $q->whereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(username) LIKE ?', ["%{$search}%"]);
             });
         }
 
@@ -207,6 +207,15 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     {
         $query = $this->model->newQuery();
 
+        if (! empty($filters['q'])) {
+            $search = mb_strtolower(trim((string) $filters['q']));
+            $query->where(function ($q) use ($search) {
+                $q->whereRaw('LOWER(full_name) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$search}%"])
+                    ->orWhereRaw('LOWER(username) LIKE ?', ["%{$search}%"]);
+            });
+        }
+
         if (! empty($filters['role'])) {
             $query->where('role', $filters['role']);
         }
@@ -216,5 +225,19 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
         }
 
         return $query->orderBy('created_at', 'desc')->get();
+    }
+
+    /**
+     * Get counts of users by status and role.
+     * (Lấy số lượng người dùng theo trạng thái và vai trò)
+     */
+    public function getUserStatusCounts(): array
+    {
+        return [
+            'total' => $this->model->newQuery()->count(),
+            'active' => $this->model->newQuery()->where('status', 'active')->count(),
+            'banned' => $this->model->newQuery()->where('status', 'banned')->count(),
+            'admin' => $this->model->newQuery()->where('role', 'admin')->count(),
+        ];
     }
 }

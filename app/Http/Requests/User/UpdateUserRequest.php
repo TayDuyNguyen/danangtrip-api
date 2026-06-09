@@ -54,7 +54,7 @@ class UpdateUserRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:20',
-                'regex:/^\\+?[0-9\\s\\-\\.]{10,15}\$/',
+                'regex:/^\+?[0-9\s\-\.\(\)]{9,20}$/',
             ],
             'birthdate' => [
                 'nullable',

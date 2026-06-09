@@ -72,7 +72,25 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             $driver = $this->model->getConnection()->getDriverName();
 
             if (in_array($driver, ['mysql', 'mariadb'], true)) {
-                $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+                $words = explode(' ', $searchTerm);
+                $hasShortWord = false;
+                foreach ($words as $word) {
+                    if (mb_strlen(trim($word)) < 4) {
+                        $hasShortWord = true;
+                        break;
+                    }
+                }
+
+                if ($hasShortWord || str_contains($searchTerm, '&') || str_contains($searchTerm, '-')) {
+                    $query->where(function ($q) use ($searchTerm) {
+                        $q->where('name', 'like', "%{$searchTerm}%")
+                          ->orWhere('address', 'like', "%{$searchTerm}%")
+                          ->orWhere('description', 'like', "%{$searchTerm}%")
+                          ->orWhere('short_description', 'like', "%{$searchTerm}%");
+                    });
+                } else {
+                    $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
+                }
             } elseif ($driver === 'pgsql') {
                 $query->whereRaw(
                     "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
@@ -163,9 +181,9 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      *
      * @param  string  $q  Name prefix.
      * @param  int  $limit  Max items to return.
-     * @return string[] Suggested location names.
+     * @return array<int, array<string, mixed>> Suggested location records.
      */
-    public function getNameSuggestions(string $q, int $limit = 5): array
+    public function getNameSuggestions(string $q, int $limit = 5, array $filters = []): array
     {
         $q = trim($q);
         if ($q === '') {
@@ -190,9 +208,41 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
             }
         }
 
+        if (isset($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        }
+
+        if (isset($filters['district'])) {
+            $query->where('district', $filters['district']);
+        }
+
+        if (isset($filters['price_min'])) {
+            $query->where('price_min', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_max', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['min_rating'])) {
+            $query->where('avg_rating', '>=', $filters['min_rating']);
+        }
+
         return $query->orderBy('view_count', 'desc')
             ->limit($limit)
-            ->pluck('name')
+            ->get(['id', 'name', 'slug', 'address', 'thumbnail', 'avg_rating', 'review_count', 'view_count', 'category_id'])
+            ->map(fn (Location $location) => [
+                'id' => $location->id,
+                'type' => 'location',
+                'name' => $location->name,
+                'slug' => $location->slug,
+                'address' => $location->address,
+                'thumbnail' => $location->thumbnail,
+                'avg_rating' => $location->avg_rating,
+                'review_count' => $location->review_count,
+                'view_count' => $location->view_count,
+                'category_id' => $location->category_id,
+            ])
             ->values()
             ->all();
     }

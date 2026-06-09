@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
@@ -38,6 +39,7 @@ use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\PublicStatisticsController;
 use App\Http\Controllers\Api\RatingController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SepayController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\TagController;
 use App\Http\Controllers\Api\TourCategoryController;
@@ -115,6 +117,10 @@ Route::prefix('v1')->group(function () {
     // (Thống kê: Tổng quan công khai)
     Route::get('/statistics', [PublicStatisticsController::class, 'overview'])->middleware('throttle:api.standard');
 
+    // Chatbot: DanangTrip AI assistant
+    // (Chatbot: Trợ lý AI DanangTrip)
+    Route::post('/chat', [ChatController::class, 'send'])->middleware('throttle:api.strict');
+
     // Ratings: Public access
     // (Đánh giá: Truy cập công khai)
     Route::get('/ratings/{id}/images', [RatingController::class, 'images'])->whereNumber('id');
@@ -163,6 +169,7 @@ Route::prefix('v1')->group(function () {
     // Payments: Webhook
     // (Thanh toán: Webhook)
     Route::post('/payments/callback', [PaymentController::class, 'callback'])->middleware('throttle:api.callbacks');
+    Route::post('/sepay/ipn', [SepayController::class, 'ipn'])->middleware('throttle:api.callbacks');
 
     // =========================================================================
     // 2. PROTECTED ROUTES
@@ -259,12 +266,15 @@ Route::prefix('v1')->group(function () {
         // (Bảng điều khiển & Báo cáo)
         Route::get('/dashboard', [AdminDashboardController::class, 'overview'])->middleware('throttle:api.admin');
         Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/dashboard/export', [AdminDashboardController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/dashboard/revenue', [AdminDashboardController::class, 'revenue'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-tours', [AdminDashboardController::class, 'topTours'])->middleware('throttle:api.admin');
         Route::get('/dashboard/top-locations', [AdminDashboardController::class, 'topLocations'])->middleware('throttle:api.admin');
         Route::get('/dashboard/search-trends', [AdminDashboardController::class, 'searchTrends'])->middleware('throttle:api.admin');
         Route::get('/dashboard/user-growth', [AdminDashboardController::class, 'userGrowth'])->middleware('throttle:api.admin');
         Route::get('/dashboard/booking-trend', [AdminDashboardController::class, 'bookingTrend'])->middleware('throttle:api.admin');
+        // Notification bell counts — unread counts per category (poll every 30s)
+        Route::get('/dashboard/notification-counts', [AdminDashboardController::class, 'notificationCounts'])->middleware('throttle:api.admin');
         Route::get('/reports/locations', [AdminDashboardController::class, 'locationReports'])->middleware('throttle:api.admin');
         Route::get('/reports/ratings', [AdminDashboardController::class, 'ratingReports'])->middleware('throttle:api.admin');
         Route::get('/reports/users', [AdminDashboardController::class, 'userReports'])->middleware('throttle:api.admin');
@@ -324,6 +334,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/ratings/export', [AdminRatingController::class, 'export'])->middleware('throttle:api.exports');
         Route::patch('/ratings/{id}/approve', [AdminRatingController::class, 'approve'])->whereNumber('id');
         Route::patch('/ratings/{id}/reject', [AdminRatingController::class, 'reject'])->whereNumber('id');
+        Route::patch('/ratings/{id}/mark-viewed', [AdminRatingController::class, 'markViewed'])->whereNumber('id');
         Route::delete('/ratings/{id}', [AdminRatingController::class, 'destroy'])->whereNumber('id');
 
         // Blog Posts Management

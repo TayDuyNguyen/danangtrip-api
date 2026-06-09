@@ -73,21 +73,126 @@ final class DashboardService
     public function getStats(): array
     {
         try {
+            $now = now();
+            $thirtyDaysAgo = now()->subDays(30);
+            $sixtyDaysAgo = now()->subDays(60);
+
+            // 1. Revenue (30 ngày gần nhất vs 30 ngày trước đó)
+            $currentRevenue = $this->paymentRepository->getTotalRevenue($thirtyDaysAgo->toDateTimeString(), $now->toDateTimeString());
+            $prevRevenue = $this->paymentRepository->getTotalRevenue($sixtyDaysAgo->toDateTimeString(), $thirtyDaysAgo->toDateTimeString());
+            $revenueTrend = $prevRevenue > 0 ? round((($currentRevenue - $prevRevenue) / $prevRevenue) * 100, 1) : ($currentRevenue > 0 ? 100.0 : 0.0);
+
+            // 2. Bookings (30 ngày gần nhất vs 30 ngày trước đó)
+            $currentBookings = $this->bookingRepository->count([['booked_at', '>=', $thirtyDaysAgo->toDateTimeString()], ['booked_at', '<=', $now->toDateTimeString()]]);
+            $prevBookings = $this->bookingRepository->count([['booked_at', '>=', $sixtyDaysAgo->toDateTimeString()], ['booked_at', '<=', $thirtyDaysAgo->toDateTimeString()]]);
+            $bookingTrend = $prevBookings > 0 ? round((($currentBookings - $prevBookings) / $prevBookings) * 100, 1) : ($currentBookings > 0 ? 100.0 : 0.0);
+
+            // 3. Users (30 ngày gần nhất vs 30 ngày trước đó)
+            $currentUsers = $this->userRepository->count([['created_at', '>=', $thirtyDaysAgo->toDateTimeString()], ['created_at', '<=', $now->toDateTimeString()]]);
+            $prevUsers = $this->userRepository->count([['created_at', '>=', $sixtyDaysAgo->toDateTimeString()], ['created_at', '<=', $thirtyDaysAgo->toDateTimeString()]]);
+            $userTrend = $prevUsers > 0 ? round((($currentUsers - $prevUsers) / $prevUsers) * 100, 1) : ($currentUsers > 0 ? 100.0 : 0.0);
+
+            // 4. Tours sold = số đơn đặt tour có trạng thái "completed" (đã hoàn thành/giao hàng)
+            //    Kỳ trước: 30 ngày trước đó (60 ngày trước → 30 ngày trước)
+            $currentToursSold = $this->bookingRepository->count([
+                ['booking_status', '=', 'completed'],
+                ['booked_at', '>=', $thirtyDaysAgo->toDateTimeString()],
+                ['booked_at', '<=', $now->toDateTimeString()],
+            ]);
+            $prevToursSold = $this->bookingRepository->count([
+                ['booking_status', '=', 'completed'],
+                ['booked_at', '>=', $sixtyDaysAgo->toDateTimeString()],
+                ['booked_at', '<=', $thirtyDaysAgo->toDateTimeString()],
+            ]);
+            $toursSoldTrend = $prevToursSold > 0
+                ? round((($currentToursSold - $prevToursSold) / $prevToursSold) * 100, 1)
+                : ($currentToursSold > 0 ? 100.0 : 0.0);
+
             $data = [
-                'total_users' => $this->userRepository->count(),
-                'total_tours' => $this->tourRepository->count(),
-                'total_bookings' => $this->bookingRepository->getTotalCount(),
-                'total_revenue' => $this->paymentRepository->getTotalRevenue(),
+                'total_users'            => $this->userRepository->count(),
+                'total_tours'            => $this->tourRepository->count(),
+                'total_bookings'         => $this->bookingRepository->getTotalCount(),
+                'total_revenue'          => $this->paymentRepository->getTotalRevenue(),
+                'revenue_trend'          => $revenueTrend,
+                'booking_trend'          => $bookingTrend,
+                'user_trend'             => $userTrend,
+                // Tour đã bán (30 ngày gần nhất) + xu hướng
+                'total_tours_sold'       => $currentToursSold,
+                'tours_sold_trend'       => $toursSoldTrend,
+                // Chi tiết số liệu kỳ so sánh (để frontend tự tính nếu cần)
+                'current_30day_revenue'  => $currentRevenue,
+                'prev_30day_revenue'     => $prevRevenue,
+                'current_30day_bookings' => $currentBookings,
+                'prev_30day_bookings'    => $prevBookings,
+                'current_30day_users'    => $currentUsers,
+                'prev_30day_users'       => $prevUsers,
+                'current_30day_tours_sold' => $currentToursSold,
+                'prev_30day_tours_sold'    => $prevToursSold,
             ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $data,
+                'data'   => $data,
             ];
         } catch (Exception $e) {
             return [
-                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to retrieve stats.',
+                'status'  => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve stats: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get unread notification counts per category for the admin bell icon.
+     * (Lấy số lượng thông báo chưa đọc theo từng danh mục cho chuông thông báo admin)
+     *
+     * Categories:
+     *  - contacts:  liên hệ chưa đọc (status = 'new')
+     *  - bookings:  đơn hàng cần xử lý (status = 'pending')
+     *  - ratings:   đánh giá mới admin chưa xem (is_new = true)
+     */
+    public function getNotificationCounts(): array
+    {
+        try {
+            // Liên hệ mới chưa đọc
+            $contactsCount = \App\Models\Contact::where('status', 'new')->count();
+
+            // Đơn hàng pending (cần xử lý)
+            $bookingsCount = $this->bookingRepository->count([
+                ['booking_status', '=', 'pending'],
+            ]);
+
+            // Đánh giá mới admin chưa xem (is_new = 1)
+            $ratingsCount = $this->ratingRepository->count([
+                ['is_new', '=', true],
+            ]);
+
+            $totalUnread = $contactsCount + $bookingsCount + $ratingsCount;
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data'   => [
+                    'total_unread' => $totalUnread,
+                    'categories'   => [
+                        'contacts' => [
+                            'count' => $contactsCount,
+                            'label' => 'Liên hệ mới',
+                        ],
+                        'bookings' => [
+                            'count' => $bookingsCount,
+                            'label' => 'Đơn hàng cần xử lý',
+                        ],
+                        'ratings' => [
+                            'count' => $ratingsCount,
+                            'label' => 'Đánh giá mới',
+                        ],
+                    ],
+                ],
+            ];
+        } catch (Exception $e) {
+            return [
+                'status'  => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve notification counts: ' . $e->getMessage(),
             ];
         }
     }
@@ -96,6 +201,7 @@ final class DashboardService
      * Get revenue statistics grouped by period.
      * (Lấy thông tin doanh thu theo khoảng thời gian)
      */
+
     public function getRevenue(array $filters): array
     {
         try {
@@ -267,15 +373,35 @@ final class DashboardService
                 $days
             );
             $zeroResultKeywords = $this->searchLogRepository->getZeroResultQueries($limit, $days);
-            $locations = $this->locationRepository->getTopLocations($limit)
-                ->map(fn ($location) => [
-                    'id' => (int) $location->id,
-                    'name' => (string) $location->name,
-                    'slug' => (string) ($location->slug ?? ''),
-                    'district' => (string) ($location->district ?? ''),
-                    'view_count' => (int) ($location->view_count ?? 0),
-                    'favorite_count' => (int) ($location->favorite_count ?? 0),
-                ])
+
+            $topTours = collect($this->bookingRepository->getTopTours($limit, null, null))
+                ->map(fn ($tour) => [
+                    'name' => (string) ($tour['name'] ?? ''),
+                    'slug' => (string) ($tour['slug'] ?? ''),
+                    'count' => (int) ($tour['booking_count'] ?? 0),
+                    'type' => 'tour',
+                ]);
+
+            $topClickedLocations = collect($this->searchLogRepository->getTopClickedItems(
+                ['suggestion_click', 'trending_click', 'result_click'],
+                ['location'],
+                $limit,
+                $days
+            ));
+
+            $trendingItems = collect();
+            for ($index = 0; $trendingItems->count() < $limit && $index < max($topTours->count(), $topClickedLocations->count()); $index++) {
+                if ($topTours->has($index)) {
+                    $trendingItems->push($topTours->get($index));
+                }
+                if ($topClickedLocations->has($index)) {
+                    $trendingItems->push($topClickedLocations->get($index));
+                }
+            }
+
+            $trendingItems = $trendingItems
+                ->filter(fn (array $item) => ($item['name'] ?? '') !== '' && ($item['count'] ?? 0) > 0)
+                ->take($limit)
                 ->values()
                 ->all();
 
@@ -286,7 +412,7 @@ final class DashboardService
                     'keywords' => $keywords,
                     'clicked_queries' => $clickedQueries,
                     'zero_result_keywords' => $zeroResultKeywords,
-                    'locations' => $locations,
+                    'trending_searches' => $trendingItems,
                 ],
             ];
         } catch (Exception $e) {

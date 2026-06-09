@@ -24,6 +24,7 @@ final class Rating extends Model
         'approved_by',
         'approved_at',
         'helpful_count',
+        'is_new',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ final class Rating extends Model
             'image_count' => 'integer',
             'helpful_count' => 'integer',
             'approved_at' => 'datetime',
+            'is_new' => 'boolean',
         ];
     }
 

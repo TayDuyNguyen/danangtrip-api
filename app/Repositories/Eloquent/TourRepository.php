@@ -42,7 +42,23 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             $driver = $this->model->getConnection()->getDriverName();
 
             if (in_array($driver, ['mysql', 'mariadb'], true)) {
-                $query->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);
+                $words = explode(' ', $searchTerm);
+                $hasShortWord = false;
+                foreach ($words as $word) {
+                    if (mb_strlen(trim($word)) < 4) {
+                        $hasShortWord = true;
+                        break;
+                    }
+                }
+
+                if ($hasShortWord || str_contains($searchTerm, '&') || str_contains($searchTerm, '-')) {
+                    $query->where(function ($q) use ($searchTerm) {
+                        $q->where('name', 'like', '%'.$searchTerm.'%')
+                          ->orWhere('description', 'like', '%'.$searchTerm.'%');
+                    });
+                } else {
+                    $query->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);
+                }
             } elseif ($driver === 'pgsql') {
                 $query->whereRaw(
                     "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(itinerary::text, '') || ' ' || coalesce(inclusions::text, '') || ' ' || coalesce(exclusions::text, '')) @@ plainto_tsquery('simple', ?)",
@@ -301,9 +317,9 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
      * Get tour name suggestions by prefix.
      * (Lấy gợi ý tên tour theo tiền tố)
      *
-     * @return string[]
+     * @return array<int, array<string, mixed>>
      */
-    public function getNameSuggestions(string $q, int $limit = 5): array
+    public function getNameSuggestions(string $q, int $limit = 5, array $filters = []): array
     {
         $q = trim($q);
         if ($q === '') {
@@ -328,9 +344,38 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
             }
         }
 
+        if (isset($filters['tour_category_id'])) {
+            $query->where('tour_category_id', $filters['tour_category_id']);
+        }
+
+        if (isset($filters['price_min'])) {
+            $query->where('price_adult', '>=', $filters['price_min']);
+        }
+
+        if (isset($filters['price_max'])) {
+            $query->where('price_adult', '<=', $filters['price_max']);
+        }
+
+        if (isset($filters['min_rating'])) {
+            $query->where('rating_avg', '>=', $filters['min_rating']);
+        }
+
         return $query->orderBy('view_count', 'desc')
             ->limit($limit)
-            ->pluck('name')
+            ->get(['id', 'name', 'slug', 'thumbnail', 'price_adult', 'rating_avg', 'rating_count', 'view_count', 'booking_count', 'tour_category_id'])
+            ->map(fn (Tour $tour) => [
+                'id' => $tour->id,
+                'type' => 'tour',
+                'name' => $tour->name,
+                'slug' => $tour->slug,
+                'thumbnail' => $tour->thumbnail,
+                'price_adult' => $tour->price_adult,
+                'avg_rating' => $tour->rating_avg,
+                'review_count' => $tour->rating_count,
+                'view_count' => $tour->view_count,
+                'booking_count' => $tour->booking_count,
+                'tour_category_id' => $tour->tour_category_id,
+            ])
             ->values()
             ->all();
     }

@@ -66,4 +66,22 @@ interface SearchLogRepositoryInterface extends RepositoryInterface
      * @return array<int, array{query:string,count:int}>
      */
     public function getTopInteractionQueries(array $events, int $limit = 10, int $days = 30): array;
+
+    /**
+     * Get top clicked search items by clicked entity type.
+     * (Lấy các mục được click nhiều trong search theo loại entity)
+     *
+     * @param  string[]  $events
+     * @param  string[]  $types
+     * @return array<int, array{name:string,slug:string,count:int,type:string}>
+     */
+    public function getTopClickedItems(array $events, array $types, int $limit = 10, int $days = 30): array;
+
+    /**
+     * Get trending search items with type info (tour/location).
+     * (Lấy các mục xu hướng tìm kiếm kèm loại: tour hoặc địa điểm)
+     *
+     * @return array<int, array{query:string,count:int,type:string|null}>
+     */
+    public function getTrendingSearchItems(int $limit = 5, int $days = 7): array;
 }

@@ -93,7 +93,7 @@ class SettingSeeder extends Seeder
 
             // Payment settings
             [
-                'key' => 'payment.payos',
+                'key' => 'payment.sepay',
                 'value' => 'true',
                 'value_type' => 'boolean',
                 'is_public' => true,

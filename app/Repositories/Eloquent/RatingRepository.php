@@ -178,6 +178,10 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('status', $filters['status']);
         }
 
+        if (array_key_exists('is_new', $filters)) {
+            $query->where('is_new', (bool) $filters['is_new']);
+        }
+
         if (isset($filters['type'])) {
             if ($filters['type'] === 'location') {
                 $query->whereNotNull('location_id');
@@ -192,6 +196,10 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
 
         if (isset($filters['tour_id'])) {
             $query->where('tour_id', $filters['tour_id']);
+        }
+
+        if (isset($filters['user_id'])) {
+            $query->where('user_id', $filters['user_id']);
         }
 
         if (isset($filters['score'])) {
@@ -235,7 +243,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
     public function getStatsByDateAndStatus(array $filters): array
     {
         $query = $this->model->newQuery()
-            ->selectRaw('CAST(created_at AS DATE) as date, status, COUNT(*) as count');
+            ->selectRaw('CAST(created_at AS DATE) as date, status, is_new, COUNT(*) as count');
 
         // Map 'from' / 'to' to 'date_from' / 'date_to' if necessary
         if (isset($filters['from']) && ! isset($filters['date_from'])) {
@@ -247,7 +255,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
 
         $this->applyAdminFilters($query, $filters);
 
-        return $query->groupBy('date', 'status')
+        return $query->groupBy('date', 'status', 'is_new')
             ->orderBy('date')
             ->get()
             ->toArray();

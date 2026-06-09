@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
             SqlSeeder::class,
             SettingSeeder::class,
             CrawlerSeeder::class,
+            TestCheckoutSeeder::class,
+            ChatKnowledgeBaseSeeder::class,
         ]);
     }
 }
