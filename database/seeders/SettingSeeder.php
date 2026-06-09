@@ -48,13 +48,13 @@ class SettingSeeder extends Seeder
             ],
             [
                 'key' => 'brand.logo',
-                'value' => 'https://res.cloudinary.com/danangtrip/image/upload/logo.png',
+                'value' => 'https://res.cloudinary.com/dmukxquza/image/upload/v1781012077/danangtrip/branding/logo/danangtrip-logo.png',
                 'value_type' => 'string',
                 'is_public' => true,
             ],
             [
                 'key' => 'brand.favicon',
-                'value' => 'https://res.cloudinary.com/danangtrip/image/upload/favicon.ico',
+                'value' => 'https://res.cloudinary.com/dmukxquza/image/upload/v1781012079/danangtrip/branding/favicon/danangtrip-favicon.png',
                 'value_type' => 'string',
                 'is_public' => true,
             ],
@@ -158,7 +158,7 @@ class SettingSeeder extends Seeder
             ],
             [
                 'key' => 'seo.og_image',
-                'value' => 'https://res.cloudinary.com/danangtrip/image/upload/og_image.png',
+                'value' => 'https://res.cloudinary.com/dmukxquza/image/upload/v1781012083/danangtrip/branding/og/danangtrip-og-image.jpg',
                 'value_type' => 'string',
                 'is_public' => true,
             ],
