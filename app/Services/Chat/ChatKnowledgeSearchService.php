@@ -113,8 +113,7 @@ final class ChatKnowledgeSearchService
         ?int $priceMin,
         bool $cheapestFirst,
         array $understanding = []
-    ): Collection
-    {
+    ): Collection {
         $date = $understanding['date'] ?? null;
         $people = $understanding['people'] ?? null;
 
@@ -315,7 +314,7 @@ final class ChatKnowledgeSearchService
             'slug' => $tour->slug,
             'content' => trim(implode("\n", array_filter([
                 "Tên tour: {$tour->name}",
-                "Giá người lớn: ".number_format((float) $tour->price_adult, 0, ',', '.').' VND',
+                'Giá người lớn: '.number_format((float) $tour->price_adult, 0, ',', '.').' VND',
                 $tour->duration ? "Thời lượng: {$tour->duration}" : null,
                 $tour->meeting_point ? "Điểm đón: {$tour->meeting_point}" : null,
                 $tour->short_desc ?: Str::limit(strip_tags((string) $tour->description), 260),
@@ -335,7 +334,7 @@ final class ChatKnowledgeSearchService
                 "Địa điểm: {$location->name}",
                 "Địa chỉ: {$location->address}",
                 $location->district ? "Khu vực: {$location->district}" : null,
-                $location->price_min ? "Giá tham khảo từ: ".number_format((float) $location->price_min, 0, ',', '.').' VND' : null,
+                $location->price_min ? 'Giá tham khảo từ: '.number_format((float) $location->price_min, 0, ',', '.').' VND' : null,
                 $location->short_description ?: Str::limit(strip_tags((string) $location->description), 260),
             ]))),
         ]);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
+use App\Exports\SystemOverviewExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\BookingReportsDashboardRequest;
 use App\Http\Requests\Dashboard\BookingTrendDashboardRequest;
@@ -16,7 +17,6 @@ use App\Http\Requests\Dashboard\TopToursDashboardRequest;
 use App\Http\Requests\Dashboard\UserReportsDashboardRequest;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
-use App\Exports\SystemOverviewExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -273,7 +273,7 @@ final class DashboardController extends Controller
 
             return $response;
         } catch (\Exception $e) {
-            return $this->error('Failed to export system report: ' . $e->getMessage(), HttpStatusCode::INTERNAL_SERVER_ERROR->value);
+            return $this->error('Failed to export system report: '.$e->getMessage(), HttpStatusCode::INTERNAL_SERVER_ERROR->value);
         }
     }
 }

@@ -54,7 +54,7 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
                 if ($hasShortWord || str_contains($searchTerm, '&') || str_contains($searchTerm, '-')) {
                     $query->where(function ($q) use ($searchTerm) {
                         $q->where('name', 'like', '%'.$searchTerm.'%')
-                          ->orWhere('description', 'like', '%'.$searchTerm.'%');
+                            ->orWhere('description', 'like', '%'.$searchTerm.'%');
                     });
                 } else {
                     $query->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);

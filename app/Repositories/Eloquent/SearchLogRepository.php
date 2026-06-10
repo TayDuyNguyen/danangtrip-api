@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 final class SearchLogRepository extends BaseRepository implements SearchLogRepositoryInterface
 {
     private const DEDUPE_MINUTES = 30;
+
     private const SEARCH_ATTEMPT_COUNT_SQL = "
         COUNT(DISTINCT (
             COALESCE(NULLIF(session_id, ''), 'row:' || id::text)

@@ -21,9 +21,13 @@ use Illuminate\Support\Facades\Cache;
 final class HomeController extends Controller
 {
     private const CACHE_KEY = 'public_homepage_data_v2';
+
     private const LOCATIONS_CACHE_KEY = 'public_homepage_locations_v1';
+
     private const TOURS_CACHE_KEY = 'public_homepage_tours_v1';
+
     private const BLOGS_CACHE_KEY = 'public_homepage_blogs_v1';
+
     private const SECTION_LIMIT = 20;
 
     /**

@@ -71,6 +71,7 @@ final class SyncChatKnowledge extends Command
             if ($embedding === null) {
                 $failed++;
                 $bar->advance();
+
                 continue;
             }
 

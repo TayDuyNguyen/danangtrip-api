@@ -108,13 +108,13 @@ class PaymentService
                     'data' => [
                         'payment' => $payment,
                         'payment_url' => $paymentLink,
-                'transaction_code' => $transactionCode,
-                'booking_code' => $booking->booking_code,
-                'created_at' => $payment->created_at?->toISOString(),
-                'expires_at' => $payment->created_at?->copy()->addMinutes(15)->toISOString(),
-                'sepay_checkout' => $checkout,
-            ],
-            'message' => 'Payment link created successfully',
+                        'transaction_code' => $transactionCode,
+                        'booking_code' => $booking->booking_code,
+                        'created_at' => $payment->created_at?->toISOString(),
+                        'expires_at' => $payment->created_at?->copy()->addMinutes(15)->toISOString(),
+                        'sepay_checkout' => $checkout,
+                    ],
+                    'message' => 'Payment link created successfully',
                 ];
             });
         } catch (\Exception $e) {
