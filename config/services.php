@@ -70,6 +70,7 @@ return [
     'sepay' => [
         'merchant_id' => env('SEPAY_MERCHANT_ID'),
         'secret_key' => env('SEPAY_SECRET_KEY'),
+        'ipn_secret' => env('SEPAY_IPN_SECRET', env('SEPAY_SECRET_KEY')),
         'environment' => env('SEPAY_ENV', 'sandbox'),
         'verify_ipn_signature' => (bool) env('SEPAY_VERIFY_IPN_SIGNATURE', false),
         'payment_prefix' => env('SEPAY_PAYMENT_PREFIX', 'DNT'),
