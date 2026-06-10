@@ -99,6 +99,21 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        'pgsql_backup' => [
+            'driver' => 'pgsql',
+            'url' => env('BACKUP_DATABASE_URL'),
+            'host' => env('BACKUP_DB_HOST', '127.0.0.1'),
+            'port' => env('BACKUP_DB_PORT', '5432'),
+            'database' => env('BACKUP_DB_DATABASE', 'postgres'),
+            'username' => env('BACKUP_DB_USERNAME', 'postgres'),
+            'password' => env('BACKUP_DB_PASSWORD') ?: env('DB_PASSWORD', ''),
+            'charset' => env('BACKUP_DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('BACKUP_DB_SSLMODE', env('DB_SSLMODE', 'require')),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

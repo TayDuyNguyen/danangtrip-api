@@ -6,6 +6,7 @@ use App\Jobs\SendRatingApprovedNotification;
 use App\Models\Rating;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
+use App\Repositories\Interfaces\TourRepositoryInterface;
 
 /**
  * Observer for Rating model events.
@@ -17,14 +18,20 @@ class RatingObserver
 
     protected RatingRepositoryInterface $ratingRepository;
 
+    protected TourRepositoryInterface $tourRepository;
+
     /**
      * Create a new observer instance.
      * (Khởi tạo một instance observer mới)
      */
-    public function __construct(LocationRepositoryInterface $locationRepository, RatingRepositoryInterface $ratingRepository)
-    {
+    public function __construct(
+        LocationRepositoryInterface $locationRepository,
+        RatingRepositoryInterface $ratingRepository,
+        TourRepositoryInterface $tourRepository
+    ) {
         $this->locationRepository = $locationRepository;
         $this->ratingRepository = $ratingRepository;
+        $this->tourRepository = $tourRepository;
     }
 
     /**
@@ -35,6 +42,7 @@ class RatingObserver
     {
         if ($rating->status === 'approved') {
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
             $this->notifyUserRatingApproved($rating);
         }
     }
@@ -51,13 +59,16 @@ class RatingObserver
         if (! $wasApproved && $isApproved) {
             // Mới được duyệt
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
             $this->notifyUserRatingApproved($rating);
         } elseif ($wasApproved && $isApproved && $rating->isDirty('score')) {
             // Đã duyệt nhưng thay đổi điểm
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
         } elseif ($wasApproved && ! $isApproved) {
             // Bị hủy duyệt / từ chối
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
         }
     }
 
@@ -69,6 +80,7 @@ class RatingObserver
     {
         if ($rating->status === 'approved') {
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
         }
     }
 
@@ -80,6 +92,7 @@ class RatingObserver
     {
         if ($rating->status === 'approved') {
             $this->refreshLocationStats($rating->location_id);
+            $this->refreshTourStats($rating->tour_id);
         }
     }
 
@@ -98,6 +111,20 @@ class RatingObserver
     }
 
     /**
+     * Refresh tour rating statistics.
+     * (Cập nhật lại thống kê đánh giá của Tour)
+     */
+    protected function refreshTourStats(?int $tourId): void
+    {
+        if (! $tourId) {
+            return;
+        }
+
+        // Use the repository to update stats internally (handles calculation, locking, and transaction)
+        $this->tourRepository->updateStats($tourId);
+    }
+
+    /**
      * Dispatch job to notify user that their rating is approved.
      * (Gửi job thông báo cho người dùng rằng đánh giá của họ đã được duyệt)
      */
@@ -106,3 +133,4 @@ class RatingObserver
         SendRatingApprovedNotification::dispatch($rating->id);
     }
 }
+

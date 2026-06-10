@@ -269,14 +269,29 @@ class SepayPaymentService
     {
         $prefix = preg_quote((string) config('services.sepay.payment_prefix', 'DNT'), '/');
         if (preg_match('/\b'.$prefix.'\s*([A-Za-z0-9_-]{1,20})\b/i', $content, $matches)) {
-            return strtoupper($matches[1]);
+            return $this->normalizeBookingCode($matches[1]);
         }
 
         if (preg_match('/\b(BK-[A-Za-z0-9_-]{1,17})\b/i', $content, $matches)) {
-            return strtoupper($matches[1]);
+            return $this->normalizeBookingCode($matches[1]);
+        }
+
+        if (preg_match('/\b(BOOK-?[A-Za-z0-9_-]{1,16})\b/i', $content, $matches)) {
+            return $this->normalizeBookingCode($matches[1]);
         }
 
         return null;
+    }
+
+    private function normalizeBookingCode(string $bookingCode): string
+    {
+        $normalized = strtoupper(trim($bookingCode));
+
+        if (preg_match('/^BOOK([A-Z0-9_-]+)$/', $normalized, $matches)) {
+            return 'BOOK-'.$matches[1];
+        }
+
+        return $normalized;
     }
 
     private function normalizeAmount(mixed $amount): int

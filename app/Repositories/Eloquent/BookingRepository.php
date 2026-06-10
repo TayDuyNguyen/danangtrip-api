@@ -90,7 +90,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function findWithDetails(int $id): ?Booking
     {
         return $this->model->newQuery()
-            ->with(['user', 'items.tour', 'items.tourSchedule'])
+            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
             ->find($id);
     }
 
