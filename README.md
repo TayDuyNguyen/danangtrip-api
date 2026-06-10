@@ -289,9 +289,9 @@ The booking payment flow supports VietQR bank transfer with SePay IPN:
 3. Customer transfers with content `DNT {booking_code}`.
 4. SePay calls the IPN URL.
 5. API verifies the booking code and amount, then updates:
-   - `payments.payment_status = success`
-   - `bookings.payment_status = success`
-   - `bookings.booking_status = confirmed`
+    - `payments.payment_status = success`
+    - `bookings.payment_status = success`
+    - `bookings.booking_status = confirmed`
 
 Add these values to `.env`:
 

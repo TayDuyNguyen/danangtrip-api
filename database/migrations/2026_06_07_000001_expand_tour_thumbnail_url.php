@@ -12,10 +12,10 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement("
+        DB::statement('
             ALTER TABLE tours
             ALTER COLUMN thumbnail TYPE varchar(255)
             USING left(thumbnail, 255)
-        ");
+        ');
     }
 };

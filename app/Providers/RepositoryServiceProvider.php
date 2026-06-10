@@ -9,6 +9,7 @@ use App\Repositories\Eloquent\BookingRepository;
 use App\Repositories\Eloquent\CategoryRepository;
 use App\Repositories\Eloquent\ContactRepository;
 use App\Repositories\Eloquent\FavoriteRepository;
+use App\Repositories\Eloquent\LandingPageRepository;
 use App\Repositories\Eloquent\LocationRepository;
 use App\Repositories\Eloquent\NotificationRepository;
 use App\Repositories\Eloquent\PaymentRepository;
@@ -32,6 +33,7 @@ use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\CategoryRepositoryInterface;
 use App\Repositories\Interfaces\ContactRepositoryInterface;
 use App\Repositories\Interfaces\FavoriteRepositoryInterface;
+use App\Repositories\Interfaces\LandingPageRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
@@ -48,8 +50,6 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Repositories\Interfaces\ViewRepositoryInterface;
-use App\Repositories\Interfaces\LandingPageRepositoryInterface;
-use App\Repositories\Eloquent\LandingPageRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**

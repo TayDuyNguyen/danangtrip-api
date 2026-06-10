@@ -189,10 +189,10 @@ final class ChatService
             ->all();
 
         if ($locale === 'en') {
-            return "I found some relevant DanangTrip information: ".implode(', ', $titles).'. Please open the suggested cards below for details.';
+            return 'I found some relevant DanangTrip information: '.implode(', ', $titles).'. Please open the suggested cards below for details.';
         }
 
-        return "Mình tìm thấy một số thông tin phù hợp trong DanangTrip: ".implode(', ', $titles).'. Bạn có thể xem các thẻ gợi ý bên dưới để mở chi tiết.';
+        return 'Mình tìm thấy một số thông tin phù hợp trong DanangTrip: '.implode(', ', $titles).'. Bạn có thể xem các thẻ gợi ý bên dưới để mở chi tiết.';
     }
 
     private function outOfScopeAnswer(string $locale): string

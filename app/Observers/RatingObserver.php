@@ -133,4 +133,3 @@ class RatingObserver
         SendRatingApprovedNotification::dispatch($rating->id);
     }
 }
-

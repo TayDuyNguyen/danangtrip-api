@@ -253,7 +253,7 @@ class UserService
             if ($currentAdminId && $id === $currentAdminId) {
                 $user = $this->userRepository->find($id);
                 if ($user) {
-                    if ((isset($data['role']) && $data['role'] !== $user->role) || 
+                    if ((isset($data['role']) && $data['role'] !== $user->role) ||
                         (isset($data['status']) && $data['status'] !== $user->status)) {
                         return [
                             'status' => HttpStatusCode::FORBIDDEN->value,

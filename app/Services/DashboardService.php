@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Contact;
 use App\Repositories\Interfaces\BlogPostRepositoryInterface;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
@@ -109,35 +110,35 @@ final class DashboardService
                 : ($currentToursSold > 0 ? 100.0 : 0.0);
 
             $data = [
-                'total_users'            => $this->userRepository->count(),
-                'total_tours'            => $this->tourRepository->count(),
-                'total_bookings'         => $this->bookingRepository->getTotalCount(),
-                'total_revenue'          => $this->paymentRepository->getTotalRevenue(),
-                'revenue_trend'          => $revenueTrend,
-                'booking_trend'          => $bookingTrend,
-                'user_trend'             => $userTrend,
+                'total_users' => $this->userRepository->count(),
+                'total_tours' => $this->tourRepository->count(),
+                'total_bookings' => $this->bookingRepository->getTotalCount(),
+                'total_revenue' => $this->paymentRepository->getTotalRevenue(),
+                'revenue_trend' => $revenueTrend,
+                'booking_trend' => $bookingTrend,
+                'user_trend' => $userTrend,
                 // Tour đã bán (30 ngày gần nhất) + xu hướng
-                'total_tours_sold'       => $currentToursSold,
-                'tours_sold_trend'       => $toursSoldTrend,
+                'total_tours_sold' => $currentToursSold,
+                'tours_sold_trend' => $toursSoldTrend,
                 // Chi tiết số liệu kỳ so sánh (để frontend tự tính nếu cần)
-                'current_30day_revenue'  => $currentRevenue,
-                'prev_30day_revenue'     => $prevRevenue,
+                'current_30day_revenue' => $currentRevenue,
+                'prev_30day_revenue' => $prevRevenue,
                 'current_30day_bookings' => $currentBookings,
-                'prev_30day_bookings'    => $prevBookings,
-                'current_30day_users'    => $currentUsers,
-                'prev_30day_users'       => $prevUsers,
+                'prev_30day_bookings' => $prevBookings,
+                'current_30day_users' => $currentUsers,
+                'prev_30day_users' => $prevUsers,
                 'current_30day_tours_sold' => $currentToursSold,
-                'prev_30day_tours_sold'    => $prevToursSold,
+                'prev_30day_tours_sold' => $prevToursSold,
             ];
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data'   => $data,
+                'data' => $data,
             ];
         } catch (Exception $e) {
             return [
-                'status'  => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to retrieve stats: ' . $e->getMessage(),
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve stats: '.$e->getMessage(),
             ];
         }
     }
@@ -155,7 +156,7 @@ final class DashboardService
     {
         try {
             // Liên hệ mới chưa đọc
-            $contactsCount = \App\Models\Contact::where('status', 'new')->count();
+            $contactsCount = Contact::where('status', 'new')->count();
 
             // Đơn hàng pending (cần xử lý)
             $bookingsCount = $this->bookingRepository->count([
@@ -171,9 +172,9 @@ final class DashboardService
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data'   => [
+                'data' => [
                     'total_unread' => $totalUnread,
-                    'categories'   => [
+                    'categories' => [
                         'contacts' => [
                             'count' => $contactsCount,
                             'label' => 'Liên hệ mới',
@@ -191,8 +192,8 @@ final class DashboardService
             ];
         } catch (Exception $e) {
             return [
-                'status'  => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
-                'message' => 'Failed to retrieve notification counts: ' . $e->getMessage(),
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve notification counts: '.$e->getMessage(),
             ];
         }
     }
@@ -201,7 +202,6 @@ final class DashboardService
      * Get revenue statistics grouped by period.
      * (Lấy thông tin doanh thu theo khoảng thời gian)
      */
-
     public function getRevenue(array $filters): array
     {
         try {
