@@ -3,331 +3,370 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use Illuminate\Support\Collection;
 
 class InvoicePdfService
 {
     public function render(Booking $booking): string
     {
-        $html = $this->generateHtml($booking);
-
         $pdf = app('dompdf.wrapper');
-        $pdf->loadHTML($html);
+        $pdf->loadHTML($this->generateHtml($booking));
+        $pdf->setPaper('a4', 'portrait');
 
         return $pdf->output();
     }
 
     private function generateHtml(Booking $booking): string
     {
-        $bookingCode = htmlspecialchars($booking->booking_code);
-        $invoiceDate = now()->format('d/m/Y H:i:s');
+        $bookingCode = $this->e($booking->booking_code);
+        $invoiceDate = now()->format('d/m/Y H:i');
 
-        $customerName = htmlspecialchars($booking->customer_name ?: ($booking->user?->full_name ?? 'Khách lẻ'));
-        $customerPhone = htmlspecialchars($booking->customer_phone ?: ($booking->user?->phone ?? 'N/A'));
-        $customerEmail = htmlspecialchars($booking->customer_email ?: ($booking->user?->email ?? 'N/A'));
+        $customerName = $this->e($booking->customer_name ?: ($booking->user?->full_name ?? 'Khách hàng'));
+        $customerPhone = $this->e($booking->customer_phone ?: ($booking->user?->phone ?? 'Chưa cập nhật'));
+        $customerEmail = $this->e($booking->customer_email ?: ($booking->user?->email ?? 'Chưa cập nhật'));
+        $customerAddress = $this->e($booking->customer_address ?: 'Chưa cập nhật');
+        $customerNote = $this->e($booking->customer_note ?: 'Không có ghi chú');
 
-        $bookedAt = $booking->booked_at ? $booking->booked_at->format('d/m/Y H:i') : 'N/A';
+        $bookedAt = $booking->booked_at ? $booking->booked_at->format('d/m/Y H:i') : 'Chưa cập nhật';
+        $confirmedAt = $booking->confirmed_at ? $booking->confirmed_at->format('d/m/Y H:i') : 'Chưa xác nhận';
         $bookingStatus = $this->translateBookingStatus($booking->booking_status);
         $paymentStatus = $this->translatePaymentStatus($booking->payment_status);
         $paymentMethod = $this->translatePaymentMethod($booking->payment_method);
 
-        $tableRows = '';
-        $items = $booking->items ?? collect();
-        foreach ($items as $index => $item) {
-            $name = htmlspecialchars($item->item_name ?: ($item->tour?->name ?? 'Tour Du Lịch'));
-            $quantity = ((int) $item->quantity_adult) + ((int) $item->quantity_child) + ((int) $item->quantity_infant);
-            $travelDate = $item->travel_date ? (is_string($item->travel_date) ? substr($item->travel_date, 0, 10) : $item->travel_date->format('d/m/Y')) : 'N/A';
-            $subtotal = $this->money($item->subtotal);
-
-            $stt = $index + 1;
-            $tableRows .= "<tr>
-                <td class=\"text-center\">{$stt}</td>
-                <td>{$name}</td>
-                <td class=\"text-center\">{$travelDate}</td>
-                <td class=\"text-center\">{$quantity}</td>
-                <td class=\"text-right\">{$subtotal}</td>
-            </tr>";
-        }
-
-        if ($items->isEmpty()) {
-            $tableRows .= '<tr><td colspan="5" style="text-align: center;">Không tìm thấy thông tin dịch vụ.</td></tr>';
-        }
+        $items = $this->bookingItems($booking);
+        $tableRows = $this->renderRows($items);
 
         $totalAmount = $this->money($booking->total_amount);
         $discountAmount = $this->money($booking->discount_amount);
         $depositAmount = $this->money($booking->deposit_amount);
         $finalAmount = $this->money($booking->final_amount ?: $booking->total_amount);
+        $remainingAmount = $this->money(max(0, (float) ($booking->final_amount ?: $booking->total_amount) - (float) $booking->deposit_amount));
 
         return <<<HTML
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Hóa đơn đặt tour</title>
+    <title>Hóa đơn {$bookingCode}</title>
     <style>
+        @page { margin: 22px 24px; }
         body {
             font-family: "DejaVu Sans", sans-serif;
+            color: #111827;
             font-size: 11px;
-            color: #222222;
-            line-height: 1.5;
+            line-height: 1.45;
             margin: 0;
-            padding: 0;
+            background: #ffffff;
         }
-        .header-stripe {
-            height: 6px;
-            background-color: #FF385C;
-            margin-bottom: 25px;
+        .invoice {
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
         }
-        .container {
-            padding: 0 40px;
-        }
-        .invoice-header {
-            margin-bottom: 30px;
+        .topbar {
+            background: #ff385c;
+            color: #ffffff;
+            padding: 22px 26px;
         }
         .brand {
-            font-size: 24px;
-            font-weight: bold;
-            color: #FF385C;
             float: left;
+            width: 52%;
         }
-        .title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #222222;
-            float: right;
-            text-align: right;
-        }
-        .clear {
-            clear: both;
-        }
-        .divider {
-            border-bottom: 1px solid #e5e7eb;
-            margin: 15px 0;
-        }
-        .meta-info {
-            font-size: 11px;
-            color: #6A6A6A;
-            margin-bottom: 30px;
-        }
-        .meta-left {
-            float: left;
-        }
-        .meta-right {
-            float: right;
-            text-align: right;
-        }
-        .info-section {
-            margin-bottom: 30px;
-        }
-        .info-col {
-            width: 48%;
-            float: left;
-        }
-        .info-col.right {
-            float: right;
-        }
-        .section-title {
-            font-size: 12px;
-            font-weight: bold;
-            color: #222222;
-            border-bottom: 1px solid #ebebeb;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        .info-row {
-            margin-bottom: 6px;
-            font-size: 11px;
-        }
-        .info-label {
-            color: #6A6A6A;
+        .brand-mark {
             display: inline-block;
-            width: 100px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #ff385c;
+            text-align: center;
+            line-height: 34px;
+            font-weight: bold;
+            margin-right: 10px;
+            vertical-align: middle;
         }
-        .info-value {
+        .brand-name {
+            display: inline-block;
+            vertical-align: middle;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: .2px;
+        }
+        .brand-subtitle {
+            margin-top: 6px;
+            color: #ffe4ea;
+            font-size: 10px;
+        }
+        .invoice-title {
+            float: right;
+            width: 42%;
+            text-align: right;
+        }
+        .invoice-title h1 {
+            margin: 0;
+            font-size: 22px;
+            letter-spacing: .5px;
+        }
+        .invoice-title p {
+            margin: 6px 0 0;
+            color: #ffe4ea;
+        }
+        .clear { clear: both; }
+        .content {
+            padding: 24px 26px 22px;
+        }
+        .meta-grid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            margin-bottom: 12px;
+        }
+        .meta-card {
+            width: 50%;
+            vertical-align: top;
+            border: 1px solid #edf2f7;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 14px;
+        }
+        .meta-card.left { margin-right: 10px; }
+        .section-title {
+            color: #ff385c;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: .3px;
+        }
+        .line {
+            margin-bottom: 6px;
+        }
+        .label {
+            color: #6b7280;
+            display: inline-block;
+            width: 112px;
+        }
+        .value {
+            color: #111827;
             font-weight: bold;
         }
-        .table-section {
-            margin-bottom: 35px;
+        .status {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 3px 9px;
+            font-size: 10px;
+            font-weight: bold;
+            background: #dcfce7;
+            color: #047857;
+            border: 1px solid #bbf7d0;
         }
-        table {
+        .status.pending {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #fed7aa;
+        }
+        .status.cancelled, .status.failed {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .items {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            margin-top: 12px;
         }
-        th {
-            background-color: #f7f7f7;
-            color: #222222;
-            font-weight: bold;
-            text-align: left;
-            padding: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        td {
+        .items th {
+            background: #111827;
+            color: #ffffff;
+            font-size: 10px;
             padding: 10px 8px;
-            border-bottom: 1px solid #f3f4f6;
-            color: #444444;
+            border: 1px solid #111827;
         }
-        .text-right {
-            text-align: right;
+        .items td {
+            padding: 10px 8px;
+            border: 1px solid #e5e7eb;
+            vertical-align: top;
         }
-        .text-center {
-            text-align: center;
+        .items tr:nth-child(even) td {
+            background: #fcfcfd;
         }
-        .summary-section {
-            float: right;
-            width: 45%;
-            margin-bottom: 40px;
+        .muted {
+            color: #6b7280;
+            font-size: 10px;
         }
-        .summary-row {
-            margin-bottom: 8px;
-            font-size: 11px;
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .summary-wrap {
+            margin-top: 18px;
         }
-        .summary-label {
+        .note {
             float: left;
-            color: #6A6A6A;
+            width: 48%;
+            border: 1px dashed #fda4af;
+            background: #fff1f2;
+            border-radius: 12px;
+            padding: 12px;
+            color: #4b5563;
         }
-        .summary-value {
+        .summary {
             float: right;
+            width: 42%;
+            border-collapse: collapse;
+        }
+        .summary td {
+            padding: 8px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .summary .label-cell {
+            color: #6b7280;
+        }
+        .summary .value-cell {
             text-align: right;
             font-weight: bold;
         }
-        .summary-row.total {
-            border-top: 1px solid #cccccc;
-            padding-top: 8px;
-            margin-top: 8px;
+        .summary .total td {
+            border-bottom: 0;
+            padding-top: 12px;
             font-size: 13px;
         }
-        .summary-row.total .summary-label {
-            color: #222222;
+        .summary .total .value-cell {
+            color: #ff385c;
+            font-size: 17px;
+        }
+        .signatures {
+            width: 100%;
+            margin-top: 28px;
+            border-collapse: collapse;
+        }
+        .signatures td {
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            color: #374151;
             font-weight: bold;
         }
-        .summary-row.total .summary-value {
-            color: #FF385C;
-            font-weight: bold;
+        .signatures .hint {
+            display: block;
+            margin-top: 4px;
+            color: #9ca3af;
+            font-size: 10px;
+            font-weight: 400;
         }
         .footer {
-            margin-top: 60px;
+            margin-top: 26px;
+            padding-top: 14px;
             border-top: 1px solid #e5e7eb;
-            padding-top: 15px;
             text-align: center;
-        }
-        .footer-thank {
-            font-weight: bold;
-            color: #FF385C;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-        .footer-sub {
-            color: #6A6A6A;
+            color: #6b7280;
             font-size: 10px;
+        }
+        .footer strong {
+            color: #ff385c;
         }
     </style>
 </head>
 <body>
-    <div class="header-stripe"></div>
-    <div class="container">
-        <div class="invoice-header">
-            <div class="brand">DA NANG TRIP</div>
-            <div class="title">HÓA ĐƠN THANH TOÁN</div>
-            <div class="clear"></div>
-        </div>
-        
-        <div class="divider"></div>
-        
-        <div class="meta-info">
-            <div class="meta-left">
-                Mã hóa đơn: <strong>{$bookingCode}</strong>
+    <div class="invoice">
+        <div class="topbar">
+            <div class="brand">
+                <span class="brand-mark">D</span>
+                <span class="brand-name">DaNangTrip</span>
+                <div class="brand-subtitle">Khám phá Đà Nẵng như người bản địa</div>
             </div>
-            <div class="meta-right">
-                Ngày xuất: <strong>{$invoiceDate}</strong>
+            <div class="invoice-title">
+                <h1>HÓA ĐƠN ĐẶT TOUR</h1>
+                <p>Mã đơn: <strong>{$bookingCode}</strong></p>
+                <p>Ngày xuất: <strong>{$invoiceDate}</strong></p>
             </div>
             <div class="clear"></div>
         </div>
-        
-        <div class="info-section">
-            <div class="info-col">
-                <div class="section-title">Thông tin khách hàng</div>
-                <div class="info-row">
-                    <span class="info-label">Họ tên:</span>
-                    <span class="info-value">{$customerName}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Điện thoại:</span>
-                    <span class="info-value">{$customerPhone}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{$customerEmail}</span>
-                </div>
-            </div>
-            
-            <div class="info-col right">
-                <div class="section-title">Chi tiết đơn đặt</div>
-                <div class="info-row">
-                    <span class="info-label">Ngày đặt:</span>
-                    <span class="info-value">{$bookedAt}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Trạng thái đơn:</span>
-                    <span class="info-value">{$bookingStatus}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Thanh toán:</span>
-                    <span class="info-value">{$paymentStatus}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Phương thức TT:</span>
-                    <span class="info-value">{$paymentMethod}</span>
-                </div>
-            </div>
-            <div class="clear"></div>
-        </div>
-        
-        <div class="table-section">
-            <div class="section-title">Danh sách dịch vụ</div>
-            <table>
+
+        <div class="content">
+            <table class="meta-grid">
+                <tr>
+                    <td class="meta-card left">
+                        <div class="section-title">THÔNG TIN KHÁCH HÀNG</div>
+                        <div class="line"><span class="label">Họ và tên:</span> <span class="value">{$customerName}</span></div>
+                        <div class="line"><span class="label">Email:</span> <span class="value">{$customerEmail}</span></div>
+                        <div class="line"><span class="label">Số điện thoại:</span> <span class="value">{$customerPhone}</span></div>
+                        <div class="line"><span class="label">Địa chỉ:</span> <span class="value">{$customerAddress}</span></div>
+                    </td>
+                    <td style="width: 14px;"></td>
+                    <td class="meta-card">
+                        <div class="section-title">THÔNG TIN ĐƠN HÀNG</div>
+                        <div class="line"><span class="label">Ngày đặt:</span> <span class="value">{$bookedAt}</span></div>
+                        <div class="line"><span class="label">Ngày xác nhận:</span> <span class="value">{$confirmedAt}</span></div>
+                        <div class="line"><span class="label">Trạng thái đơn:</span> <span class="status">{$bookingStatus}</span></div>
+                        <div class="line"><span class="label">Thanh toán:</span> <span class="status">{$paymentStatus}</span></div>
+                        <div class="line"><span class="label">Phương thức:</span> <span class="value">{$paymentMethod}</span></div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="section-title">CHI TIẾT DỊCH VỤ</div>
+            <table class="items">
                 <thead>
                     <tr>
-                        <th style="width: 8%;" class="text-center">STT</th>
-                        <th style="width: 47%;">Tên tour / Dịch vụ</th>
-                        <th style="width: 20%;" class="text-center">Ngày khởi hành</th>
-                        <th style="width: 10%;" class="text-center">Số lượng</th>
-                        <th style="width: 15%;" class="text-right">Thành tiền</th>
+                        <th style="width: 6%;" class="text-center">STT</th>
+                        <th style="width: 39%;">TOUR / DỊCH VỤ</th>
+                        <th style="width: 15%;" class="text-center">NGÀY ĐI</th>
+                        <th style="width: 15%;" class="text-center">SỐ KHÁCH</th>
+                        <th style="width: 12%;" class="text-right">ĐƠN GIÁ</th>
+                        <th style="width: 13%;" class="text-right">THÀNH TIỀN</th>
                     </tr>
                 </thead>
                 <tbody>
                     {$tableRows}
                 </tbody>
             </table>
-        </div>
-        
-        <div class="summary-section">
-            <div class="summary-row">
-                <span class="summary-label">Tổng cộng:</span>
-                <span class="summary-value">{$totalAmount} VND</span>
+
+            <div class="summary-wrap">
+                <div class="note">
+                    <strong>GHI CHÚ CỦA KHÁCH HÀNG</strong><br>
+                    {$customerNote}<br><br>
+                    <span class="muted">Hóa đơn được tạo tự động từ hệ thống DaNangTrip. Vui lòng giữ mã đơn để đối chiếu khi cần hỗ trợ.</span>
+                </div>
+                <table class="summary">
+                    <tr>
+                        <td class="label-cell">Tạm tính</td>
+                        <td class="value-cell">{$totalAmount}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Giảm giá</td>
+                        <td class="value-cell">- {$discountAmount}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Đã thanh toán / đặt cọc</td>
+                        <td class="value-cell">{$depositAmount}</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Còn lại</td>
+                        <td class="value-cell">{$remainingAmount}</td>
+                    </tr>
+                    <tr class="total">
+                        <td class="label-cell"><strong>Tổng thanh toán</strong></td>
+                        <td class="value-cell">{$finalAmount}</td>
+                    </tr>
+                </table>
                 <div class="clear"></div>
             </div>
-            <div class="summary-row">
-                <span class="summary-label">Giảm giá:</span>
-                <span class="summary-value">-{$discountAmount} VND</span>
-                <div class="clear"></div>
+
+            <table class="signatures">
+                <tr>
+                    <td>
+                        Khách hàng
+                        <span class="hint">Ký và ghi rõ họ tên nếu cần đối chiếu</span>
+                    </td>
+                    <td>
+                        DaNangTrip
+                        <span class="hint">Hóa đơn điện tử tạo tự động</span>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="footer">
+                <strong>Cảm ơn quý khách đã sử dụng DaNangTrip.</strong><br>
+                Hỗ trợ: info@danangtrip.com | Hotline: 1900 1800 | Đà Nẵng, Việt Nam
             </div>
-            <div class="summary-row">
-                <span class="summary-label">Đặt cọc:</span>
-                <span class="summary-value">{$depositAmount} VND</span>
-                <div class="clear"></div>
-            </div>
-            <div class="summary-row total">
-                <span class="summary-label">Thành tiền thực tế:</span>
-                <span class="summary-value">{$finalAmount} VND</span>
-                <div class="clear"></div>
-            </div>
-        </div>
-        <div class="clear"></div>
-        
-        <div class="footer">
-            <div class="footer-thank">Xin cảm ơn quý khách đã tin tưởng và sử dụng DaNangTrip!</div>
-            <div class="footer-sub">Hệ thống đặt tour du lịch Đà Nẵng trực tuyến hàng đầu</div>
         </div>
     </div>
 </body>
@@ -335,10 +374,63 @@ class InvoicePdfService
 HTML;
     }
 
+    private function renderRows(Collection $items): string
+    {
+        if ($items->isEmpty()) {
+            return '<tr><td colspan="6" class="text-center">Không có thông tin dịch vụ.</td></tr>';
+        }
+
+        return $items->map(function ($item, int $index): string {
+            $name = $this->e($item->item_name ?: ($item->tour?->name ?? 'Tour du lịch'));
+            $travelDate = $item->travel_date
+                ? (is_string($item->travel_date) ? date('d/m/Y', strtotime($item->travel_date)) : $item->travel_date->format('d/m/Y'))
+                : 'Chưa cập nhật';
+            $adult = (int) $item->quantity_adult;
+            $child = (int) $item->quantity_child;
+            $infant = (int) $item->quantity_infant;
+            $quantity = $adult + $child + $infant;
+            $quantityText = "{$quantity} khách";
+            $detailText = "Người lớn: {$adult}";
+
+            if ($child > 0) {
+                $detailText .= " | Trẻ em: {$child}";
+            }
+
+            if ($infant > 0) {
+                $detailText .= " | Em bé: {$infant}";
+            }
+
+            $unitPrice = $adult > 0 ? $this->money($item->unit_price_adult) : $this->money($item->subtotal);
+            $subtotal = $this->money($item->subtotal);
+            $rowNumber = $index + 1;
+
+            return <<<HTML
+<tr>
+    <td class="text-center">{$rowNumber}</td>
+    <td>
+        <strong>{$name}</strong><br>
+        <span class="muted">{$detailText}</span>
+    </td>
+    <td class="text-center">{$travelDate}</td>
+    <td class="text-center">{$quantityText}</td>
+    <td class="text-right">{$unitPrice}</td>
+    <td class="text-right"><strong>{$subtotal}</strong></td>
+</tr>
+HTML;
+        })->implode('');
+    }
+
+    private function bookingItems(Booking $booking): Collection
+    {
+        $items = $booking->items ?? $booking->booking_items ?? collect();
+
+        return $items instanceof Collection ? $items : collect($items);
+    }
+
     private function translateBookingStatus(string $status): string
     {
         return match ($status) {
-            'pending' => 'Chờ thanh toán',
+            'pending' => 'Chờ xác nhận',
             'confirmed' => 'Đã xác nhận',
             'completed' => 'Hoàn thành',
             'cancelled' => 'Đã hủy',
@@ -350,8 +442,8 @@ HTML;
     {
         return match ($status) {
             'pending', 'unpaid' => 'Chờ thanh toán',
-            'success' => 'Thành công',
-            'failed' => 'Thất bại',
+            'success' => 'Thanh toán thành công',
+            'failed' => 'Thanh toán thất bại',
             'refunded' => 'Đã hoàn tiền',
             'partially_paid' => 'Thanh toán một phần',
             default => $status,
@@ -361,25 +453,29 @@ HTML;
     private function translatePaymentMethod(?string $method): string
     {
         if (! $method) {
-            return 'N/A';
+            return 'Chưa cập nhật';
         }
 
         return match ($method) {
-            'sepay' => 'SePay VietQR',
+            'sepay', 'payos' => 'SePay VietQR',
             'vnpay' => 'VNPAY',
             'momo' => 'MoMo',
             'zalopay' => 'ZaloPay',
-            'bank_transfer' => 'Chuyển khoản',
+            'bank_transfer' => 'Chuyển khoản ngân hàng',
             'credit_card' => 'Thẻ tín dụng',
             'cash' => 'Tiền mặt',
             'paypal' => 'PayPal',
-            'payos' => 'PayOS VietQR',
             default => $method,
         };
     }
 
     private function money(mixed $value): string
     {
-        return number_format((float) $value, 0, '.', ',');
+        return number_format((float) $value, 0, ',', '.').' &#273;';
+    }
+
+    private function e(mixed $value): string
+    {
+        return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }
