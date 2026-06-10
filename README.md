@@ -26,6 +26,41 @@ Audit only:
 powershell -ExecutionPolicy Bypass -File "D:\DATN\DATN_Tài liệu\data-center\database-refresh\RUN_AUDIT_DATABASE.ps1"
 ```
 
+### Standby Backup Database
+
+The standby Supabase database has been prepared with the current schema and seed data. It is not used by the application by default.
+
+To test the standby connection temporarily:
+
+```powershell
+$env:BACKUP_DB_HOST="aws-1-ap-southeast-1.pooler.supabase.com"
+$env:BACKUP_DB_PORT="6543"
+$env:BACKUP_DB_DATABASE="postgres"
+$env:BACKUP_DB_USERNAME="postgres.aevuyguxwlcglpxcuwbe"
+$env:BACKUP_DB_SSLMODE="require"
+php artisan db:health-check --connections=pgsql_backup
+```
+
+If the primary database has a problem, manually switch Render's primary database env values to the standby database values, then redeploy the API. Do not run the app against both databases at the same time.
+
+Recommended Render failover values:
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=aws-1-ap-southeast-1.pooler.supabase.com
+DB_PORT=6543
+DB_DATABASE=postgres
+DB_USERNAME=postgres.aevuyguxwlcglpxcuwbe
+DB_PASSWORD=<same-as-primary-db-password>
+DB_SSLMODE=require
+```
+
+If Render uses `DATABASE_URL`, replace it with:
+
+```env
+DATABASE_URL=postgresql://postgres.aevuyguxwlcglpxcuwbe:<same-as-primary-db-password>@aws-1-ap-southeast-1.pooler.supabase.com:6543/postgres?sslmode=require
+```
+
 ### Chatbot Knowledge + Vector RAG
 
 The chatbot uses a derived knowledge table, `chat_knowledge_base`, built from real project data:

@@ -7,6 +7,7 @@ use App\Enums\HttpStatusCode;
 use App\Enums\PaymentStatus;
 use App\Enums\TourScheduleBookingAvailability;
 use App\Enums\TourStatus;
+use App\Models\Booking;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
@@ -74,7 +75,7 @@ class BookingService
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $booking,
+                'data' => $this->withLatestPendingPayment($booking),
                 'message' => 'Booking retrieved successfully.',
             ];
         } catch (\Exception $e) {
@@ -110,7 +111,7 @@ class BookingService
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $booking,
+                'data' => $this->withLatestPendingPayment($booking),
                 'message' => 'Booking retrieved successfully.',
             ];
         } catch (\Exception $e) {
@@ -653,5 +654,30 @@ class BookingService
                 'message' => 'Failed to retrieve booking status counts.',
             ];
         }
+    }
+
+    private function withLatestPendingPayment(Booking $booking): Booking
+    {
+        $payments = $booking->relationLoaded('payments')
+            ? $booking->payments
+            : $booking->payments()->get();
+
+        $latestPendingPayment = $payments
+            ->where('payment_status', PaymentStatus::PENDING->value)
+            ->sortByDesc('id')
+            ->first();
+
+        $booking->setAttribute('latest_pending_payment', $latestPendingPayment ? [
+            'id' => $latestPendingPayment->id,
+            'transaction_code' => $latestPendingPayment->transaction_code,
+            'payment_status' => $latestPendingPayment->payment_status,
+            'payment_method' => $latestPendingPayment->payment_method,
+            'payment_gateway' => $latestPendingPayment->payment_gateway,
+            'amount' => $latestPendingPayment->amount,
+            'created_at' => $latestPendingPayment->created_at?->toISOString(),
+            'expires_at' => $latestPendingPayment->created_at?->copy()->addMinutes(15)->toISOString(),
+        ] : null);
+
+        return $booking;
     }
 }
