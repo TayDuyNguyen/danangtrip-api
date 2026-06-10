@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SepayPaymentService
@@ -52,6 +53,13 @@ class SepayPaymentService
     public function handleIpn(array $payload, array $headers = [], ?string $rawBody = null): array
     {
         if (! $this->verifyIpn($payload, $headers, $rawBody)) {
+            Log::warning('SEPAY_IPN_SIGNATURE_INVALID', [
+                'has_authorization' => $this->header($headers, 'authorization') !== null,
+                'has_token_header' => $this->header($headers, 'x-sepay-token') !== null || $this->header($headers, 'x-webhook-token') !== null,
+                'has_signature_header' => $this->header($headers, 'x-sepay-signature') !== null || $this->header($headers, 'x-signature') !== null,
+                'payload_keys' => array_keys($payload),
+            ]);
+
             return [
                 'status' => HttpStatusCode::FORBIDDEN->value,
                 'message' => 'Invalid SePay IPN signature',
@@ -64,6 +72,13 @@ class SepayPaymentService
         $bookingCode = $this->extractBookingCode($content);
 
         if (! $bookingCode || $amount <= 0) {
+            Log::warning('SEPAY_IPN_PAYLOAD_INVALID', [
+                'content' => Str::limit($content, 160, ''),
+                'amount' => $amount,
+                'reference' => $reference,
+                'payload_keys' => array_keys($payload),
+            ]);
+
             return [
                 'status' => HttpStatusCode::BAD_REQUEST->value,
                 'message' => 'Invalid SePay IPN payload',
@@ -75,6 +90,11 @@ class SepayPaymentService
                 $booking = $this->bookingRepository->findByCode($bookingCode);
 
                 if (! $booking) {
+                    Log::warning('SEPAY_IPN_BOOKING_NOT_FOUND', [
+                        'booking_code' => $bookingCode,
+                        'reference' => $reference,
+                    ]);
+
                     return [
                         'status' => HttpStatusCode::NOT_FOUND->value,
                         'message' => 'Booking not found',
@@ -83,6 +103,13 @@ class SepayPaymentService
 
                 $expectedAmount = $this->normalizeAmount($booking->final_amount ?: $booking->total_amount);
                 if ($amount !== $expectedAmount) {
+                    Log::warning('SEPAY_IPN_AMOUNT_MISMATCH', [
+                        'booking_code' => $bookingCode,
+                        'amount' => $amount,
+                        'expected_amount' => $expectedAmount,
+                        'reference' => $reference,
+                    ]);
+
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
                         'message' => 'SePay IPN amount does not match booking amount',
@@ -192,7 +219,7 @@ class SepayPaymentService
             return true;
         }
 
-        $secret = (string) config('services.sepay.secret_key');
+        $secret = (string) config('services.sepay.ipn_secret');
         if ($secret === '') {
             return false;
         }
