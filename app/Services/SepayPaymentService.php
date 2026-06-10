@@ -236,9 +236,21 @@ class SepayPaymentService
 
         $signature = $this->header($headers, 'x-sepay-signature') ?? $this->header($headers, 'x-signature');
         if (is_string($signature) && $rawBody !== null) {
-            $calculated = hash_hmac('sha256', $rawBody, $secret);
+            $timestamp = $this->header($headers, 'x-sepay-timestamp') ?? $this->header($headers, 'x-timestamp');
+            $signatureClean = trim($signature);
+            if (str_starts_with($signatureClean, 'sha256=')) {
+                $signatureClean = substr($signatureClean, 7);
+            }
 
-            return hash_equals($calculated, trim($signature));
+            if ($timestamp !== null && $timestamp !== '') {
+                $dataToVerify = $timestamp . '.' . $rawBody;
+            } else {
+                $dataToVerify = $rawBody;
+            }
+
+            $calculated = hash_hmac('sha256', $dataToVerify, $secret);
+
+            return hash_equals($calculated, $signatureClean);
         }
 
         if (isset($payload['token']) && is_string($payload['token'])) {
