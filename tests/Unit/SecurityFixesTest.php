@@ -13,6 +13,7 @@ use App\Repositories\Interfaces\UserRepositoryInterface;
 use App\Services\AuthService;
 use App\Services\BookingPaymentNotificationService;
 use App\Services\PaymentService;
+use App\Services\PointService;
 use App\Services\SepayPaymentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,7 @@ class SecurityFixesTest extends TestCase
             $bookingRepository,
             Mockery::mock(SepayPaymentService::class),
             Mockery::mock(BookingPaymentNotificationService::class),
+            new PointService,
         );
     }
 }

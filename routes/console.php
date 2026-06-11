@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('tour-schedules:sync-availability')
     ->everyFifteenMinutes()
     ->withoutOverlapping(10);
+
+Schedule::command('bookings:send-tour-reminders')
+    ->dailyAt('08:00')
+    ->withoutOverlapping(10);

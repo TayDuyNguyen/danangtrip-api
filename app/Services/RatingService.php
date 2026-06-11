@@ -3,11 +3,14 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Rating;
+use App\Models\RatingHelpfulVote;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Services\UploadService;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +32,9 @@ final class RatingService
         protected RatingImageRepositoryInterface $ratingImageRepository,
         protected NotificationRepositoryInterface $notificationRepository,
         protected LocationRepositoryInterface $locationRepository,
-        protected TourRepositoryInterface $tourRepository
+        protected TourRepositoryInterface $tourRepository,
+        protected PointService $pointService,
+        protected UploadService $uploadService
     ) {}
 
     /**
@@ -41,14 +46,38 @@ final class RatingService
         try {
             $rating = $this->ratingRepository->checkUserRated($userId, $params);
 
+            $canRate = true;
+            $message = null;
+
+            if (isset($params['tour_id'])) {
+                $hasBooking = DB::table('bookings')
+                    ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
+                    ->where('bookings.user_id', $userId)
+                    ->where('booking_items.tour_id', $params['tour_id'])
+                    ->whereIn('bookings.booking_status', ['completed', 'confirmed'])
+                    ->exists();
+
+                if (! $hasBooking) {
+                    $canRate = false;
+                    $message = 'Bạn phải đặt tour này và hoàn thành chuyến đi mới có thể đánh giá.';
+                }
+            }
+
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'has_rated' => (bool) $rating,
+                    'can_rate' => $canRate,
+                    'message' => $message,
                     'rating' => $rating,
                 ],
             ];
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Check rating error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'userId' => $userId,
+                'params' => $params
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -89,6 +118,22 @@ final class RatingService
     public function createRating(array $data, Request $request): array
     {
         try {
+            if (isset($data['tour_id'])) {
+                $hasBooking = DB::table('bookings')
+                    ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
+                    ->where('bookings.user_id', $data['user_id'])
+                    ->where('booking_items.tour_id', $data['tour_id'])
+                    ->whereIn('bookings.booking_status', ['completed', 'confirmed'])
+                    ->exists();
+
+                if (! $hasBooking) {
+                    return [
+                        'status' => HttpStatusCode::FORBIDDEN->value,
+                        'message' => 'Bạn phải đặt tour này và hoàn thành chuyến đi mới có thể đánh giá.',
+                    ];
+                }
+            }
+
             $rating = DB::transaction(function () use ($data, $request) {
                 $ratingData = [
                     'user_id' => $data['user_id'],
@@ -130,6 +175,10 @@ final class RatingService
                 'message' => 'Rating created successfully',
             ];
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Create rating error: ' . $e->getMessage(), [
+                'exception' => $e,
+                'data' => $data
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -258,25 +307,60 @@ final class RatingService
      * Mark a rating as helpful.
      * (Đánh dấu đánh giá hữu ích)
      */
-    public function markHelpful(int $ratingId): array
+    public function markHelpful(int $userId, int $ratingId): array
     {
         try {
-            $updated = $this->ratingRepository->incrementHelpfulIfApproved($ratingId);
+            return DB::transaction(function () use ($userId, $ratingId): array {
+                $rating = $this->ratingRepository->findForUpdate($ratingId, ['user', 'location', 'tour', 'images']);
 
-            if (! $updated) {
+                if (! $rating) {
+                    return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Rating not found'];
+                }
+
+                if ($rating->status !== 'approved') {
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'Rating is not approved'];
+                }
+
+                if ((int) $rating->user_id === $userId) {
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'You cannot mark your own rating as helpful'];
+                }
+
+                $alreadyVoted = RatingHelpfulVote::query()
+                    ->where('rating_id', $rating->id)
+                    ->where('user_id', $userId)
+                    ->exists();
+
+                if ($alreadyVoted) {
+                    return ['status' => HttpStatusCode::CONFLICT->value, 'message' => 'You already marked this rating as helpful'];
+                }
+
+                $vote = RatingHelpfulVote::query()->create([
+                    'rating_id' => $rating->id,
+                    'user_id' => $userId,
+                ]);
+
+                $rating->increment('helpful_count');
+                $rating->refresh()->load(['user', 'location', 'tour', 'images']);
+
+                $targetName = $rating->location?->name ?? $rating->tour?->name ?? 'nội dung bạn đánh giá';
+
+                $this->pointService->awardPoints(
+                    (int) $rating->user_id,
+                    'content_helpful_received',
+                    'rating_helpful_vote',
+                    $vote->id,
+                    "Đánh giá được người khác đánh dấu hữu ích: {$targetName}",
+                    true
+                );
+
+                $this->awardHelpfulMilestoneIfReached($rating);
+
                 return [
-                    'status' => HttpStatusCode::CONFLICT->value,
-                    'message' => 'Rating is not approved',
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $rating,
+                    'message' => 'Marked as helpful',
                 ];
-            }
-
-            $rating = $this->ratingRepository->with(['user', 'location', 'images'])->find($ratingId);
-
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $rating,
-                'message' => 'Marked as helpful',
-            ];
+            });
         } catch (\Exception $e) {
 
             return [
@@ -336,20 +420,6 @@ final class RatingService
                 } elseif ($rating->tour_id) {
                     $this->tourRepository->updateStats((int) $rating->tour_id);
                 }
-
-                // Notify user
-                $this->notificationRepository->create([
-                    'user_id' => $rating->user_id,
-                    'type' => 'rating_approved',
-                    'title' => 'Bài đánh giá được duyệt',
-                    'content' => 'Bài đánh giá của bạn đã được quản trị viên phê duyệt thành công. Cảm ơn sự đóng góp của bạn!',
-                    'data' => [
-                        'rating_id' => $rating->id,
-                        'score' => $rating->score,
-                    ],
-                    'is_read' => false,
-                    'created_at' => now(),
-                ]);
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
@@ -535,8 +605,8 @@ final class RatingService
     }
 
     /**
-     * Store rating images and return URLs.
-     * (Lưu ảnh đánh giá và trả về danh sách URL)
+     * Store rating images to Cloudinary and return URLs.
+     * (Lưu ảnh đánh giá lên Cloudinary và trả về danh sách URL)
      */
     private function storeRatingImages(Request $request, int $ratingId): array
     {
@@ -544,24 +614,52 @@ final class RatingService
             return [];
         }
 
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
-
         $files = $request->file('images');
         if (! is_array($files)) {
             $files = [$files];
         }
 
-        $urls = [];
-        foreach ($files as $file) {
-            if (! $file) {
-                continue;
-            }
+        $files = array_slice($files, 0, 5);
 
-            $path = $file->store('ratings/'.$ratingId, 'public');
-            $urls[] = asset('storage/'.$path);
+        $uploadResult = $this->uploadService->uploadImages($files, 'ratings/' . $ratingId);
+
+        if ($uploadResult['status'] !== HttpStatusCode::CREATED->value) {
+            throw new \Exception('Failed to upload rating images to Cloudinary: ' . ($uploadResult['message'] ?? ''));
         }
 
-        return array_slice($urls, 0, 5);
+        $urls = [];
+        if (isset($uploadResult['data']['items']) && is_array($uploadResult['data']['items'])) {
+            foreach ($uploadResult['data']['items'] as $item) {
+                if (isset($item['url'])) {
+                    $urls[] = $item['url'];
+                }
+            }
+        }
+
+        return $urls;
+    }
+
+    private function awardHelpfulMilestoneIfReached(Rating $rating): void
+    {
+        $helpfulCount = (int) ($rating->helpful_count ?? 0);
+        $targetName = $rating->location?->name ?? $rating->tour?->name ?? 'nội dung bạn đánh giá';
+
+        $milestones = [
+            5 => 'content_helpful_milestone_5',
+            10 => 'content_helpful_milestone_10',
+        ];
+
+        if (! isset($milestones[$helpfulCount])) {
+            return;
+        }
+
+        $this->pointService->awardPoints(
+            (int) $rating->user_id,
+            $milestones[$helpfulCount],
+            'rating_helpful_milestone_'.$helpfulCount,
+            (int) $rating->id,
+            "Đánh giá đạt {$helpfulCount} lượt hữu ích: {$targetName}",
+            true
+        );
     }
 }

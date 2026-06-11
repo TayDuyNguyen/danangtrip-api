@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Notification;
 use App\Models\Rating;
+use App\Services\PointService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -30,32 +31,68 @@ class SendRatingApprovedNotification implements ShouldQueue
      * Execute the job.
      * (Thực hiện job)
      */
-    public function handle(): void
+    public function handle(PointService $pointService): void
     {
-        $rating = Rating::with(['location', 'user'])->find($this->ratingId);
+        $rating = Rating::with(['location', 'tour', 'user', 'images'])->find($this->ratingId);
 
         if (! $rating || $rating->status !== 'approved') {
             return;
         }
 
-        $location = $rating->location;
         $user = $rating->user;
 
-        if (! $location || ! $user) {
+        if (! $user) {
             return;
         }
+
+        $targetName = $rating->location?->name ?? $rating->tour?->name ?? 'nội dung bạn đánh giá';
+
+        $normalizedComment = preg_replace('/\s+/u', ' ', trim((string) $rating->comment)) ?? '';
+        $hasQualityComment = mb_strlen($normalizedComment) >= 50;
+
+        $pointService->awardPoints(
+            $user->id,
+            'review_quality',
+            'rating',
+            $rating->id,
+            "Đánh giá được duyệt: {$targetName}",
+            true
+        );
+
+        if ((int) $rating->image_count > 0 || $rating->images->isNotEmpty()) {
+            $pointService->awardPoints(
+                $user->id,
+                'review_with_image',
+                'rating_image',
+                $rating->id,
+                "Đánh giá kèm ảnh được duyệt: {$targetName}",
+                true
+            );
+        }
+
+        $exists = Notification::query()
+            ->where('user_id', $user->id)
+            ->where('type', 'rating_approved')
+            ->where('data->rating_id', $rating->id)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
         Notification::create([
             'user_id' => $user->id,
             'type' => 'rating_approved',
             'title' => 'Đánh giá của bạn đã được duyệt',
-            'message' => "Đánh giá của bạn tại {$location->name} đã được duyệt.",
+            'content' => "Đánh giá của bạn tại {$targetName} đã được duyệt và hệ thống đã cộng điểm thưởng cho bạn.",
             'data' => [
                 'rating_id' => $rating->id,
-                'location_id' => $location->id,
-                'location_name' => $location->name,
+                'location_id' => $rating->location_id,
+                'tour_id' => $rating->tour_id,
+                'target_name' => $targetName,
             ],
             'is_read' => false,
+            'created_at' => now(),
         ]);
-
     }
 }

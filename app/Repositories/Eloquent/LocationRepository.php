@@ -92,10 +92,21 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
                     $query->whereFullText(['name', 'address', 'description', 'short_description'], $searchTerm);
                 }
             } elseif ($driver === 'pgsql') {
-                $query->whereRaw(
-                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(address, '') || ' ' || coalesce(description, '') || ' ' || coalesce(short_description, '')) @@ plainto_tsquery('simple', ?)",
-                    [$searchTerm]
-                );
+                $words = array_values(array_filter(
+                    preg_split('/\s+/u', trim($searchTerm)) ?: [],
+                    fn (string $word) => mb_strlen(preg_replace('/[^\p{L}\p{N}]/u', '', $word) ?? '') > 0
+                ));
+
+                foreach ($words as $word) {
+                    $query->where(function ($wordQuery) use ($word) {
+                        $pattern = '%'.$word.'%';
+                        $wordQuery
+                            ->whereRaw('unaccent(name) ilike unaccent(?)', [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(address, '')) ilike unaccent(?)", [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(description, '')) ilike unaccent(?)", [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(short_description, '')) ilike unaccent(?)", [$pattern]);
+                    });
+                }
             } else {
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'like', "%{$searchTerm}%")

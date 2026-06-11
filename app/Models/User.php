@@ -7,6 +7,7 @@ use App\Services\BrevoMailService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
@@ -59,6 +60,21 @@ final class User extends Authenticatable implements JWTSubject
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function pointBalance(): HasOne
+    {
+        return $this->hasOne(UserPointBalance::class);
+    }
+
+    public function pointTransactions(): HasMany
+    {
+        return $this->hasMany(PointTransaction::class);
+    }
+
+    public function userVouchers(): HasMany
+    {
+        return $this->hasMany(UserVoucher::class);
     }
 
     public function tours(): HasMany

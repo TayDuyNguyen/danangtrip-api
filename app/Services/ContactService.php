@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\HttpStatusCode;
+use App\Models\Notification;
+use App\Models\User;
 use App\Repositories\Interfaces\ContactRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -127,6 +129,7 @@ final class ContactService
             }
 
             $this->contactRepository->reply($id, $reply, $adminId);
+            $this->notifyMatchedUser($contact, $reply);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -145,6 +148,35 @@ final class ContactService
                 'message' => 'Failed to send reply.',
             ];
         }
+    }
+
+    private function notifyMatchedUser(object $contact, string $reply): void
+    {
+        if (empty($contact->email)) {
+            return;
+        }
+
+        $user = User::query()
+            ->where('email', $contact->email)
+            ->first();
+
+        if (! $user) {
+            return;
+        }
+
+        Notification::query()->create([
+            'user_id' => $user->id,
+            'type' => 'contact_reply',
+            'title' => 'Yêu cầu liên hệ đã được phản hồi',
+            'content' => 'Quản trị viên đã phản hồi yêu cầu "'.($contact->subject ?? 'Liên hệ').'" của bạn.',
+            'data' => [
+                'contact_id' => $contact->id,
+                'subject' => $contact->subject,
+                'reply_preview' => mb_substr(strip_tags($reply), 0, 160),
+            ],
+            'is_read' => false,
+            'created_at' => now(),
+        ]);
     }
 
     /**

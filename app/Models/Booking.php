@@ -14,6 +14,8 @@ final class Booking extends Model
     protected $fillable = [
         'booking_code',
         'user_id',
+        'promotion_id',
+        'user_voucher_id',
         'customer_name',
         'customer_email',
         'customer_phone',
@@ -40,6 +42,8 @@ final class Booking extends Model
             'discount_amount' => 'decimal:2',
             'final_amount' => 'decimal:2',
             'deposit_amount' => 'decimal:2',
+            'promotion_id' => 'integer',
+            'user_voucher_id' => 'integer',
             'booked_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -50,6 +54,16 @@ final class Booking extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function promotion(): BelongsTo
+    {
+        return $this->belongsTo(Promotion::class);
+    }
+
+    public function userVoucher(): BelongsTo
+    {
+        return $this->belongsTo(UserVoucher::class);
     }
 
     public function items(): HasMany

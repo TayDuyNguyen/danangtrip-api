@@ -140,6 +140,39 @@ After changing `.env`, clear Laravel config cache:
 php artisan config:clear
 ```
 
+### Scheduler, Notifications, and Point Jobs
+
+Laravel scheduler is required for background maintenance tasks:
+
+- Sync tour schedule availability every 15 minutes.
+- Send user reminders for confirmed paid tours that start tomorrow.
+
+Run manually from the API project root:
+
+```powershell
+php artisan schedule:run
+```
+
+Run the tour reminder command directly:
+
+```powershell
+php artisan bookings:send-tour-reminders
+```
+
+Preview without writing notifications:
+
+```powershell
+php artisan bookings:send-tour-reminders --dry-run
+```
+
+On Render, create a Cron Job or background worker that runs this every minute:
+
+```bash
+php artisan schedule:run
+```
+
+The command is idempotent. Running it multiple times will not create duplicate reminders for the same booking and travel date.
+
 Canonical seed/data folders:
 
 - `D:\DATN\DATN_Tài liệu\database-seeders`

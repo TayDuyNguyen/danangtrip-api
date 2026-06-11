@@ -27,6 +27,12 @@ final class ChatIntentGuardService
         }
 
         $intents = [
+            'loyalty' => [
+                'điểm thưởng', 'diem thuong', 'tích điểm', 'tich diem', 'nhận điểm', 'nhan diem',
+                'cộng điểm', 'cong diem', 'ví điểm', 'vi diem', 'point', 'points', 'loyalty',
+                'voucher', 'mã giảm giá', 'ma giam gia', 'khuyến mãi', 'khuyen mai',
+                'đánh giá hữu ích', 'danh gia huu ich', 'bình luận hữu ích', 'binh luan huu ich',
+            ],
             'payment' => ['thanh toán', 'qr', 'chuyển khoản', 'sepay', 'hoá đơn', 'hóa đơn', 'đã trả tiền'],
             'refund' => ['hoàn tiền', 'hủy tour', 'huỷ tour', 'chính sách hủy', 'chính sách huỷ', 'đổi lịch'],
             'booking' => ['đặt tour', 'booking', 'đơn hàng', 'đặt chỗ', 'giữ chỗ', 'xác nhận đơn'],
@@ -73,6 +79,15 @@ final class ChatIntentGuardService
             'thanh toan' => 'thanh toán',
             'hoan tien' => 'hoàn tiền',
             'dat tour' => 'đặt tour',
+            'diem thuong' => 'điểm thưởng',
+            'tich diem' => 'tích điểm',
+            'nhan diem' => 'nhận điểm',
+            'cong diem' => 'cộng điểm',
+            'vi diem' => 'ví điểm',
+            'ma giam gia' => 'mã giảm giá',
+            'khuyen mai' => 'khuyến mãi',
+            'danh gia huu ich' => 'đánh giá hữu ích',
+            'binh luan huu ich' => 'bình luận hữu ích',
             'ba na' => 'bà nà',
             'hoi an' => 'hội an',
             'da nang' => 'đà nẵng',

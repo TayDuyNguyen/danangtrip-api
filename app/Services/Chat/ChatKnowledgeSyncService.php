@@ -193,6 +193,21 @@ final class ChatKnowledgeSyncService
                 'content' => 'Người dùng có thể đăng ký, đăng nhập, cập nhật hồ sơ, đổi mật khẩu, xem lịch sử đặt tour và quản lý đánh giá trong tài khoản DanangTrip.',
             ],
             [
+                'slug' => 'loyalty-points',
+                'title' => 'Điểm thưởng và voucher DanangTrip',
+                'content' => implode(' ', [
+                    'DanangTrip có hệ thống điểm thưởng dành cho người dùng đã đăng ký.',
+                    'Người dùng được cộng 10 điểm khi thanh toán đơn tour thành công.',
+                    'Người dùng được cộng 5 điểm khi đánh giá tour hoặc địa điểm được duyệt.',
+                    'Nếu đánh giá được duyệt có ít nhất một ảnh đính kèm đã lưu thành công, người dùng được cộng thêm 3 điểm. Hệ thống hiện chỉ kiểm tra ảnh đính kèm, chưa tự động xác minh ảnh có phải ảnh thật hay không.',
+                    'Khi một người dùng khác đánh dấu đánh giá đã duyệt là hữu ích, chủ đánh giá được cộng 1 điểm cho mỗi lượt hợp lệ. Mỗi người chỉ được đánh dấu một lần cho một đánh giá và không được tự đánh dấu đánh giá của mình.',
+                    'Điểm nhận từ lượt hữu ích được giới hạn tối đa 10 điểm mỗi ngày cho mỗi chủ đánh giá. Lượt hữu ích vẫn được ghi nhận sau khi đạt giới hạn nhưng không cộng thêm điểm trong ngày đó.',
+                    'Mỗi đánh giá được thưởng thêm một lần 5 điểm khi đạt đúng mốc 5 lượt hữu ích và một lần 10 điểm khi đạt đúng mốc 10 lượt hữu ích. Điểm thưởng mốc được tính riêng với giới hạn điểm hữu ích hằng ngày.',
+                    'Đánh giá chỉ được nhận điểm sau khi quản trị viên duyệt. Nội dung bị từ chối không được cộng điểm; hệ thống hiện chưa tự động chấm toàn bộ nội dung spam, quá ngắn hoặc trùng lặp bằng AI.',
+                    'Điểm thưởng có thể đổi thành voucher giảm giá tour trong trang Ví điểm.',
+                ]),
+            ],
+            [
                 'slug' => 'contact',
                 'title' => 'Thông tin hỗ trợ DanangTrip',
                 'content' => $this->supportPolicyContent(),

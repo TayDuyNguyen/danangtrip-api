@@ -8,8 +8,11 @@ use App\Enums\PaymentStatus;
 use App\Enums\TourScheduleBookingAvailability;
 use App\Enums\TourStatus;
 use App\Models\Booking;
+use App\Models\Notification;
+use App\Models\UserVoucher;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
+use App\Repositories\Interfaces\PromotionRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -32,7 +35,10 @@ class BookingService
         protected TourScheduleRepositoryInterface $tourScheduleRepository,
         protected TourRepositoryInterface $tourRepository,
         protected TourStatusSyncService $tourStatusSyncService,
-        protected PaymentRepositoryInterface $paymentRepository
+        protected PaymentRepositoryInterface $paymentRepository,
+        protected BookingPaymentNotificationService $paymentNotificationService,
+        protected PromotionRepositoryInterface $promotionRepository,
+        protected PointService $pointService
     ) {}
 
     /**
@@ -126,7 +132,7 @@ class BookingService
      * Calculate price for a booking.
      * (Tính giá cho một đơn đặt tour)
      */
-    public function calculatePrice(array $data): array
+    public function calculatePrice(array $data, ?int $userId = null): array
     {
         try {
             $tour = $this->tourRepository->find($data['tour_id']);
@@ -144,19 +150,120 @@ class BookingService
             $infants = $data['quantity_infant'] ?? 0;
 
             // Use schedule price if available, fallback to tour price
-            $priceAdult = $schedule->price_adult ?? $tour->price_adult;
-            $priceChild = $schedule->price_child ?? $tour->price_child;
-            $priceInfant = $schedule->price_infant ?? $tour->price_infant;
+            $priceAdult = max(0.0, (float) ($schedule->price_adult ?? $tour->price_adult));
+            $priceChild = max(0.0, (float) ($schedule->price_child ?? $tour->price_child));
+            $priceInfant = max(0.0, (float) ($schedule->price_infant ?? $tour->price_infant));
 
             $subtotalAdult = $adults * $priceAdult;
             $subtotalChild = $children * $priceChild;
             $subtotalInfant = $infants * $priceInfant;
 
-            $totalAmount = $subtotalAdult + $subtotalChild + $subtotalInfant;
+            $totalAmount = max(0.0, $subtotalAdult + $subtotalChild + $subtotalInfant);
 
-            $discountPercent = $tour->discount_percent ?? 0;
-            $discountAmount = ($totalAmount * $discountPercent) / 100;
-            $finalAmount = $totalAmount - $discountAmount;
+            $discountPercent = min(100.0, max(0.0, (float) ($tour->discount_percent ?? 0)));
+            $tourDiscount = ($totalAmount * $discountPercent) / 100;
+            $tourSubtotal = max(0.0, $totalAmount - $tourDiscount);
+
+            $promotionDiscount = 0.0;
+            $voucherDiscount = 0.0;
+            $promotionData = null;
+            $voucherData = null;
+
+            if (! empty($data['promotion_code'])) {
+                $code = trim((string) $data['promotion_code']);
+                $promotion = $this->promotionRepository->findByCode($code);
+
+                if (! $promotion) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Promotion code not found.',
+                    ];
+                }
+
+                if (! $promotion->isValid()) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Promotion code is not currently valid.',
+                    ];
+                }
+
+                if ($tourSubtotal < (float) $promotion->min_order_amount) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Minimum order amount for this promotion code is '.number_format($promotion->min_order_amount).' đ.',
+                    ];
+                }
+
+                $promotionDiscount = min(
+                    $tourSubtotal,
+                    max(0.0, (float) $promotion->calculateDiscount($tourSubtotal))
+                );
+                $promotionData = [
+                    'id' => $promotion->id,
+                    'code' => $promotion->code,
+                    'name' => $promotion->name,
+                    'discount_type' => $promotion->discount_type,
+                    'discount_value' => $promotion->discount_value,
+                    'coupon_discount_amount' => $promotionDiscount,
+                    'source' => 'promotion',
+                ];
+            }
+
+            $afterPromotion = max(0.0, $tourSubtotal - $promotionDiscount);
+
+            if (! empty($data['user_voucher_code'])) {
+                if (! $userId) {
+                    return [
+                        'status' => HttpStatusCode::UNAUTHORIZED->value,
+                        'message' => 'Authentication is required to use a personal voucher.',
+                    ];
+                }
+
+                $code = trim((string) $data['user_voucher_code']);
+                $voucher = UserVoucher::query()
+                    ->where('user_id', $userId)
+                    ->whereRaw('LOWER(code) = ?', [strtolower($code)])
+                    ->first();
+
+                if (! $voucher) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Personal voucher not found.',
+                    ];
+                }
+
+                if (! $voucher->isValidForUser($userId)) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'This personal voucher is not currently valid.',
+                    ];
+                }
+
+                if ($tourSubtotal < (float) $voucher->min_order_amount) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Minimum order amount for this voucher is '.number_format((float) $voucher->min_order_amount).' đ.',
+                    ];
+                }
+
+                $voucherDiscount = min(
+                    $afterPromotion,
+                    max(0.0, (float) $voucher->calculateDiscount($afterPromotion))
+                );
+                $voucherData = [
+                    'id' => $voucher->id,
+                    'code' => $voucher->code,
+                    'name' => $voucher->name,
+                    'discount_type' => $voucher->discount_type,
+                    'discount_value' => $voucher->discount_value,
+                    'voucher_discount_amount' => $voucherDiscount,
+                    'source' => 'user_voucher',
+                ];
+            }
+
+            $couponDiscount = min($tourSubtotal, $promotionDiscount + $voucherDiscount);
+            $discountAmount = min($totalAmount, max(0.0, $tourDiscount + $couponDiscount));
+            $finalAmount = max(0.0, $afterPromotion - $voucherDiscount);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -179,8 +286,14 @@ class BookingService
                         ],
                     ],
                     'total_amount' => $totalAmount,
+                    'tour_discount' => $tourDiscount,
+                    'promotion_discount' => $promotionDiscount,
+                    'voucher_discount' => $voucherDiscount,
+                    'coupon_discount' => $couponDiscount,
                     'discount_amount' => $discountAmount,
                     'final_amount' => $finalAmount,
+                    'applied_promotion' => $promotionData,
+                    'applied_user_voucher' => $voucherData,
                 ],
                 'message' => 'Price calculated successfully.',
             ];
@@ -233,15 +346,107 @@ class BookingService
                 }
 
                 // Calculate price
-                $priceCalc = $this->calculatePrice($data);
+                $priceCalc = $this->calculatePrice($data, $userId);
                 if ($priceCalc['status'] !== HttpStatusCode::SUCCESS->value) {
                     return $priceCalc;
                 }
                 $priceData = $priceCalc['data'];
 
+                $promotionId = null;
+                $userVoucherId = null;
+                $promotion = null;
+                $voucher = null;
+                $tourSubtotal = (float) $priceData['total_amount'] - (float) $priceData['tour_discount'];
+
+                if (! empty($data['promotion_code'])) {
+                    $code = trim((string) $data['promotion_code']);
+                    $promotion = $this->promotionRepository->getModel()::newQuery()
+                        ->whereRaw('LOWER(code) = ?', [strtolower($code)])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $promotion) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'Promotion code not found.',
+                        ];
+                    }
+
+                    if (! $promotion->isValid()) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'Promotion code is not currently valid.',
+                        ];
+                    }
+
+                    if ($tourSubtotal < (float) $promotion->min_order_amount) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'Minimum order amount for this promotion code is '.number_format((float) $promotion->min_order_amount).' đ.',
+                        ];
+                    }
+
+                    $promotionId = (int) $promotion->id;
+
+                    if ($promotion->usage_per_user !== null && $userId) {
+                        $userUsageCount = $this->bookingRepository->getModel()::newQuery()
+                            ->where('user_id', $userId)
+                            ->where('promotion_id', $promotionId)
+                            ->where('booking_status', '!=', 'cancelled')
+                            ->count();
+                        if ($userUsageCount >= $promotion->usage_per_user) {
+                            return [
+                                'status' => HttpStatusCode::BAD_REQUEST->value,
+                                'message' => 'You have already reached the maximum usage limit for this promotion code.',
+                            ];
+                        }
+                    }
+                }
+
+                if (! empty($data['user_voucher_code'])) {
+                    if (! $userId) {
+                        return [
+                            'status' => HttpStatusCode::UNAUTHORIZED->value,
+                            'message' => 'Authentication is required to use a personal voucher.',
+                        ];
+                    }
+
+                    $code = trim((string) $data['user_voucher_code']);
+                    $voucher = UserVoucher::query()
+                        ->where('user_id', $userId)
+                        ->whereRaw('LOWER(code) = ?', [strtolower($code)])
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $voucher) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'Personal voucher not found.',
+                        ];
+                    }
+
+                    if (! $voucher->isValidForUser($userId)) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'This personal voucher is not currently valid.',
+                        ];
+                    }
+
+                    if ($tourSubtotal < (float) $voucher->min_order_amount) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'Minimum order amount for this voucher is '.number_format((float) $voucher->min_order_amount).' đ.',
+                        ];
+                    }
+
+                    $userVoucherId = (int) $voucher->id;
+                }
+
                 // Create Booking Record
                 $bookingData = [
                     'user_id' => $userId,
+                    'promotion_id' => $promotionId,
+                    'user_voucher_id' => $userVoucherId,
                     'booking_code' => 'BOOK-'.Str::upper(Str::random(8)),
                     'customer_name' => $data['customer_name'],
                     'customer_email' => $data['customer_email'],
@@ -261,6 +466,17 @@ class BookingService
                 ];
 
                 $booking = $this->bookingRepository->create($bookingData);
+
+                if ($promotion !== null) {
+                    $promotion->increment('used_count');
+                }
+
+                if ($voucher !== null) {
+                    $voucher->update([
+                        'status' => 'used',
+                        'used_at' => now(),
+                    ]);
+                }
 
                 // Create Booking Item
                 $this->bookingRepository->createItem((int) $booking->id, [
@@ -362,6 +578,13 @@ class BookingService
                     }
                 }
 
+                $this->createBookingNotification(
+                    $booking->fresh(),
+                    'booking_cancelled',
+                    'Đơn đặt tour đã được hủy',
+                    "Đơn {$booking->booking_code} đã được ghi nhận hủy theo yêu cầu của bạn."
+                );
+
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
                     'data' => $booking->fresh(),
@@ -407,7 +630,12 @@ class BookingService
                     'confirmed_at' => now(),
                 ]);
 
-                // TODO: Create Notification for User here
+                $this->createBookingNotification(
+                    $booking->fresh(),
+                    'booking_confirmed',
+                    'Đơn đặt tour đã được xác nhận',
+                    "Đơn {$booking->booking_code} đã được xác nhận. Vui lòng kiểm tra lịch khởi hành và thông tin điểm hẹn trước chuyến đi."
+                );
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
@@ -476,6 +704,22 @@ class BookingService
                 }
 
                 $booking->fill($completionData);
+                $this->createBookingNotification(
+                    $booking->fresh(),
+                    'booking_completed',
+                    'Tour đã hoàn thành',
+                    "Đơn {$booking->booking_code} đã được cập nhật hoàn thành. Cảm ơn bạn đã sử dụng DanangTrip."
+                );
+
+                if ($booking->user_id) {
+                    $this->pointService->awardPoints(
+                        (int) $booking->user_id,
+                        'booking_paid',
+                        'booking',
+                        (int) $booking->id,
+                        'Thưởng điểm hoàn thành đơn '.$booking->booking_code
+                    );
+                }
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
@@ -544,11 +788,17 @@ class BookingService
                     }
                 }
 
-                // TODO: Create Notification for User
+                $freshBooking = $booking->fresh();
+                $this->createBookingNotification(
+                    $freshBooking,
+                    'booking_cancelled',
+                    'Đơn đặt tour đã bị hủy',
+                    "Đơn {$booking->booking_code} đã được quản trị viên cập nhật hủy. Lý do: ".($data['cancellation_reason'] ?? 'Không có ghi chú thêm').'.'
+                );
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $booking->fresh(),
+                    'data' => $freshBooking,
                     'message' => 'Booking cancelled successfully.',
                 ];
             });
@@ -679,5 +929,144 @@ class BookingService
         ] : null);
 
         return $booking;
+    }
+
+    private function createBookingNotification(?Booking $booking, string $type, string $title, string $content): void
+    {
+        if (! $booking?->user_id) {
+            return;
+        }
+
+        $exists = Notification::query()
+            ->where('user_id', $booking->user_id)
+            ->where('type', $type)
+            ->where('data->booking_id', $booking->id)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        Notification::query()->create([
+            'user_id' => $booking->user_id,
+            'type' => $type,
+            'title' => $title,
+            'content' => $content,
+            'data' => [
+                'booking_id' => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'booking_status' => $booking->booking_status,
+                'payment_status' => $booking->payment_status,
+            ],
+            'is_read' => false,
+            'created_at' => now(),
+        ]);
+    }
+
+    /**
+     * Admin manually confirms booking payment.
+     * (Quản trị viên xác nhận thủ công thanh toán của đơn đặt tour)
+     */
+    public function confirmBookingPayment(int $id): array
+    {
+        try {
+            return DB::transaction(function () use ($id) {
+                $booking = $this->bookingRepository->find($id);
+
+                if (! $booking) {
+                    return [
+                        'status' => HttpStatusCode::NOT_FOUND->value,
+                        'message' => 'Booking not found.',
+                    ];
+                }
+
+                if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Booking payment is already confirmed.',
+                    ];
+                }
+
+                if ($booking->booking_status === BookingStatus::CANCELLED->value) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Cannot confirm payment for a cancelled booking.',
+                    ];
+                }
+
+                // Update booking status and payment status
+                $updateData = [
+                    'payment_status' => PaymentStatus::SUCCESS->value,
+                ];
+
+                // If booking is pending, automatically confirm it
+                if ($booking->booking_status === BookingStatus::PENDING->value) {
+                    $updateData['booking_status'] = BookingStatus::CONFIRMED->value;
+                    $updateData['confirmed_at'] = now();
+                }
+
+                $this->bookingRepository->updateBooking((int) $booking->id, $updateData);
+
+                // Find the latest pending payment or create one
+                $latestPendingPayment = $booking->payments()
+                    ->where('payment_status', PaymentStatus::PENDING->value)
+                    ->latest('id')
+                    ->first();
+
+                if ($latestPendingPayment) {
+                    $this->paymentRepository->update((int) $latestPendingPayment->id, [
+                        'payment_status' => PaymentStatus::SUCCESS->value,
+                        'paid_at' => now(),
+                        'gateway_response' => array_merge(
+                            is_array($latestPendingPayment->gateway_response) ? $latestPendingPayment->gateway_response : [],
+                            ['confirmed_by' => 'admin']
+                        ),
+                    ]);
+                } else {
+                    // Create new success payment record
+                    $this->paymentRepository->create([
+                        'booking_id' => $booking->id,
+                        'transaction_code' => 'PAY-MANUAL-'.strtoupper(Str::random(10)),
+                        'amount' => $booking->final_amount ?? $booking->total_amount,
+                        'payment_method' => $booking->payment_method ?? 'bank_transfer',
+                        'payment_status' => PaymentStatus::SUCCESS->value,
+                        'payment_gateway' => 'admin_manual',
+                        'gateway_response' => [
+                            'confirmed_by' => 'admin',
+                            'source' => 'admin_manual_confirmation',
+                        ],
+                        'paid_at' => now(),
+                    ]);
+                }
+
+                // Send payment confirmation email/notification
+                $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $booking->id);
+                if ($booking->user_id) {
+                    $this->pointService->awardPoints(
+                        (int) $booking->user_id,
+                        'booking_paid',
+                        'booking',
+                        (int) $booking->id,
+                        'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                    );
+                }
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $booking->fresh(),
+                    'message' => 'Booking payment confirmed successfully.',
+                ];
+            });
+        } catch (\Exception $e) {
+            Log::error('Manual payment confirmation failed', [
+                'booking_id' => $id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to confirm booking payment.',
+            ];
+        }
     }
 }

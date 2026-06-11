@@ -13,18 +13,26 @@ use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 class SepayPaymentService
 {
     public function __construct(
         protected PaymentRepositoryInterface $paymentRepository,
         protected BookingRepositoryInterface $bookingRepository,
-        protected BookingPaymentNotificationService $paymentNotificationService
+        protected BookingPaymentNotificationService $paymentNotificationService,
+        protected PointService $pointService
     ) {}
 
     public function buildCheckoutPayload(Payment $payment, Booking $booking, ?string $returnUrl = null): array
     {
-        $amount = $this->normalizeAmount($payment->amount ?: $booking->final_amount ?: $booking->total_amount);
+        $amount = $this->normalizeAmount(
+            $payment->amount ?? $booking->final_amount ?? $booking->total_amount ?? 0
+        );
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('VietQR amount must be greater than zero.');
+        }
+
         $transferContent = $this->transferContent((string) $booking->booking_code);
         $bankCode = (string) config('services.vietqr.bank_code');
         $accountNo = (string) config('services.vietqr.account_no');
@@ -101,7 +109,9 @@ class SepayPaymentService
                     ];
                 }
 
-                $expectedAmount = $this->normalizeAmount($booking->final_amount ?: $booking->total_amount);
+                $expectedAmount = $this->normalizeAmount(
+                    $booking->final_amount ?? $booking->total_amount ?? 0
+                );
                 if ($amount !== $expectedAmount) {
                     Log::warning('SEPAY_IPN_AMOUNT_MISMATCH', [
                         'booking_code' => $bookingCode,
@@ -154,6 +164,15 @@ class SepayPaymentService
                 $this->bookingRepository->updatePaymentStatus((int) $booking->id, PaymentStatus::SUCCESS->value);
                 $this->bookingRepository->updateStatus((int) $booking->id, BookingStatus::CONFIRMED->value);
                 $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $booking->id);
+                if ($booking->user_id) {
+                    $this->pointService->awardPoints(
+                        (int) $booking->user_id,
+                        'booking_paid',
+                        'booking',
+                        (int) $booking->id,
+                        'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                    );
+                }
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
@@ -182,6 +201,10 @@ class SepayPaymentService
 
     private function buildVietQrImageUrl(int $amount, string $transferContent, string $bankCode, string $accountNo, string $accountName): string
     {
+        if ($amount <= 0) {
+            throw new InvalidArgumentException('VietQR amount must be greater than zero.');
+        }
+
         $baseUrl = rtrim((string) config('services.vietqr.image_base_url'), '/');
         $template = (string) config('services.vietqr.template', 'compact2');
 
@@ -243,7 +266,7 @@ class SepayPaymentService
             }
 
             if ($timestamp !== null && $timestamp !== '') {
-                $dataToVerify = $timestamp . '.' . $rawBody;
+                $dataToVerify = $timestamp.'.'.$rawBody;
             } else {
                 $dataToVerify = $rawBody;
             }
@@ -335,7 +358,16 @@ class SepayPaymentService
 
     private function normalizeAmount(mixed $amount): int
     {
-        $normalized = preg_replace('/[^\d.]/', '', (string) $amount);
+        if (is_int($amount) || is_float($amount)) {
+            return (int) round($amount);
+        }
+
+        $normalized = preg_replace('/[^\d,.\-]/', '', trim((string) $amount));
+        $normalized = str_replace(',', '', $normalized ?? '');
+
+        if ($normalized === '' || $normalized === '-' || ! is_numeric($normalized)) {
+            return 0;
+        }
 
         return (int) round((float) $normalized);
     }

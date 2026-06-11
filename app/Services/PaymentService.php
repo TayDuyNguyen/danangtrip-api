@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Enums\HttpStatusCode;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Models\Notification;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -34,7 +35,8 @@ class PaymentService
         protected PaymentRepositoryInterface $paymentRepository,
         protected BookingRepositoryInterface $bookingRepository,
         protected SepayPaymentService $sepayPaymentService,
-        protected BookingPaymentNotificationService $paymentNotificationService
+        protected BookingPaymentNotificationService $paymentNotificationService,
+        protected PointService $pointService
     ) {}
 
     /**
@@ -68,6 +70,15 @@ class PaymentService
                     ];
                 }
 
+                $rawAmount = (float) ($booking->final_amount ?? $booking->total_amount ?? 0);
+                if ($rawAmount < 0) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'Booking payment amount cannot be negative',
+                    ];
+                }
+
+                $amount = $rawAmount;
                 $transactionCode = 'PAY-'.strtoupper(Str::random(10));
 
                 $paymentGateway = $this->usesSepayQr($data['payment_method'])
@@ -77,16 +88,54 @@ class PaymentService
                 $payment = $this->paymentRepository->create([
                     'booking_id' => $booking->id,
                     'transaction_code' => $transactionCode,
-                    'amount' => $booking->final_amount ?? $booking->total_amount,
+                    'amount' => $amount,
                     'payment_method' => $data['payment_method'],
-                    'payment_status' => PaymentStatus::PENDING->value,
+                    'payment_status' => $amount === 0.0
+                        ? PaymentStatus::SUCCESS->value
+                        : PaymentStatus::PENDING->value,
                     'payment_gateway' => $paymentGateway,
+                    'paid_at' => $amount === 0.0 ? now() : null,
                 ]);
 
-                $amount = $booking->final_amount ?? $booking->total_amount;
+                if ($amount === 0.0) {
+                    $this->bookingRepository->updatePaymentStatus((int) $booking->id, PaymentStatus::SUCCESS->value);
+                    $this->bookingRepository->updateStatus((int) $booking->id, BookingStatus::CONFIRMED->value);
+                    $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $booking->id);
+                    if ($booking->user_id) {
+                        $this->pointService->awardPoints(
+                            (int) $booking->user_id,
+                            'booking_paid',
+                            'booking',
+                            (int) $booking->id,
+                            'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                        );
+                    }
+
+                    return [
+                        'status' => HttpStatusCode::SUCCESS->value,
+                        'data' => [
+                            'payment' => $payment,
+                            'payment_url' => $this->buildPaymentUrl(
+                                $transactionCode,
+                                (string) $booking->booking_code,
+                                (string) $data['payment_method'],
+                                '0',
+                                $data['return_url'] ?? null,
+                            ),
+                            'transaction_code' => $transactionCode,
+                            'booking_code' => $booking->booking_code,
+                            'created_at' => $payment->created_at?->toISOString(),
+                            'expires_at' => null,
+                            'sepay_checkout' => null,
+                            'is_free_booking' => true,
+                        ],
+                        'message' => 'Free booking confirmed successfully',
+                    ];
+                }
+
                 $checkout = null;
 
-                if ($this->usesSepayQr($data['payment_method'])) {
+                if ($this->usesSepayQr($data['payment_method']) || $data['payment_method'] === PaymentMethod::BANK_TRANSFER->value) {
                     $checkout = $this->sepayPaymentService->buildCheckoutPayload($payment, $booking, $data['return_url'] ?? null);
                     $this->paymentRepository->update((int) $payment->id, [
                         'gateway_response' => [
@@ -186,6 +235,16 @@ class PaymentService
                     $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::SUCCESS->value);
                     $this->bookingRepository->updateStatus($payment->booking_id, BookingStatus::CONFIRMED->value);
                     $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $payment->booking_id);
+                    $booking = $this->bookingRepository->find((int) $payment->booking_id);
+                    if ($booking?->user_id) {
+                        $this->pointService->awardPoints(
+                            (int) $booking->user_id,
+                            'booking_paid',
+                            'booking',
+                            (int) $booking->id,
+                            'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                        );
+                    }
                 }
 
                 return [
@@ -294,7 +353,7 @@ class PaymentService
         $sepayCheckout = $payment->gateway_response['checkout'] ?? null;
         if (
             $payment->payment_status === PaymentStatus::PENDING->value
-            && $payment->payment_gateway === 'sepay'
+            && ($payment->payment_gateway === 'sepay' || $payment->payment_gateway === 'bank_transfer' || $payment->payment_method === PaymentMethod::BANK_TRANSFER->value)
             && $payment->booking
             && (! is_array($sepayCheckout) || empty($sepayCheckout['qr_image_url']) || empty($sepayCheckout['bank']['account_no']))
         ) {
@@ -421,6 +480,33 @@ class PaymentService
                 ]);
 
                 $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::REFUNDED->value);
+                $booking = $this->bookingRepository->find((int) $payment->booking_id);
+
+                if ($booking?->user_id) {
+                    $exists = Notification::query()
+                        ->where('user_id', $booking->user_id)
+                        ->where('type', 'payment_refunded')
+                        ->where('data->payment_id', $payment->id)
+                        ->exists();
+
+                    if (! $exists) {
+                        Notification::query()->create([
+                            'user_id' => $booking->user_id,
+                            'type' => 'payment_refunded',
+                            'title' => 'Thanh toán đã được hoàn tiền',
+                            'content' => "Khoản thanh toán cho đơn {$booking->booking_code} đã được cập nhật hoàn tiền. Lý do: {$data['refund_reason']}.",
+                            'data' => [
+                                'payment_id' => $payment->id,
+                                'booking_id' => $booking->id,
+                                'booking_code' => $booking->booking_code,
+                                'payment_status' => PaymentStatus::REFUNDED->value,
+                                'refund_reason' => $data['refund_reason'],
+                            ],
+                            'is_read' => false,
+                            'created_at' => now(),
+                        ]);
+                    }
+                }
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,

@@ -15,13 +15,15 @@ final class ChatQueryUnderstandingService
             'original_question' => $question,
             'normalized_question' => $normalized,
             'destination' => $this->extractDestination($normalized),
+            'region' => $this->extractRegion($normalized),
+            'location_topic' => $this->extractLocationTopic($normalized),
             'max_price' => $this->extractPrice($normalized, ['dưới', 'duoi', '<', 'nhỏ hơn', 'nho hon', 'tối đa', 'toi da']),
             'min_price' => $this->extractPrice($normalized, ['trên', 'tren', '>', 'từ', 'tu', 'ít nhất', 'it nhat']),
             'people' => $this->extractPeople($normalized),
             'date' => $this->extractDate($normalized, $locale),
             'duration_days' => $this->extractDurationDays($normalized),
             'cheapest_first' => $this->containsAny($normalized, ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price']),
-            'best_first' => $this->containsAny($normalized, ['tốt nhất', 'hay nhất', 'đẹp nhất', 'nổi bật', 'đánh giá cao', 'best', 'top']),
+            'best_first' => $this->containsAny($normalized, ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top']),
         ];
     }
 
@@ -82,6 +84,48 @@ final class ChatQueryUnderstandingService
                 if (str_contains($query, $alias)) {
                     return $canonical;
                 }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractRegion(string $query): ?string
+    {
+        $regions = [
+            'đà nẵng' => ['đà nẵng', 'danang'],
+            'hội an' => ['hội an'],
+            'huế' => ['huế'],
+            'quảng nam' => ['quảng nam'],
+        ];
+
+        foreach ($regions as $canonical => $aliases) {
+            foreach ($aliases as $alias) {
+                if (str_contains($query, $alias)) {
+                    return $canonical;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractLocationTopic(string $query): ?string
+    {
+        $topics = [
+            'beach' => ['bãi biển', 'tắm biển', 'ven biển', 'beach'],
+            'food' => ['ăn uống', 'ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản'],
+            'hotel' => ['khách sạn', 'resort', 'homestay', 'lưu trú'],
+            'spiritual' => ['chùa', 'tâm linh', 'nhà thờ'],
+            'nature' => ['thiên nhiên', 'núi', 'hang động', 'thác'],
+            'park' => ['công viên', 'vườn hoa'],
+            'museum' => ['bảo tàng', 'di tích'],
+            'market' => ['chợ', 'mua sắm'],
+        ];
+
+        foreach ($topics as $topic => $aliases) {
+            if ($this->containsAny($query, $aliases)) {
+                return $topic;
             }
         }
 

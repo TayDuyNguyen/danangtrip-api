@@ -61,10 +61,16 @@ class RatingObserver
             $this->refreshLocationStats($rating->location_id);
             $this->refreshTourStats($rating->tour_id);
             $this->notifyUserRatingApproved($rating);
-        } elseif ($wasApproved && $isApproved && $rating->isDirty('score')) {
-            // Đã duyệt nhưng thay đổi điểm
-            $this->refreshLocationStats($rating->location_id);
-            $this->refreshTourStats($rating->tour_id);
+        } elseif ($wasApproved && $isApproved) {
+            if ($rating->isDirty('score')) {
+                // Đã duyệt nhưng thay đổi điểm
+                $this->refreshLocationStats($rating->location_id);
+                $this->refreshTourStats($rating->tour_id);
+            }
+
+            if ($rating->isDirty('comment') || $rating->isDirty('image_count')) {
+                $this->notifyUserRatingApproved($rating);
+            }
         } elseif ($wasApproved && ! $isApproved) {
             // Bị hủy duyệt / từ chối
             $this->refreshLocationStats($rating->location_id);
@@ -130,6 +136,6 @@ class RatingObserver
      */
     protected function notifyUserRatingApproved(Rating $rating): void
     {
-        SendRatingApprovedNotification::dispatch($rating->id);
+        SendRatingApprovedNotification::dispatch($rating->id)->afterCommit();
     }
 }
