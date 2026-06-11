@@ -24,7 +24,10 @@ class BookingController extends Controller
 
     public function calculate(CalculateBookingRequest $request): JsonResponse
     {
-        $result = $this->bookingService->calculatePrice($request->validated());
+        $result = $this->bookingService->calculatePrice(
+            $request->validated(),
+            $request->user()?->id ? (int) $request->user()->id : null
+        );
 
         if ($result['status'] === HttpStatusCode::SUCCESS->value) {
             return $this->success($result['data'] ?? null, $result['message']);

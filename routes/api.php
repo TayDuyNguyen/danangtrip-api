@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\PointController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PromotionController;
 use App\Http\Controllers\Api\PublicStatisticsController;
@@ -212,6 +213,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/ratings', [ProfileController::class, 'ratings']);
         Route::delete('/user/account', [ProfileController::class, 'deleteAccount']);
 
+        // Points & personal vouchers
+        // (Điểm thưởng & voucher cá nhân)
+        Route::get('/user/points', [PointController::class, 'overview'])->middleware('throttle:api.standard');
+        Route::get('/user/points/history', [PointController::class, 'transactions'])->middleware('throttle:api.standard');
+        Route::get('/user/point-rewards', [PointController::class, 'rewards'])->middleware('throttle:api.standard');
+        Route::post('/user/point-rewards/{id}/redeem', [PointController::class, 'redeem'])
+            ->whereNumber('id')
+            ->middleware('throttle:api.strict');
+        Route::get('/user/vouchers', [PointController::class, 'vouchers'])->middleware('throttle:api.standard');
+
         // Notifications
         // (Thông báo)
         Route::get('/user/notifications', [NotificationController::class, 'index']);
@@ -228,6 +239,7 @@ Route::prefix('v1')->group(function () {
 
         // Bookings
         // (Đặt tour)
+        Route::post('/user/bookings/calculate', [BookingController::class, 'calculate'])->middleware('throttle:api.standard');
         Route::post('/bookings', [BookingController::class, 'store'])->middleware('throttle:api.strict');
         Route::get('/user/bookings', [BookingController::class, 'index']);
         Route::get('/user/bookings/{id}', [BookingController::class, 'show'])->whereNumber('id');
@@ -394,6 +406,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::get('/bookings/{id}/invoice', [AdminBookingController::class, 'invoice'])->whereNumber('id')->middleware('throttle:api.exports');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
+        Route::patch('/bookings/{id}/confirm-payment', [AdminBookingController::class, 'confirmPayment'])->whereNumber('id');
 
         // Payments Management
         // (Quản lý Thanh toán)

@@ -154,7 +154,7 @@ final class ChatService
                 'content' => implode("\n", [
                     'You are DanangTrip AI, a travel assistant for Da Nang, Hoi An, Hue and nearby Central Vietnam trips.',
                     "Answer in {$language}.",
-                    'Only answer questions about tours, locations, food, travel blog articles, guides, itineraries, booking, payment, refund, account and DanangTrip policies.',
+                    'Only answer questions about tours, locations, food, travel blog articles, guides, itineraries, booking, payment, refund, account, loyalty points, vouchers, promotions and DanangTrip policies.',
                     'Use only the provided context for concrete names, prices, durations, addresses and policies.',
                     'If context is limited, say it clearly and suggest what the user can ask next.',
                     'Keep the answer concise, practical and friendly. Do not invent unavailable prices or schedules.',
@@ -176,8 +176,8 @@ final class ChatService
     {
         if (empty($context)) {
             return $locale === 'en'
-                ? 'I could not find matching DanangTrip data for this question yet. You can ask about tours, places, food, travel articles, booking, payment or refund policies.'
-                : 'Hiện mình chưa tìm thấy dữ liệu DanangTrip phù hợp cho câu hỏi này. Bạn có thể hỏi về tour, địa điểm, ăn uống, bài viết du lịch, đặt tour, thanh toán hoặc chính sách hoàn tiền.';
+                ? 'I could not find matching DanangTrip data for this question yet. You can ask about tours, places, food, travel articles, booking, payment, refund policies, loyalty points or vouchers.'
+                : 'Hiện mình chưa tìm thấy dữ liệu DanangTrip phù hợp cho câu hỏi này. Bạn có thể hỏi về tour, địa điểm, ăn uống, bài viết du lịch, đặt tour, thanh toán, chính sách hoàn tiền, điểm thưởng hoặc voucher.';
         }
 
         $titles = collect($context)
@@ -198,10 +198,10 @@ final class ChatService
     private function outOfScopeAnswer(string $locale): string
     {
         if ($locale === 'en') {
-            return 'I am DanangTrip travel assistant. I currently only support tours, places, travel articles, itineraries, booking, payment, refund, account and service policy questions.';
+            return 'I am DanangTrip travel assistant. I currently only support tours, places, travel articles, itineraries, booking, payment, refund, account, loyalty points, vouchers and service policy questions.';
         }
 
-        return 'Mình là trợ lý du lịch DanangTrip, hiện mình chỉ hỗ trợ thông tin về tour, địa điểm, bài viết/cẩm nang du lịch, lịch trình, đặt tour, thanh toán, hoàn tiền, tài khoản và chính sách dịch vụ. Bạn có thể hỏi: “Có tour Bà Nà nào dưới 1 triệu không?” hoặc “Gợi ý bài viết về biển”.';
+        return 'Mình là trợ lý du lịch DanangTrip, hiện mình chỉ hỗ trợ thông tin về tour, địa điểm, bài viết/cẩm nang du lịch, lịch trình, đặt tour, thanh toán, hoàn tiền, tài khoản, điểm thưởng, voucher và chính sách dịch vụ. Bạn có thể hỏi: “Có tour Bà Nà nào dưới 1 triệu không?” hoặc “Làm sao để nhận điểm thưởng?”.';
     }
 
     private function storeCache(

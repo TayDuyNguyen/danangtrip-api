@@ -67,4 +67,9 @@ final class Rating extends Model
     {
         return $this->hasMany(RatingImage::class);
     }
+
+    public function helpfulVotes(): HasMany
+    {
+        return $this->hasMany(RatingHelpfulVote::class);
+    }
 }

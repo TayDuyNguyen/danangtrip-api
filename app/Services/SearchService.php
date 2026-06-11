@@ -140,10 +140,6 @@ final class SearchService
             $type = (string) ($data['type'] ?? 'all');
             $locationFilters = $this->mapLocationSuggestionFilters($data);
             $tourFilters = $this->mapTourSuggestionFilters($data);
-            $hasScopedFilters = count($locationFilters) > 0 || count($tourFilters) > 0;
-            $intentSuggestions = $type === 'all' && ! $hasScopedFilters
-                ? $this->buildIntentSuggestions($q, $limit)
-                : [];
 
             $locationSuggestions = $type === 'tour'
                 ? []
@@ -152,8 +148,7 @@ final class SearchService
                 ? []
                 : $this->tourRepository->getNameSuggestions($q, $limit, $tourFilters);
 
-            $suggestions = collect($intentSuggestions)
-                ->concat($locationSuggestions)
+            $suggestions = collect($locationSuggestions)
                 ->merge($tourSuggestions)
                 ->unique(function ($item) {
                     if (! is_array($item)) {
@@ -540,88 +535,5 @@ final class SearchService
     private function shouldLogSearch(string $query): bool
     {
         return $query !== '' && mb_strlen($query) >= 2;
-    }
-
-    /**
-     * Build lightweight intent suggestions for travel search.
-     * (Tạo gợi ý theo nhu cầu/ngữ cảnh cho ô tìm kiếm du lịch)
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildIntentSuggestions(string $query, int $limit): array
-    {
-        $normalized = mb_strtolower($this->normalizeQuery($query));
-        if ($normalized === '') {
-            return [];
-        }
-
-        $catalog = [
-            [
-                'tokens' => ['bien', 'biển', 'gan bien', 'gần biển', 'beach', 'resort'],
-                'items' => [
-                    ['title' => 'Bãi biển đẹp ở Đà Nẵng', 'subtitle' => 'Gợi ý các điểm tắm biển nổi bật như Mỹ Khê và Non Nước'],
-                    ['title' => 'Resort gần biển Mỹ Khê', 'subtitle' => 'Khám phá nơi nghỉ dưỡng gần biển cho kỳ nghỉ thư giãn'],
-                ],
-            ],
-            [
-                'tokens' => ['an toi', 'ăn tối', 'hai san', 'hải sản', 'food', 'am thuc', 'ẩm thực'],
-                'items' => [
-                    ['title' => 'Ăn tối ở Đà Nẵng', 'subtitle' => 'Nhà hàng hải sản, quán ăn gia đình và địa điểm mở cửa buổi tối'],
-                    ['title' => 'Hải sản gần biển', 'subtitle' => 'Tìm quán hải sản nổi tiếng gần Mỹ Khê và Sơn Trà'],
-                ],
-            ],
-            [
-                'tokens' => ['gia dinh', 'gia đình', 'tre em', 'trẻ em', 'family'],
-                'items' => [
-                    ['title' => 'Điểm đến cho gia đình', 'subtitle' => 'Gợi ý tour nhẹ nhàng và địa điểm phù hợp cho trẻ em'],
-                    ['title' => 'Tour gia đình 1 ngày', 'subtitle' => 'Lịch trình ngắn phù hợp cho nhóm gia đình và người lớn tuổi'],
-                ],
-            ],
-            [
-                'tokens' => ['dem', 'đêm', 'toi', 'tối', 'night'],
-                'items' => [
-                    ['title' => 'Đà Nẵng về đêm', 'subtitle' => 'Cầu Rồng, chợ đêm, rooftop và điểm vui chơi buổi tối'],
-                    ['title' => 'Quán ăn mở cửa buổi tối', 'subtitle' => 'Gợi ý ăn đêm, cafe và địa điểm ngắm sông Hàn'],
-                ],
-            ],
-            [
-                'tokens' => ['1 ngay', '1 ngày', 'nua ngay', 'nửa ngày', 'short trip'],
-                'items' => [
-                    ['title' => 'Lịch trình Đà Nẵng 1 ngày', 'subtitle' => 'Gợi ý lịch trình ngắn gọn cho du khách ở lại ít ngày'],
-                    ['title' => 'Tour nửa ngày nổi bật', 'subtitle' => 'Chọn nhanh các tour ngắn phù hợp buổi sáng hoặc chiều'],
-                ],
-            ],
-        ];
-
-        $matched = collect($catalog)
-            ->first(function (array $entry) use ($normalized) {
-                foreach ($entry['tokens'] as $token) {
-                    if (str_contains($normalized, (string) $token)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            });
-
-        if (! is_array($matched)) {
-            return [];
-        }
-
-        return collect($matched['items'])
-            ->take(max(1, min($limit, 3)))
-            ->values()
-            ->map(function (array $item, int $index) {
-                return [
-                    'id' => -1000 - $index,
-                    'type' => 'keyword',
-                    'title' => (string) $item['title'],
-                    'slug' => '',
-                    'subtitle' => (string) $item['subtitle'],
-                    'thumbnail' => null,
-                    'score' => 90 - ($index * 5),
-                ];
-            })
-            ->all();
     }
 }

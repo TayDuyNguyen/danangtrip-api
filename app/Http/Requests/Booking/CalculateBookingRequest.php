@@ -19,6 +19,8 @@ class CalculateBookingRequest extends FormRequest
             'quantity_adult' => 'required|integer|min:1',
             'quantity_child' => 'nullable|integer|min:0',
             'quantity_infant' => 'nullable|integer|min:0',
+            'promotion_code' => 'nullable|string|max:50',
+            'user_voucher_code' => 'nullable|string|max:50',
         ];
     }
 

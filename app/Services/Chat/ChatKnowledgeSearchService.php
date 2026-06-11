@@ -34,7 +34,13 @@ final class ChatKnowledgeSearchService
             ? $this->searchTours($searchQuery, $intent, $limit, $priceMax, $priceMin, $cheapestFirst, $understanding)
             : collect();
 
-        if ($locations->isEmpty() && $tours->isEmpty() && in_array($intent, ['food', 'hotel', 'location'], true)) {
+        if (
+            $locations->isEmpty()
+            && $tours->isEmpty()
+            && in_array($intent, ['food', 'hotel', 'location'], true)
+            && empty($understanding['location_topic'])
+            && empty($understanding['region'])
+        ) {
             $locations = $this->fallbackLocations($intent, $limit);
         }
 
@@ -46,7 +52,12 @@ final class ChatKnowledgeSearchService
             $tours = $this->fallbackTours($limit);
         }
 
-        $blogs = $this->searchBlogs($searchQuery ?: $query, $intent, $intent === 'blog' ? $limit : max(1, $limit - 2));
+        $blogs = $this->searchBlogs(
+            $searchQuery ?: $query,
+            $intent,
+            $intent === 'blog' ? $limit : max(1, $limit - 2),
+            $understanding
+        );
         if ($blogs->isEmpty() && $intent === 'blog') {
             $blogs = $this->fallbackBlogs($limit);
         }
@@ -91,9 +102,14 @@ final class ChatKnowledgeSearchService
 
     private function searchLocations(string $query, string $intent, int $limit, array $understanding = []): Collection
     {
+        $topic = (string) ($understanding['location_topic'] ?? '');
+        $region = (string) ($understanding['region'] ?? '');
+
         $locations = Location::query()
             ->where('status', 'active')
-            ->when($query !== '', fn (Builder $builder) => $this->applyLike($builder, $query, [
+            ->when($topic !== '', fn (Builder $builder) => $this->applyLocationTopic($builder, $topic))
+            ->when($region !== '', fn (Builder $builder) => $this->applyLocationRegion($builder, $region))
+            ->when($query !== '' && $topic === '', fn (Builder $builder) => $this->applyLike($builder, $query, [
                 'name', 'short_description', 'description', 'address', 'district',
             ]))
             ->orderByDesc('is_featured')
@@ -158,15 +174,24 @@ final class ChatKnowledgeSearchService
             ->values();
     }
 
-    private function searchBlogs(string $query, string $intent, int $limit): Collection
+    private function searchBlogs(string $query, string $intent, int $limit, array $understanding = []): Collection
     {
         if (! in_array($intent, ['blog', 'location', 'food', 'hotel', 'schedule', 'tour', 'greeting'], true)) {
             return collect();
         }
 
+        $topic = (string) ($understanding['location_topic'] ?? '');
+        $region = (string) ($understanding['region'] ?? '');
+
         return BlogPost::query()
             ->where('status', 'published')
-            ->when($query !== '', fn (Builder $builder) => $this->applyLike($builder, $query, [
+            ->when($topic === 'beach', fn (Builder $builder) => $this->applyLike($builder, 'bãi biển beach', [
+                'title', 'excerpt', 'content',
+            ], 'or'))
+            ->when($region !== '', fn (Builder $builder) => $this->applyLike($builder, $region, [
+                'title', 'slug',
+            ]))
+            ->when($query !== '' && $topic === '', fn (Builder $builder) => $this->applyLike($builder, $query, [
                 'title', 'excerpt', 'content',
             ]))
             ->orderByDesc('published_at')
@@ -374,6 +399,17 @@ final class ChatKnowledgeSearchService
             'account' => 'Người dùng có thể đăng ký, đăng nhập, cập nhật hồ sơ, đổi mật khẩu, xem lịch sử đặt tour và quản lý đánh giá trong tài khoản DanangTrip.',
             'contact' => 'Khách hàng có thể gửi yêu cầu liên hệ qua form Liên hệ. Ban quản trị DanangTrip sẽ phản hồi qua email hoặc số điện thoại đã cung cấp.',
             'booking' => 'Khi đặt tour, khách cần chọn lịch khởi hành, số lượng khách và thông tin liên hệ. Đơn sẽ được xác nhận sau khi thanh toán thành công hoặc admin xử lý theo trạng thái đơn.',
+            'loyalty' => implode(' ', [
+                'DanangTrip có hệ thống điểm thưởng và voucher cho người dùng đã đăng ký.',
+                'Người dùng được cộng 10 điểm khi thanh toán đơn tour thành công.',
+                'Người dùng được cộng 5 điểm khi đánh giá tour hoặc địa điểm được duyệt.',
+                'Nếu đánh giá được duyệt có ít nhất một ảnh đính kèm đã lưu thành công, người dùng được cộng thêm 3 điểm. Hệ thống hiện chỉ kiểm tra ảnh đính kèm, chưa tự động xác minh ảnh có phải ảnh thật hay không.',
+                'Khi một người dùng khác đánh dấu đánh giá đã duyệt là hữu ích, chủ đánh giá được cộng 1 điểm cho mỗi lượt hợp lệ. Mỗi người chỉ được đánh dấu một lần cho một đánh giá và không được tự đánh dấu đánh giá của mình.',
+                'Điểm nhận từ lượt hữu ích được giới hạn tối đa 10 điểm mỗi ngày cho mỗi chủ đánh giá. Lượt hữu ích vẫn được ghi nhận sau khi đạt giới hạn nhưng không cộng thêm điểm trong ngày đó.',
+                'Mỗi đánh giá được thưởng thêm một lần 5 điểm khi đạt đúng mốc 5 lượt hữu ích và một lần 10 điểm khi đạt đúng mốc 10 lượt hữu ích. Điểm thưởng mốc được tính riêng với giới hạn điểm hữu ích hằng ngày.',
+                'Đánh giá chỉ được nhận điểm sau khi quản trị viên duyệt. Nội dung bị từ chối không được cộng điểm; hệ thống hiện chưa tự động chấm toàn bộ nội dung spam, quá ngắn hoặc trùng lặp bằng AI.',
+                'Điểm thưởng có thể dùng để đổi voucher giảm giá tour trong trang Ví điểm.',
+            ]),
         ];
 
         if (! isset($items[$intent])) {
@@ -560,6 +596,7 @@ final class ChatKnowledgeSearchService
             'rẻ', 'đồng', 'vnd', 'giá', 'phải chăng',
             'gợi ý', 'goi y', 'bài viết', 'bai viet', 'cẩm nang', 'cam nang',
             'kinh nghiệm', 'kinh nghiem', 'blog', 'tin tức', 'tin tuc', 'về', 've',
+            'đẹp', 'ở', 'tại', 'khu vực', 'đà nẵng', 'danang',
         ];
 
         $search = str_replace($stopWords, ' ', $search);
@@ -570,6 +607,98 @@ final class ChatKnowledgeSearchService
         }
 
         return in_array($intent, ['tour', 'booking', 'schedule'], true) ? '' : $query;
+    }
+
+    private function applyLocationTopic(Builder $builder, string $topic): Builder
+    {
+        if ($topic === 'beach') {
+            return $builder
+                ->where(function (Builder $beaches): void {
+                    $beaches
+                        ->whereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%bãi biển%'])
+                        ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['% beach'])
+                        ->orWhereHas('tags', function (Builder $tag): void {
+                            $tag->where(function (Builder $names): void {
+                                $names
+                                    ->whereRaw('LOWER(CAST(name AS TEXT)) = ?', ['beach'])
+                                    ->orWhereRaw('LOWER(CAST(name AS TEXT)) = ?', ['bãi biển']);
+                            });
+                        });
+                })
+                ->whereRaw('LOWER(CAST(name AS TEXT)) NOT LIKE ?', ['%hotel%'])
+                ->whereRaw('LOWER(CAST(name AS TEXT)) NOT LIKE ?', ['%resort%'])
+                ->whereRaw('LOWER(CAST(name AS TEXT)) NOT LIKE ?', ['%spa%']);
+        }
+
+        $terms = match ($topic) {
+            'food' => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản'],
+            'hotel' => ['khách sạn', 'hotel', 'resort', 'homestay'],
+            'spiritual' => ['chùa', 'nhà thờ', 'tâm linh'],
+            'nature' => ['thiên nhiên', 'núi', 'hang động', 'thác'],
+            'park' => ['công viên', 'vườn hoa'],
+            'museum' => ['bảo tàng', 'di tích'],
+            'market' => ['chợ', 'mua sắm'],
+            default => [],
+        };
+
+        if ($terms === []) {
+            return $builder;
+        }
+
+        return $builder->where(function (Builder $nested) use ($terms, $topic): void {
+            foreach ($terms as $term) {
+                $like = '%'.$this->escapeLike($term).'%';
+                $nested->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', [$like]);
+
+                if ($topic !== 'beach') {
+                    $nested
+                        ->orWhereRaw('LOWER(CAST(short_description AS TEXT)) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(CAST(description AS TEXT)) LIKE ?', [$like]);
+                }
+            }
+
+            $nested
+                ->orWhereHas('category', function (Builder $category) use ($terms): void {
+                    $category->where(fn (Builder $names) => $this->applyRelationNameTerms($names, $terms));
+                })
+                ->orWhereHas('subcategory', function (Builder $subcategory) use ($terms): void {
+                    $subcategory->where(fn (Builder $names) => $this->applyRelationNameTerms($names, $terms));
+                })
+                ->orWhereHas('tags', function (Builder $tag) use ($terms): void {
+                    $tag->where(fn (Builder $names) => $this->applyRelationNameTerms($names, $terms));
+                });
+        });
+    }
+
+    /** @param array<int,string> $terms */
+    private function applyRelationNameTerms(Builder $builder, array $terms): Builder
+    {
+        foreach ($terms as $term) {
+            $builder->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.$this->escapeLike($term).'%']);
+        }
+
+        return $builder;
+    }
+
+    private function applyLocationRegion(Builder $builder, string $region): Builder
+    {
+        $terms = match ($region) {
+            'đà nẵng' => ['đà nẵng', 'da nang', 'danang'],
+            'hội an' => ['hội an', 'hoi an'],
+            'huế' => ['huế', 'hue'],
+            'quảng nam' => ['quảng nam', 'quang nam'],
+            default => [$region],
+        };
+
+        return $builder->where(function (Builder $nested) use ($terms): void {
+            foreach ($terms as $term) {
+                $like = '%'.$this->escapeLike($term).'%';
+                $nested
+                    ->orWhereRaw('LOWER(CAST(address AS TEXT)) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(CAST(district AS TEXT)) LIKE ?', [$like])
+                    ->orWhereRaw('LOWER(CAST(ward AS TEXT)) LIKE ?', [$like]);
+            }
+        });
     }
 
     private function hasNoHardTourConstraints(array $understanding, ?int $priceMax, ?int $priceMin): bool

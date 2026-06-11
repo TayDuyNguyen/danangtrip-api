@@ -45,7 +45,8 @@ class AuthController extends Controller
     public function login(LoginRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $result = $this->authService->login($validated['email'], $validated['password']);
+        $remember = (bool) ($validated['remember'] ?? false);
+        $result = $this->authService->login($validated['email'], $validated['password'], $remember);
 
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             $data = $result['data'];
@@ -53,7 +54,7 @@ class AuthController extends Controller
             unset($data['refresh_token']);
 
             return $this->success($data, 'Login successful')
-                ->withCookie($this->makeRefreshTokenCookie($refreshToken));
+                ->withCookie($this->makeRefreshTokenCookie($refreshToken, $remember));
         }
 
         return $this->unauthorized($result['message']);
@@ -91,10 +92,11 @@ class AuthController extends Controller
         if ($result['status'] == HttpStatusCode::SUCCESS->value) {
             $data = $result['data'];
             $newRefreshToken = $data['refresh_token'];
-            unset($data['refresh_token']);
+            $remember = (bool) ($data['remember'] ?? false);
+            unset($data['refresh_token'], $data['remember']);
 
             return $this->success($data, 'Token refreshed successfully')
-                ->withCookie($this->makeRefreshTokenCookie($newRefreshToken));
+                ->withCookie($this->makeRefreshTokenCookie($newRefreshToken, $remember));
         }
 
         return $this->error(
@@ -173,12 +175,13 @@ class AuthController extends Controller
         return (string) config('auth_tokens.refresh_cookie.name', 'refresh_token');
     }
 
-    private function makeRefreshTokenCookie(string $refreshToken): Cookie
+    private function makeRefreshTokenCookie(string $refreshToken, bool $remember = false): Cookie
     {
+        $ttl = $remember ? (int) config('auth_tokens.refresh_cookie.ttl', 20160) : 0;
         return cookie(
             $this->refreshCookieName(),
             $refreshToken,
-            (int) config('auth_tokens.refresh_cookie.ttl', 20160),
+            $ttl,
             (string) config('auth_tokens.refresh_cookie.path', '/'),
             config('auth_tokens.refresh_cookie.domain'),
             (bool) config('auth_tokens.refresh_cookie.secure', false),

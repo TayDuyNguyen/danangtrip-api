@@ -62,7 +62,7 @@ final class ChatVectorSearchService
             'tour', 'booking', 'schedule' => ['tour', 'blog', 'policy'],
             'location', 'food', 'hotel' => ['location', 'blog'],
             'blog' => ['blog'],
-            'payment', 'refund', 'account', 'contact' => ['policy', 'blog'],
+            'payment', 'refund', 'account', 'contact', 'loyalty' => ['policy', 'blog'],
             'greeting' => ['tour', 'location', 'blog', 'policy'],
             default => ['tour', 'location', 'blog', 'policy'],
         };

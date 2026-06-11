@@ -161,4 +161,19 @@ class BookingController extends Controller
             ? $this->success($result['data'])
             : $this->error($result['message'], $result['status']);
     }
+
+    /**
+     * Admin manually confirms booking payment.
+     * (Quản trị viên xác nhận thủ công thanh toán của đơn đặt tour)
+     */
+    public function confirmPayment(int $id): JsonResponse
+    {
+        $result = $this->bookingService->confirmBookingPayment($id);
+
+        if ($result['status'] === HttpStatusCode::SUCCESS->value) {
+            return $this->success($result['data'] ?? null, $result['message']);
+        }
+
+        return $this->error($result['message'], $result['status']);
+    }
 }

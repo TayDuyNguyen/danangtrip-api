@@ -106,7 +106,9 @@ final class RatingController extends Controller
      */
     public function helpful(HelpfulRatingRequest $request, int $id): JsonResponse
     {
-        $result = $this->ratingService->markHelpful($id);
+        $userId = auth('api')->id();
+
+        $result = $this->ratingService->markHelpful((int) $userId, $id);
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'], $result['message'] ?? 'Marked as helpful')

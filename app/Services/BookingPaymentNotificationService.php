@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Mail\BookingPaymentConfirmedMail;
 use App\Models\Booking;
+use App\Models\Notification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -24,6 +25,8 @@ class BookingPaymentNotificationService
                 if (! $booking) {
                     return;
                 }
+
+                $this->notifyUser($booking);
 
                 $email = $booking->customer_email ?: $booking->user?->email;
                 if (! $email) {
@@ -47,5 +50,38 @@ class BookingPaymentNotificationService
                 ]);
             }
         });
+    }
+
+    private function notifyUser(Booking $booking): void
+    {
+        if (! $booking->user_id) {
+            return;
+        }
+
+        $exists = Notification::query()
+            ->where('user_id', $booking->user_id)
+            ->where('type', 'booking_payment_confirmed')
+            ->where('data->booking_id', $booking->id)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        Notification::query()->create([
+            'user_id' => $booking->user_id,
+            'type' => 'booking_payment_confirmed',
+            'title' => 'Thanh toán đơn tour thành công',
+            'content' => "Đơn {$booking->booking_code} đã được xác nhận thanh toán. Bạn có thể xem chi tiết trong hồ sơ cá nhân.",
+            'data' => [
+                'booking_id' => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'payment_status' => $booking->payment_status,
+                'booking_status' => $booking->booking_status,
+                'final_amount' => (float) $booking->final_amount,
+            ],
+            'is_read' => false,
+            'created_at' => now(),
+        ]);
     }
 }

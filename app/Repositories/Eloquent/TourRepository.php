@@ -60,10 +60,22 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
                     $query->whereFullText(['name', 'description', 'itinerary', 'inclusions', 'exclusions'], $searchTerm);
                 }
             } elseif ($driver === 'pgsql') {
-                $query->whereRaw(
-                    "to_tsvector('simple', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(itinerary::text, '') || ' ' || coalesce(inclusions::text, '') || ' ' || coalesce(exclusions::text, '')) @@ plainto_tsquery('simple', ?)",
-                    [$searchTerm]
-                );
+                $words = array_values(array_filter(
+                    preg_split('/\s+/u', trim($searchTerm)) ?: [],
+                    fn (string $word) => mb_strlen(preg_replace('/[^\p{L}\p{N}]/u', '', $word) ?? '') > 0
+                ));
+
+                foreach ($words as $word) {
+                    $query->where(function ($wordQuery) use ($word) {
+                        $pattern = '%'.$word.'%';
+                        $wordQuery
+                            ->whereRaw('unaccent(name) ilike unaccent(?)', [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(description, '')) ilike unaccent(?)", [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(itinerary::text, '')) ilike unaccent(?)", [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(inclusions::text, '')) ilike unaccent(?)", [$pattern])
+                            ->orWhereRaw("unaccent(coalesce(exclusions::text, '')) ilike unaccent(?)", [$pattern]);
+                    });
+                }
             } else {
                 $query->where('name', 'like', '%'.$searchTerm.'%');
             }

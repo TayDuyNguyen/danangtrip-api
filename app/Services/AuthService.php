@@ -80,7 +80,7 @@ class AuthService
      * Authenticate a user and return token + refresh token.
      * (Xác thực người dùng và trả về token cùng với refresh token mới)
      */
-    public function login(string $email, string $password): ?array
+    public function login(string $email, string $password, bool $remember = false): ?array
     {
         try {
             if (! $token = Auth::guard('api')->attempt(['email' => $email, 'password' => $password])) {
@@ -95,10 +95,11 @@ class AuthService
 
             // Sinh Refresh Token an toàn và mã hoá vào DB (Cấp chuẩn OAuth 2.1)
             $refreshTokenStr = Str::random(64);
+            $expiresInDays = $remember ? 14 : 1;
             $this->refreshTokenRepository->create([
                 'user_id' => $user->id,
                 'token' => hash('sha256', $refreshTokenStr),
-                'expires_at' => now()->addDays(14),
+                'expires_at' => now()->addDays($expiresInDays),
             ]);
 
             return [
@@ -202,12 +203,24 @@ class AuthService
             // Sinh Access Token JWT mới
             $newAccessToken = (string) Auth::guard('api')->login($storedToken->user);
 
+            // Check original token lifespan to persist the "remember" state
+            $isRemembered = true;
+            $expiresInDays = 14;
+            if ($storedToken->created_at && $storedToken->expires_at) {
+                $createdAt = \Carbon\Carbon::parse($storedToken->created_at);
+                $expiresAt = \Carbon\Carbon::parse($storedToken->expires_at);
+                if ($createdAt->diffInHours($expiresAt) <= 36) { // ~1 day
+                    $isRemembered = false;
+                    $expiresInDays = 1;
+                }
+            }
+
             // Xoay vòng: Sinh mới Refresh Token cho quy trình mượt mà
             $newRefreshTokenStr = Str::random(64);
             $this->refreshTokenRepository->create([
                 'user_id' => $storedToken->user_id,
                 'token' => hash('sha256', $newRefreshTokenStr),
-                'expires_at' => now()->addDays(14),
+                'expires_at' => now()->addDays($expiresInDays),
                 'previous_token_id' => $storedToken->id,
             ]);
 
@@ -219,6 +232,7 @@ class AuthService
                     'expires_in' => (int) Config::get('auth_tokens.access_token_ttl_seconds', 900),
                     'refresh_token' => $newRefreshTokenStr,
                     'user' => $storedToken->user,
+                    'remember' => $isRemembered,
                 ],
             ];
         } catch (\Exception $e) {

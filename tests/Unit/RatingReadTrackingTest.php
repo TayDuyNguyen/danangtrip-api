@@ -8,7 +8,9 @@ use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
+use App\Services\PointService;
 use App\Services\RatingService;
+use App\Services\UploadService;
 use Mockery;
 use Tests\TestCase;
 
@@ -75,6 +77,8 @@ class RatingReadTrackingTest extends TestCase
             Mockery::mock(NotificationRepositoryInterface::class),
             Mockery::mock(LocationRepositoryInterface::class),
             Mockery::mock(TourRepositoryInterface::class),
+            new PointService,
+            new UploadService,
         );
     }
 }

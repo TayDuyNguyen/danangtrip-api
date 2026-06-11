@@ -39,8 +39,9 @@ class InvoicePdfService
         $totalAmount = $this->money($booking->total_amount);
         $discountAmount = $this->money($booking->discount_amount);
         $depositAmount = $this->money($booking->deposit_amount);
-        $finalAmount = $this->money($booking->final_amount ?: $booking->total_amount);
-        $remainingAmount = $this->money(max(0, (float) ($booking->final_amount ?: $booking->total_amount) - (float) $booking->deposit_amount));
+        $payableAmount = max(0, (float) ($booking->final_amount ?? $booking->total_amount ?? 0));
+        $finalAmount = $this->money($payableAmount);
+        $remainingAmount = $this->money(max(0, $payableAmount - (float) $booking->deposit_amount));
 
         return <<<HTML
 <!DOCTYPE html>
