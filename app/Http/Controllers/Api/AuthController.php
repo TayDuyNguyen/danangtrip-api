@@ -178,6 +178,7 @@ class AuthController extends Controller
     private function makeRefreshTokenCookie(string $refreshToken, bool $remember = false): Cookie
     {
         $ttl = $remember ? (int) config('auth_tokens.refresh_cookie.ttl', 20160) : 0;
+
         return cookie(
             $this->refreshCookieName(),
             $refreshToken,

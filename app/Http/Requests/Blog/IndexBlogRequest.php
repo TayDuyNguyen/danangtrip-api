@@ -35,6 +35,18 @@ class IndexBlogRequest extends FormRequest
                 'string',
                 'in:latest,popular',
             ],
+            'search' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'q' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:255',
+            ],
         ];
     }
 

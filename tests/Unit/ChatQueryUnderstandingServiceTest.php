@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\Chat\ChatQueryUnderstandingService;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 final class ChatQueryUnderstandingServiceTest extends TestCase
 {

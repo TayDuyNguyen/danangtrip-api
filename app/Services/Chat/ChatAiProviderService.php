@@ -2,6 +2,7 @@
 
 namespace App\Services\Chat;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -66,6 +67,93 @@ final class ChatAiProviderService
             'tokens_used' => 0,
             'attempts' => $attempts,
         ];
+    }
+
+    /** @return array<string,mixed> */
+    public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities): array
+    {
+        $provider = 'gemini';
+        $providerConfig = (array) config("chatbot.providers.{$provider}", []);
+        $keys = (array) ($providerConfig['keys'] ?? []);
+
+        $currentDate = CarbonImmutable::now('Asia/Ho_Chi_Minh')->locale($locale);
+        $dateInfo = 'Hôm nay là: '.$currentDate->isoFormat('dddd, DD/MM/YYYY').' (múi giờ Asia/Ho_Chi_Minh).';
+        if ($locale === 'en') {
+            $dateInfo = 'Today is: '.$currentDate->isoFormat('dddd, MMMM DD, YYYY').' (timezone Asia/Ho_Chi_Minh).';
+        }
+
+        $systemPrompt = implode("\n", [
+            'Bạn là một hệ thống NLU (Natural Language Understanding) chuyên trích xuất thực thể từ câu hỏi du lịch của người dùng.',
+            $dateInfo,
+            'Hãy phân tích câu hỏi và trích xuất các thông tin dưới dạng JSON theo đúng schema sau:',
+            '{',
+            "  \"destination\": string|null, // Tên địa điểm du lịch cụ thể (ví dụ: 'Bà Nà Hills', 'Hội An', 'Huế'...)",
+            "  \"region\": string|null, // Vùng/Thành phố (ví dụ: 'Đà Nẵng', 'Hội An', 'Huế', 'Quảng Nam')",
+            "  \"max_price\": int|null, // Mức giá tối đa mà khách có thể trả (quy đổi hết sang VNĐ, ví dụ: '2 triệu' -> 2000000, '500k' -> 500000)",
+            '  "min_price": int|null, // Mức giá tối thiểu',
+            "  \"people\": int|null, // Số lượng người/khách đi tour (ví dụ: '2 người' -> 2)",
+            "  \"date\": string|null, // Ngày khởi hành mong muốn dạng YYYY-MM-DD (Hãy dùng ngày hôm nay và thứ của tuần để tính toán chính xác các mốc như 'cuối tuần này', 'cuối tuần sau', 'ngày mai')",
+            "  \"duration_days\": int|null, // Số ngày của lịch trình (ví dụ: '3 ngày' -> 3)",
+            '  "cheapest_first": boolean, // true nếu người dùng muốn tìm giá rẻ nhất',
+            '  "best_first": boolean // true nếu người dùng muốn tìm tour tốt nhất/nổi bật nhất',
+            '}',
+            'LƯU Ý QUAN TRỌNG:',
+            '1. Chỉ trả về một đối tượng JSON duy nhất, không thêm bất kỳ văn bản giải thích nào trước hoặc sau JSON.',
+            '2. Sử dụng thông tin trích xuất hiện tại (nếu có): '.json_encode($currentEntities, JSON_UNESCAPED_UNICODE),
+            '3. Không tự chế thông tin. Nếu không trích xuất được trường nào, hãy để giá trị là null hoặc giữ nguyên giá trị hiện tại.',
+        ]);
+
+        foreach ($keys as $index => $key) {
+            if ($this->isCoolingDown($provider, $index)) {
+                continue;
+            }
+
+            try {
+                $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
+                $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? 'https://generativelanguage.googleapis.com/v1beta'), '/');
+
+                $response = Http::timeout((int) config('chatbot.timeout_seconds', 25))
+                    ->post("{$baseUrl}/models/{$model}:generateContent?key={$key}", [
+                        'contents' => [
+                            [
+                                'role' => 'user',
+                                'parts' => [
+                                    ['text' => implode("\n\n", [
+                                        'SYSTEM: '.$systemPrompt,
+                                        'USER QUESTION: '.$question,
+                                    ])],
+                                ],
+                            ],
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.1,
+                            'responseMimeType' => 'application/json',
+                        ],
+                    ]);
+
+                $this->ensureSuccessfulResponse($response, $provider, $index);
+
+                $text = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+                $extracted = json_decode(trim($text), true);
+
+                if (is_array($extracted)) {
+                    $merged = array_merge($currentEntities, array_filter($extracted, fn ($v) => $v !== null));
+                    // Ensure boolean values are mapped properly
+                    $merged['cheapest_first'] = filter_var($extracted['cheapest_first'] ?? $currentEntities['cheapest_first'], FILTER_VALIDATE_BOOLEAN);
+                    $merged['best_first'] = filter_var($extracted['best_first'] ?? $currentEntities['best_first'], FILTER_VALIDATE_BOOLEAN);
+
+                    return $merged;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('CHATBOT_AI_NLU_FAILED', [
+                    'provider' => $provider,
+                    'key_index' => $index,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $currentEntities;
     }
 
     /** @param array<int,array{role:string,content:string}> $messages */

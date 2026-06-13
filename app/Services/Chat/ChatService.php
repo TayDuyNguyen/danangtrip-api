@@ -85,6 +85,18 @@ final class ChatService
             ];
         }
 
+        // Routing logic: check confidence score.
+        // Purely informational or policy intents (e.g. loyalty, payment, refund, contact, account) do not need parameter extraction.
+        $threshold = (float) config('chatbot.nlu.confidence_threshold', 0.8);
+        $aiNluTriggered = false;
+
+        $needsAiNlu = in_array($intent, ['tour', 'booking', 'schedule', 'location', 'food', 'hotel'], true);
+        if ($needsAiNlu && (float) ($understanding['confidence'] ?? 0.0) < $threshold) {
+            $enriched = $this->aiProvider->extractEntitiesWithAi($question, $locale, $understanding);
+            $understanding = array_merge($understanding, $enriched);
+            $aiNluTriggered = true;
+        }
+
         $knowledge = $this->knowledgeSearch->search(
             $question,
             $intent,
@@ -122,6 +134,7 @@ final class ChatService
             'ai_ok' => $ai['ok'],
             'attempts' => $ai['attempts'] ?? 0,
             'understanding' => $understanding,
+            'ai_nlu_triggered' => $aiNluTriggered,
         ]);
 
         return [

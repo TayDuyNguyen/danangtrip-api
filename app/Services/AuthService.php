@@ -7,6 +7,7 @@ use App\Mail\VerifyEmailOtpMail;
 use App\Models\User;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -207,8 +208,8 @@ class AuthService
             $isRemembered = true;
             $expiresInDays = 14;
             if ($storedToken->created_at && $storedToken->expires_at) {
-                $createdAt = \Carbon\Carbon::parse($storedToken->created_at);
-                $expiresAt = \Carbon\Carbon::parse($storedToken->expires_at);
+                $createdAt = Carbon::parse($storedToken->created_at);
+                $expiresAt = Carbon::parse($storedToken->expires_at);
                 if ($createdAt->diffInHours($expiresAt) <= 36) { // ~1 day
                     $isRemembered = false;
                     $expiresInDays = 1;

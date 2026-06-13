@@ -173,6 +173,24 @@ php artisan schedule:run
 
 The command is idempotent. Running it multiple times will not create duplicate reminders for the same booking and travel date.
 
+Rebuild only the demo notification feed without resetting users, bookings,
+payments, ratings, or point balances:
+
+```powershell
+php artisan db:seed --class=NotificationSeeder --force
+```
+
+`NotificationSeeder` derives Vietnamese notifications from the current
+booking, payment, rating, and point transaction records. It only replaces rows
+whose `data.seed_source` is `database_seeder`; notifications created by normal
+application activity are preserved.
+
+The full database seed process also runs this seeder automatically:
+
+```powershell
+php artisan migrate:fresh --seed
+```
+
 Canonical seed/data folders:
 
 - `D:\DATN\DATN_Tài liệu\database-seeders`

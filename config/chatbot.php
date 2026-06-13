@@ -19,6 +19,15 @@ return [
     'temperature' => (float) env('CHATBOT_TEMPERATURE', 0.3),
     'timeout_seconds' => (int) env('CHATBOT_TIMEOUT_SECONDS', 25),
     'max_retries' => (int) env('CHATBOT_MAX_RETRIES', 8),
+    'nlu' => [
+        'confidence_threshold' => (float) env('CHATBOT_NLU_CONFIDENCE_THRESHOLD', 0.8),
+        'weights' => [
+            'destination' => 35,
+            'price' => 25,
+            'people' => 20,
+            'date' => 20,
+        ],
+    ],
     'failover_status_codes' => array_map('intval', $csv('AI_FAILOVER_STATUS_CODES') ?: [429, 500, 502, 503, 504]),
     'key_cooldown_seconds' => (int) env('AI_KEY_COOLDOWN_SECONDS', 3600),
     'limits' => [

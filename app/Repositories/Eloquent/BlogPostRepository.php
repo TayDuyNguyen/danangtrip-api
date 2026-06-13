@@ -47,6 +47,17 @@ final class BlogPostRepository extends BaseRepository implements BlogPostReposit
             });
         }
 
+        // Search by title or excerpt if provided
+        $search = trim((string) ($filters['search'] ?? $filters['q'] ?? ''));
+        if ($search !== '') {
+            $needle = '%'.mb_strtolower($search).'%';
+
+            $query->where(function ($q) use ($needle) {
+                $q->whereRaw('LOWER(title) LIKE ?', [$needle])
+                    ->orWhereRaw("LOWER(COALESCE(excerpt, '')) LIKE ?", [$needle]);
+            });
+        }
+
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
 
         return $query->paginate($perPage);

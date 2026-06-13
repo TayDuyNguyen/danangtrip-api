@@ -145,6 +145,57 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         $validSortFields = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'];
         $orderBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
         $orderDir = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
+
+        if (isset($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if ($driver === 'pgsql') {
+                $query->orderByRaw("
+                    CASE 
+                        WHEN unaccent(name) ilike unaccent(?) THEN 1
+                        WHEN unaccent(name) ilike unaccent(?) THEN 2
+                        WHEN unaccent(name) ilike unaccent(?) THEN 3
+                        WHEN unaccent(coalesce(description, '')) ilike unaccent(?) THEN 4
+                        ELSE 5
+                    END ASC
+                ", [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->orderByRaw('
+                    CASE 
+                        WHEN name LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN name LIKE ? THEN 3
+                        WHEN description LIKE ? THEN 4
+                        ELSE 5
+                    END ASC
+                ', [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            } else {
+                $query->orderByRaw('
+                    CASE 
+                        WHEN name LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN name LIKE ? THEN 3
+                        ELSE 4
+                    END ASC
+                ', [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            }
+        }
+
         $query->orderBy($orderBy, $orderDir);
 
         $query->withCount('schedules');
@@ -370,6 +421,47 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
 
         if (isset($filters['min_rating'])) {
             $query->where('rating_avg', '>=', $filters['min_rating']);
+        }
+
+        if ($driver === 'pgsql') {
+            $query->orderByRaw('
+                CASE 
+                    WHEN unaccent(name) ilike unaccent(?) THEN 1
+                    WHEN unaccent(name) ilike unaccent(?) THEN 2
+                    WHEN unaccent(name) ilike unaccent(?) THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
+        } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $query->orderByRaw('
+                CASE 
+                    WHEN name LIKE ? THEN 1
+                    WHEN name LIKE ? THEN 2
+                    WHEN name LIKE ? THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
+        } else {
+            $query->orderByRaw('
+                CASE 
+                    WHEN name LIKE ? THEN 1
+                    WHEN name LIKE ? THEN 2
+                    WHEN name LIKE ? THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
         }
 
         return $query->orderBy('view_count', 'desc')

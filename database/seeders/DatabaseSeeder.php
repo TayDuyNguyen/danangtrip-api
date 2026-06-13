@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             TestCheckoutSeeder::class,
             ChatKnowledgeBaseSeeder::class,
             PointSeeder::class,
+            NotificationSeeder::class,
         ]);
     }
 }
