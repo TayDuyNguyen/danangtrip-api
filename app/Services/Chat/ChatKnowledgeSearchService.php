@@ -2,10 +2,13 @@
 
 namespace App\Services\Chat;
 
+use App\Enums\TourScheduleBookingAvailability;
 use App\Models\BlogPost;
 use App\Models\ChatKnowledgeBase;
 use App\Models\Location;
 use App\Models\Tour;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -332,19 +335,39 @@ final class ChatKnowledgeSearchService
     /** @return Collection<int,array<string,mixed>> */
     private function tourContext(Collection $tours): Collection
     {
-        return $tours->map(fn (Tour $tour) => [
-            'type' => 'tour',
-            'id' => $tour->id,
-            'title' => $tour->name,
-            'slug' => $tour->slug,
-            'content' => trim(implode("\n", array_filter([
-                "Tên tour: {$tour->name}",
-                'Giá người lớn: '.number_format((float) $tour->price_adult, 0, ',', '.').' VND',
-                $tour->duration ? "Thời lượng: {$tour->duration}" : null,
-                $tour->meeting_point ? "Điểm đón: {$tour->meeting_point}" : null,
-                $tour->short_desc ?: Str::limit(strip_tags((string) $tour->description), 260),
-            ]))),
-        ]);
+        // Load active and available future schedules to include in RAG context
+        \Illuminate\Database\Eloquent\Collection::make($tours)->load(['schedules' => function ($query): void {
+            $query->where('status', 'available')
+                ->where('booking_availability', TourScheduleBookingAvailability::OPEN->value)
+                ->where('start_date', '>=', now()->startOfDay())
+                ->orderBy('start_date')
+                ->limit(5);
+        }]);
+
+        return $tours->map(function (Tour $tour) {
+            $scheduleDates = $tour->schedules
+                ->map(fn ($s) => $s->start_date instanceof Carbon || $s->start_date instanceof CarbonImmutable
+                    ? $s->start_date->format('d/m/Y')
+                    : Carbon::parse($s->start_date)->format('d/m/Y')
+                )
+                ->unique()
+                ->implode(', ');
+
+            return [
+                'type' => 'tour',
+                'id' => $tour->id,
+                'title' => $tour->name,
+                'slug' => $tour->slug,
+                'content' => trim(implode("\n", array_filter([
+                    "Tên tour: {$tour->name}",
+                    'Giá người lớn: '.number_format((float) $tour->price_adult, 0, ',', '.').' VND',
+                    $tour->duration ? "Thời lượng: {$tour->duration}" : null,
+                    $tour->meeting_point ? "Điểm đón: {$tour->meeting_point}" : null,
+                    $scheduleDates ? "Lịch khởi hành: {$scheduleDates}" : 'Lịch khởi hành: Liên hệ để biết thêm chi tiết',
+                    $tour->short_desc ?: Str::limit(strip_tags((string) $tour->description), 260),
+                ]))),
+            ];
+        });
     }
 
     /** @return Collection<int,array<string,mixed>> */

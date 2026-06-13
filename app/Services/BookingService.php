@@ -360,7 +360,7 @@ class BookingService
 
                 if (! empty($data['promotion_code'])) {
                     $code = trim((string) $data['promotion_code']);
-                    $promotion = $this->promotionRepository->getModel()::newQuery()
+                    $promotion = $this->promotionRepository->getModel()::query()
                         ->whereRaw('LOWER(code) = ?', [strtolower($code)])
                         ->lockForUpdate()
                         ->first();
@@ -389,7 +389,7 @@ class BookingService
                     $promotionId = (int) $promotion->id;
 
                     if ($promotion->usage_per_user !== null && $userId) {
-                        $userUsageCount = $this->bookingRepository->getModel()::newQuery()
+                        $userUsageCount = $this->bookingRepository->getModel()::query()
                             ->where('user_id', $userId)
                             ->where('promotion_id', $promotionId)
                             ->where('booking_status', '!=', 'cancelled')

@@ -18,7 +18,7 @@ return new class extends Migration
             'point_transactions',
             'user_point_balances',
             'user_vouchers',
-            'rating_helpful_votes'
+            'rating_helpful_votes',
         ];
 
         foreach ($tables as $table) {

@@ -170,6 +170,59 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         $validSortFields = ['created_at', 'avg_rating', 'review_count', 'view_count', 'price_min'];
         $sortBy = in_array($filters['sort_by'] ?? '', $validSortFields) ? $filters['sort_by'] : 'created_at';
         $sortOrder = in_array($filters['sort_order'] ?? '', ['asc', 'desc']) ? $filters['sort_order'] : 'desc';
+
+        if (isset($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $driver = $this->model->getConnection()->getDriverName();
+
+            if ($driver === 'pgsql') {
+                $query->orderByRaw("
+                    CASE 
+                        WHEN unaccent(name) ilike unaccent(?) THEN 1
+                        WHEN unaccent(name) ilike unaccent(?) THEN 2
+                        WHEN unaccent(name) ilike unaccent(?) THEN 3
+                        WHEN unaccent(coalesce(description, '')) ilike unaccent(?) OR unaccent(coalesce(short_description, '')) ilike unaccent(?) THEN 4
+                        ELSE 5
+                    END ASC
+                ", [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $query->orderByRaw('
+                    CASE 
+                        WHEN name LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN name LIKE ? THEN 3
+                        WHEN description LIKE ? OR short_description LIKE ? THEN 4
+                        ELSE 5
+                    END ASC
+                ', [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            } else {
+                $query->orderByRaw('
+                    CASE 
+                        WHEN name LIKE ? THEN 1
+                        WHEN name LIKE ? THEN 2
+                        WHEN name LIKE ? THEN 3
+                        ELSE 4
+                    END ASC
+                ', [
+                    $searchTerm,
+                    $searchTerm.'%',
+                    '%'.$searchTerm.'%',
+                ]);
+            }
+        }
+
         $query->orderBy($sortBy, $sortOrder);
 
         // Secondary and tertiary sorting as tie-breakers (nổi bật, sau đó là created_at)
@@ -237,6 +290,47 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
 
         if (isset($filters['min_rating'])) {
             $query->where('avg_rating', '>=', $filters['min_rating']);
+        }
+
+        if ($driver === 'pgsql') {
+            $query->orderByRaw('
+                CASE 
+                    WHEN unaccent(name) ilike unaccent(?) THEN 1
+                    WHEN unaccent(name) ilike unaccent(?) THEN 2
+                    WHEN unaccent(name) ilike unaccent(?) THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
+        } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+            $query->orderByRaw('
+                CASE 
+                    WHEN name LIKE ? THEN 1
+                    WHEN name LIKE ? THEN 2
+                    WHEN name LIKE ? THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
+        } else {
+            $query->orderByRaw('
+                CASE 
+                    WHEN name LIKE ? THEN 1
+                    WHEN name LIKE ? THEN 2
+                    WHEN name LIKE ? THEN 3
+                    ELSE 4
+                END ASC
+            ', [
+                $q,
+                $q.'%',
+                '%'.$q.'%',
+            ]);
         }
 
         return $query->orderBy('view_count', 'desc')

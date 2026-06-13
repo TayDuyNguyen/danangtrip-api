@@ -2,7 +2,11 @@
 
 namespace App\Services\Chat;
 
+use App\Models\Location;
+use App\Models\Tour;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 final class ChatQueryUnderstandingService
 {
@@ -11,7 +15,7 @@ final class ChatQueryUnderstandingService
     {
         $normalized = $this->applyAliases($this->normalize($question));
 
-        return [
+        $entities = [
             'original_question' => $question,
             'normalized_question' => $normalized,
             'destination' => $this->extractDestination($normalized),
@@ -25,6 +29,142 @@ final class ChatQueryUnderstandingService
             'cheapest_first' => $this->containsAny($normalized, ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price']),
             'best_first' => $this->containsAny($normalized, ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top']),
         ];
+
+        $entities['confidence'] = $this->calculateConfidence($entities);
+
+        return $entities;
+    }
+
+    private function calculateConfidence(array $entities): float
+    {
+        $weights = (array) config('chatbot.nlu.weights', [
+            'destination' => 35,
+            'price' => 25,
+            'people' => 20,
+            'date' => 20,
+        ]);
+
+        $score = 0;
+        $totalWeight = (float) array_sum($weights);
+
+        if (! empty($entities['destination']) || ! empty($entities['region'])) {
+            $score += $weights['destination'] ?? 35;
+        }
+
+        if (! empty($entities['max_price']) || ! empty($entities['min_price'])) {
+            $score += $weights['price'] ?? 25;
+        }
+
+        if (! empty($entities['people'])) {
+            $score += $weights['people'] ?? 20;
+        }
+
+        if (! empty($entities['date'])) {
+            $score += $weights['date'] ?? 20;
+        }
+
+        return $totalWeight > 0 ? (float) ($score / $totalWeight) : 1.0;
+    }
+
+    private function getDynamicDestinations(): array
+    {
+        try {
+            return Cache::remember('chatbot:dynamic_destinations', 3600, function (): array {
+                $locations = Location::query()
+                    ->where('status', 'active')
+                    ->pluck('name')
+                    ->filter()
+                    ->unique()
+                    ->toArray();
+
+                $tours = Tour::query()
+                    ->where('status', 'active')
+                    ->pluck('name')
+                    ->filter()
+                    ->unique()
+                    ->toArray();
+
+                $dbDestinations = array_merge($locations, $tours);
+
+                $dictionary = [
+                    'bà nà hills' => ['bà nà hills', 'bà nà', 'ba na hills'],
+                    'hội an' => ['hội an', 'phố cổ hội an'],
+                    'huế' => ['huế', 'cố đô huế'],
+                    'cù lao chàm' => ['cù lao chàm', 'cu lao cham'],
+                    'mỹ sơn' => ['mỹ sơn', 'my son'],
+                    'ngũ hành sơn' => ['ngũ hành sơn', 'ngu hanh son'],
+                    'sơn trà' => ['sơn trà', 'son tra'],
+                    'mỹ khê' => ['mỹ khê', 'my khe'],
+                    'cầu rồng' => ['cầu rồng', 'cau rong'],
+                ];
+
+                foreach ($dbDestinations as $name) {
+                    $normalized = mb_strtolower(trim((string) $name));
+                    if ($normalized === '') {
+                        continue;
+                    }
+
+                    $alreadyExists = false;
+                    foreach ($dictionary as $canonical => $aliases) {
+                        if ($canonical === $normalized || in_array($normalized, $aliases, true)) {
+                            $alreadyExists = true;
+                            break;
+                        }
+                    }
+
+                    if (! $alreadyExists) {
+                        $ascii = $this->removeVietnameseTones($normalized);
+                        $aliases = [$normalized];
+                        if ($ascii !== $normalized) {
+                            $aliases[] = $ascii;
+                        }
+                        $dictionary[$normalized] = $aliases;
+                    }
+                }
+
+                return $dictionary;
+            });
+        } catch (\Throwable $e) {
+            Log::warning('CHATBOT_DYNAMIC_DICTIONARY_FAILED', ['message' => $e->getMessage()]);
+
+            return [
+                'bà nà hills' => ['bà nà hills', 'bà nà', 'ba na hills'],
+                'hội an' => ['hội an', 'phố cổ hội an'],
+                'huế' => ['huế', 'cố đô huế'],
+                'cù lao chàm' => ['cù lao chàm', 'cu lao cham'],
+                'mỹ sơn' => ['mỹ sơn', 'my son'],
+                'ngũ hành sơn' => ['ngũ hành sơn', 'ngu hanh son'],
+                'sơn trà' => ['sơn trà', 'son tra'],
+                'mỹ khê' => ['mỹ khê', 'my khe'],
+                'cầu rồng' => ['cầu rồng', 'cau rong'],
+            ];
+        }
+    }
+
+    private function removeVietnameseTones(string $str): string
+    {
+        $unicode = [
+            'a' => 'á|à|ả|ã|ạ|ă|ắ|ặ|ằ|ẳ|ẵ|â|ấ|ần|ẩ|ẫ|ậ|å',
+            'd' => 'đ',
+            'e' => 'é|è|ẻ|ẽ|ẹ|ê|ế|ề|ể|ễ|ệ',
+            'i' => 'í|ì|ỉ|ĩ|ị',
+            'o' => 'ó|ò|ỏ|õ|ọ|ô|ố|ồ|ổ|ỗ|ộ|ơ|ớ|ờ|ở|ỡ|ợ',
+            'u' => 'ú|ù|ủ|ũ|ụ|ư|ứ|ừ|ử|ữ|ự',
+            'y' => 'ý|ỳ|ỷ|ỹ|ỵ',
+            'A' => 'Á|À|Ả|Ã|Ạ|Ă|Ắ|Ặ|Ằ|Ẳ|Ẵ|Â|Ấ|Ầ|Ẩ|Ẫ|Ậ|Å',
+            'D' => 'Đ',
+            'E' => 'É|È|Ẻ|E|Ẹ|Ê|Ế|Ề|Ể|Ễ|Ệ',
+            'I' => 'Í|Ì|Ỉ|Ĩ|Ị',
+            'O' => 'Ó|Ò|Ỏ|Õ|Ọ|Ô|Ố|Ồ|Ổ|Ỗ|Ộ|Ơ|Ớ|Ờ|Ở|Ỡ|Ợ',
+            'U' => 'Ú|Ù|Ủ|Ũ|Ụ|Ư|Ứ|Ừ|Ử|Ữ|Ự',
+            'Y' => 'Ý|Ỳ|Ỷ|Ỹ|Ỵ',
+        ];
+
+        foreach ($unicode as $nonUnicode => $uni) {
+            $str = preg_replace("/({$uni})/i", $nonUnicode, $str) ?? $str;
+        }
+
+        return $str;
     }
 
     private function normalize(string $value): string
@@ -67,17 +207,7 @@ final class ChatQueryUnderstandingService
 
     private function extractDestination(string $query): ?string
     {
-        $destinations = [
-            'bà nà hills' => ['bà nà hills', 'bà nà', 'ba na hills'],
-            'hội an' => ['hội an', 'phố cổ hội an'],
-            'huế' => ['huế', 'cố đô huế'],
-            'cù lao chàm' => ['cù lao chàm', 'cu lao cham'],
-            'mỹ sơn' => ['mỹ sơn', 'my son'],
-            'ngũ hành sơn' => ['ngũ hành sơn', 'ngu hanh son'],
-            'sơn trà' => ['sơn trà', 'son tra'],
-            'mỹ khê' => ['mỹ khê', 'my khe'],
-            'cầu rồng' => ['cầu rồng', 'cau rong'],
-        ];
+        $destinations = $this->getDynamicDestinations();
 
         foreach ($destinations as $canonical => $aliases) {
             foreach ($aliases as $alias) {

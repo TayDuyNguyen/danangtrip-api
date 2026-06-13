@@ -10,11 +10,9 @@ use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\RatingImageRepositoryInterface;
 use App\Repositories\Interfaces\RatingRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
-use App\Services\UploadService;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class RatingService
@@ -73,10 +71,10 @@ final class RatingService
                 ],
             ];
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Check rating error: ' . $e->getMessage(), [
+            Log::error('Check rating error: '.$e->getMessage(), [
                 'exception' => $e,
                 'userId' => $userId,
-                'params' => $params
+                'params' => $params,
             ]);
 
             return [
@@ -175,9 +173,9 @@ final class RatingService
                 'message' => 'Rating created successfully',
             ];
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Create rating error: ' . $e->getMessage(), [
+            Log::error('Create rating error: '.$e->getMessage(), [
                 'exception' => $e,
-                'data' => $data
+                'data' => $data,
             ]);
 
             return [
@@ -621,10 +619,10 @@ final class RatingService
 
         $files = array_slice($files, 0, 5);
 
-        $uploadResult = $this->uploadService->uploadImages($files, 'ratings/' . $ratingId);
+        $uploadResult = $this->uploadService->uploadImages($files, 'ratings/'.$ratingId);
 
         if ($uploadResult['status'] !== HttpStatusCode::CREATED->value) {
-            throw new \Exception('Failed to upload rating images to Cloudinary: ' . ($uploadResult['message'] ?? ''));
+            throw new \Exception('Failed to upload rating images to Cloudinary: '.($uploadResult['message'] ?? ''));
         }
 
         $urls = [];
