@@ -1,10 +1,14 @@
 <?php
+
+use App\Models\ChatMessage;
+use Illuminate\Contracts\Console\Kernel;
+
 require 'vendor/autoload.php';
 $app = require_once 'bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
-$msg = App\Models\ChatMessage::latest()->first();
+$msg = ChatMessage::latest()->first();
 if ($msg) {
     echo "Metadata:\n";
     print_r($msg->metadata);

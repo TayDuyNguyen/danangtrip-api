@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Enums\HttpStatusCode;
-use App\Models\Location;
 use App\Models\Tour;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatSessionMemoryService;
@@ -16,7 +15,9 @@ use Tests\TestCase;
 final class ChatSessionMemoryAndGuardrailTest extends TestCase
 {
     private ChatService $chatService;
+
     private ChatSessionMemoryService $sessionMemory;
+
     private ChatToolGuardrailService $guardrail;
 
     protected function setUp(): void
@@ -235,9 +236,9 @@ final class ChatSessionMemoryAndGuardrailTest extends TestCase
                                 'intent' => 'tour',
                                 'confidence' => 0.95,
                                 'destination' => 'Bà Nà Hills',
-                            ])
-                        ]]]
-                    ]]
+                            ]),
+                        ]]],
+                    ]],
                 ])
                 ->push([ // 2. Turn 2 AI NLU extraction
                     'candidates' => [[
@@ -246,21 +247,21 @@ final class ChatSessionMemoryAndGuardrailTest extends TestCase
                                 'intent' => 'tour',
                                 'confidence' => 0.9,
                                 'people' => 3,
-                            ])
-                        ]]]
-                    ]]
+                            ]),
+                        ]]],
+                    ]],
                 ])
                 ->push([ // 3. Turn 2 AI Complete (sinh câu trả lời đề xuất)
                     'candidates' => [[
                         'content' => ['parts' => [[
-                            'text' => 'Đây là đề xuất tour Bà Nà Hills cho 3 người của bạn.'
-                        ]]]
+                            'text' => 'Đây là đề xuất tour Bà Nà Hills cho 3 người của bạn.',
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 150]
-                ])
+                    'usageMetadata' => ['totalTokenCount' => 150],
+                ]),
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => 'Tôi muốn đi Bà Nà Hills',
             'session_id' => $sessionId,

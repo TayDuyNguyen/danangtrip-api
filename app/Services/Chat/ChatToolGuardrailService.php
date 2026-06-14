@@ -11,7 +11,7 @@ final class ChatToolGuardrailService
      * Validate and clean up understanding parameters before search engine/DB queries.
      * Returns an array with 'understanding' (cleaned) and 'warnings' (list of friendly issues found).
      *
-     * @param array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array{understanding: array<string,mixed>, warnings: array<int,string>}
      */
     public function validate(array $understanding): array

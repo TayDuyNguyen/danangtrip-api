@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AmenityController as AdminAmenityController;
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\ChatbotController;
 use App\Http\Controllers\Api\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LandingPageController as AdminLandingPageController;
@@ -464,10 +465,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/landing-pages/{id}', [AdminLandingPageController::class, 'destroy'])->whereNumber('id');
 
         // Chatbot Management
-        Route::get('/chatbot/stats', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'stats'])->middleware('throttle:api.admin');
-        Route::get('/chatbot/logs', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'logs'])->middleware('throttle:api.admin');
-        Route::get('/chatbot/cache', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'cache'])->middleware('throttle:api.admin');
-        Route::delete('/chatbot/cache/{hash}', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'deleteCache'])->middleware('throttle:api.admin');
-        Route::delete('/chatbot/cache', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'clearAllCache'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/stats', [ChatbotController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/logs', [ChatbotController::class, 'logs'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/cache', [ChatbotController::class, 'cache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache/{hash}', [ChatbotController::class, 'deleteCache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache', [ChatbotController::class, 'clearAllCache'])->middleware('throttle:api.admin');
     });
 });

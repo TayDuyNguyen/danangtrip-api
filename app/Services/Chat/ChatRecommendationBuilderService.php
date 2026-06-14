@@ -19,9 +19,9 @@ final class ChatRecommendationBuilderService
     /**
      * Build danh sách recommendation cuối cùng.
      *
-     * @param  array{tours:Collection,locations:Collection,blogs:Collection} $sqlResults
-     * @param  Collection<int,ChatKnowledgeBase>                             $vectorResults
-     * @param  array<string,mixed>                                           $understanding
+     * @param  array{tours:Collection,locations:Collection,blogs:Collection}  $sqlResults
+     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
+     * @param  array<string,mixed>  $understanding
      * @return array<int,array{type:string,data:array<string,mixed>}>
      */
     public function build(
@@ -30,13 +30,13 @@ final class ChatRecommendationBuilderService
         array $understanding,
         int $limit = 5
     ): array {
-        $pool    = collect();
+        $pool = collect();
         $vecKeys = $this->buildVectorKeyMap($vectorResults);
         $addedKeys = [];
 
         // === Tours ===
         foreach (($sqlResults['tours'] ?? collect()) as $tour) {
-            $key   = "tour:{$tour->id}";
+            $key = "tour:{$tour->id}";
             $addedKeys[$key] = true;
             $score = $this->scoreTour($tour, $understanding);
 
@@ -46,17 +46,17 @@ final class ChatRecommendationBuilderService
             }
 
             $pool->push([
-                'type'   => 'tour',
-                'key'    => $key,
-                'data'   => $this->tourPayload($tour),
-                'score'  => $score,
+                'type' => 'tour',
+                'key' => $key,
+                'data' => $this->tourPayload($tour),
+                'score' => $score,
                 'source' => isset($vecKeys[$key]) ? 'sql+vector' : 'sql',
             ]);
         }
 
         // === Locations ===
         foreach (($sqlResults['locations'] ?? collect()) as $location) {
-            $key   = "location:{$location->id}";
+            $key = "location:{$location->id}";
             $addedKeys[$key] = true;
             $score = $this->scoreLocation($location, $understanding);
 
@@ -65,17 +65,17 @@ final class ChatRecommendationBuilderService
             }
 
             $pool->push([
-                'type'   => 'location',
-                'key'    => $key,
-                'data'   => $this->locationPayload($location),
-                'score'  => $score,
+                'type' => 'location',
+                'key' => $key,
+                'data' => $this->locationPayload($location),
+                'score' => $score,
                 'source' => isset($vecKeys[$key]) ? 'sql+vector' : 'sql',
             ]);
         }
 
         // === Blogs ===
         foreach (($sqlResults['blogs'] ?? collect()) as $blog) {
-            $key   = "blog:{$blog->id}";
+            $key = "blog:{$blog->id}";
             $addedKeys[$key] = true;
             $score = $this->scoreBlog($blog, $understanding);
 
@@ -84,10 +84,10 @@ final class ChatRecommendationBuilderService
             }
 
             $pool->push([
-                'type'   => 'blog',
-                'key'    => $key,
-                'data'   => $this->blogPayload($blog),
-                'score'  => $score,
+                'type' => 'blog',
+                'key' => $key,
+                'data' => $this->blogPayload($blog),
+                'score' => $score,
                 'source' => isset($vecKeys[$key]) ? 'sql+vector' : 'sql',
             ]);
         }
@@ -98,7 +98,7 @@ final class ChatRecommendationBuilderService
         $missingBlogs = [];
 
         foreach ($vectorResults as $item) {
-            $key = $item->type . ':' . $item->reference_id;
+            $key = $item->type.':'.$item->reference_id;
             if (empty($addedKeys[$key])) {
                 if ($item->type === 'tour') {
                     $missingTours[] = $item->reference_id;
@@ -110,55 +110,55 @@ final class ChatRecommendationBuilderService
             }
         }
 
-        if (!empty($missingTours)) {
+        if (! empty($missingTours)) {
             $tours = Tour::query()->whereIn('id', $missingTours)->where('status', 'active')->get();
             foreach ($tours as $tour) {
-                $key   = "tour:{$tour->id}";
+                $key = "tour:{$tour->id}";
                 $score = $this->scoreTour($tour, $understanding);
                 if (isset($vecKeys[$key])) {
                     $score += $vecKeys[$key] * 20;
                 }
                 $pool->push([
-                    'type'   => 'tour',
-                    'key'    => $key,
-                    'data'   => $this->tourPayload($tour),
-                    'score'  => $score,
+                    'type' => 'tour',
+                    'key' => $key,
+                    'data' => $this->tourPayload($tour),
+                    'score' => $score,
                     'source' => 'vector',
                 ]);
             }
         }
 
-        if (!empty($missingLocations)) {
+        if (! empty($missingLocations)) {
             $locations = Location::query()->whereIn('id', $missingLocations)->where('status', 'active')->get();
             foreach ($locations as $location) {
-                $key   = "location:{$location->id}";
+                $key = "location:{$location->id}";
                 $score = $this->scoreLocation($location, $understanding);
                 if (isset($vecKeys[$key])) {
                     $score += $vecKeys[$key] * 20;
                 }
                 $pool->push([
-                    'type'   => 'location',
-                    'key'    => $key,
-                    'data'   => $this->locationPayload($location),
-                    'score'  => $score,
+                    'type' => 'location',
+                    'key' => $key,
+                    'data' => $this->locationPayload($location),
+                    'score' => $score,
                     'source' => 'vector',
                 ]);
             }
         }
 
-        if (!empty($missingBlogs)) {
+        if (! empty($missingBlogs)) {
             $blogs = BlogPost::query()->whereIn('id', $missingBlogs)->where('status', 'published')->get();
             foreach ($blogs as $blog) {
-                $key   = "blog:{$blog->id}";
+                $key = "blog:{$blog->id}";
                 $score = $this->scoreBlog($blog, $understanding);
                 if (isset($vecKeys[$key])) {
                     $score += $vecKeys[$key] * 15;
                 }
                 $pool->push([
-                    'type'   => 'blog',
-                    'key'    => $key,
-                    'data'   => $this->blogPayload($blog),
-                    'score'  => $score,
+                    'type' => 'blog',
+                    'key' => $key,
+                    'data' => $this->blogPayload($blog),
+                    'score' => $score,
                     'source' => 'vector',
                 ]);
             }
@@ -180,14 +180,14 @@ final class ChatRecommendationBuilderService
     /**
      * Build vector key → similarity_score map để lookup nhanh.
      *
-     * @param  Collection<int,ChatKnowledgeBase> $vectorResults
+     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
      * @return array<string,float>
      */
     private function buildVectorKeyMap(Collection $vectorResults): array
     {
         $map = [];
         foreach ($vectorResults as $item) {
-            $key       = $item->type . ':' . $item->reference_id;
+            $key = $item->type.':'.$item->reference_id;
             $map[$key] = (float) ($item->similarity_score ?? 0.0);
         }
 
@@ -200,14 +200,14 @@ final class ChatRecommendationBuilderService
 
     private function scoreTour(Tour $tour, array $understanding): float
     {
-        $score        = 0.0;
-        $destination  = mb_strtolower((string) ($understanding['destination'] ?? ''));
-        $priceMax     = $understanding['max_price'] ?? null;
-        $people       = $understanding['people'] ?? null;
+        $score = 0.0;
+        $destination = mb_strtolower((string) ($understanding['destination'] ?? ''));
+        $priceMax = $understanding['max_price'] ?? null;
+        $people = $understanding['people'] ?? null;
         $durationDays = $understanding['duration_days'] ?? null;
-        $cheapest     = (bool) ($understanding['cheapest_first'] ?? false);
-        $keywords     = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
-        $topics       = (array) ($understanding['topics'] ?? []);
+        $cheapest = (bool) ($understanding['cheapest_first'] ?? false);
+        $keywords = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
+        $topics = (array) ($understanding['topics'] ?? []);
 
         $haystack = mb_strtolower(implode(' ', array_filter([
             $tour->name,
@@ -218,13 +218,13 @@ final class ChatRecommendationBuilderService
         ])));
 
         $availability = $tour->booking_availability;
-        $isOpen       = ($availability instanceof \BackedEnum ? $availability->value : (string) $availability) === 'open';
+        $isOpen = ($availability instanceof \BackedEnum ? $availability->value : (string) $availability) === 'open';
 
         if ($cheapest) {
             // Cheapest first: ưu tiên giá thấp làm trọng số tuyệt đối
             $price = (float) $tour->price_adult;
             $score = ($isOpen ? 100000000 : 0) - $price;
-            
+
             // Dùng các yếu tố khác làm tie-breaker cực nhỏ (tổng tối đa < 1.0)
             // để đảm bảo không đảo lộn thứ tự giá (ngay cả khi chênh lệch chỉ 1đ)
             if ($destination !== '' && str_contains($haystack, $destination)) {
@@ -237,19 +237,27 @@ final class ChatRecommendationBuilderService
         }
 
         // Normal ranking
-        if ($isOpen)        { $score += 120; }
-        if ($destination !== '' && str_contains($haystack, $destination)) { $score += 100; }
+        if ($isOpen) {
+            $score += 120;
+        }
+        if ($destination !== '' && str_contains($haystack, $destination)) {
+            $score += 100;
+        }
 
         // Boost tours when intent is tour or booking
         $intent = (string) ($understanding['intent'] ?? '');
         if ($intent === 'tour' || $intent === 'booking') {
             $score += 150.0;
         }
-        if ($priceMax !== null && (float) $tour->price_adult <= (float) $priceMax) { $score += 80; }
+        if ($priceMax !== null && (float) $tour->price_adult <= (float) $priceMax) {
+            $score += 80;
+        }
         if ($people !== null && (int) $tour->min_people <= (int) $people && ((int) $tour->max_people === 0 || (int) $tour->max_people >= (int) $people)) {
             $score += 35;
         }
-        if ($durationDays !== null && str_contains((string) $tour->duration, (string) $durationDays)) { $score += 25; }
+        if ($durationDays !== null && str_contains((string) $tour->duration, (string) $durationDays)) {
+            $score += 25;
+        }
 
         // Keyword boost
         foreach ($keywords as $keyword) {
@@ -259,8 +267,12 @@ final class ChatRecommendationBuilderService
         }
 
         // Topic boost
-        if (in_array('budget', $topics, true) && (float) $tour->price_adult < 1000000) { $score += 20; }
-        if (in_array('luxury', $topics, true) && (float) $tour->price_adult > 3000000) { $score += 20; }
+        if (in_array('budget', $topics, true) && (float) $tour->price_adult < 1000000) {
+            $score += 20;
+        }
+        if (in_array('luxury', $topics, true) && (float) $tour->price_adult > 3000000) {
+            $score += 20;
+        }
 
         $score += ((float) ($tour->rating_avg ?? 0)) * 8;
         $score += min((int) $tour->booking_count, 100) * 0.5;
@@ -272,10 +284,10 @@ final class ChatRecommendationBuilderService
 
     private function scoreLocation(Location $location, array $understanding): float
     {
-        $score       = 0.0;
+        $score = 0.0;
         $destination = mb_strtolower((string) ($understanding['destination'] ?? ''));
-        $topics      = (array) ($understanding['topics'] ?? []);
-        $keywords    = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
+        $topics = (array) ($understanding['topics'] ?? []);
+        $keywords = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
 
         $haystack = mb_strtolower(implode(' ', array_filter([
             $location->name,
@@ -285,7 +297,9 @@ final class ChatRecommendationBuilderService
             $location->district,
         ])));
 
-        if ($destination !== '' && str_contains($haystack, $destination)) { $score += 100; }
+        if ($destination !== '' && str_contains($haystack, $destination)) {
+            $score += 100;
+        }
 
         // Boost locations when intent matches location types
         $intent = (string) ($understanding['intent'] ?? '');
@@ -314,18 +328,18 @@ final class ChatRecommendationBuilderService
 
         // Topic matching
         $topicKeywords = [
-            'local_food'     => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'food'],
-            'restaurant'     => ['nhà hàng', 'restaurant', 'quán ăn'],
-            'cafe'           => ['cafe', 'cà phê', 'coffee'],
-            'seafood'        => ['hải sản', 'seafood'],
-            'hotel'          => ['khách sạn', 'hotel', 'resort'],
-            'homestay'       => ['homestay', 'guesthouse'],
-            'beach'          => ['bãi biển', 'beach'],
-            'mountain'       => ['núi', 'mountain'],
-            'temple'         => ['chùa', 'đền', 'temple'],
-            'museum'         => ['bảo tàng', 'museum'],
-            'market'         => ['chợ', 'market'],
-            'family_friendly'=> ['gia đình', 'family'],
+            'local_food' => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'food'],
+            'restaurant' => ['nhà hàng', 'restaurant', 'quán ăn'],
+            'cafe' => ['cafe', 'cà phê', 'coffee'],
+            'seafood' => ['hải sản', 'seafood'],
+            'hotel' => ['khách sạn', 'hotel', 'resort'],
+            'homestay' => ['homestay', 'guesthouse'],
+            'beach' => ['bãi biển', 'beach'],
+            'mountain' => ['núi', 'mountain'],
+            'temple' => ['chùa', 'đền', 'temple'],
+            'museum' => ['bảo tàng', 'museum'],
+            'market' => ['chợ', 'market'],
+            'family_friendly' => ['gia đình', 'family'],
         ];
 
         foreach ($topics as $topic) {
@@ -354,10 +368,10 @@ final class ChatRecommendationBuilderService
 
     private function scoreBlog(BlogPost $blog, array $understanding): float
     {
-        $score    = 0.0;
-        $intent   = (string) ($understanding['intent'] ?? '');
+        $score = 0.0;
+        $intent = (string) ($understanding['intent'] ?? '');
         $keywords = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
-        $topics   = (array) ($understanding['topics'] ?? []);
+        $topics = (array) ($understanding['topics'] ?? []);
 
         $haystack = mb_strtolower(implode(' ', array_filter([
             $blog->title,
@@ -401,36 +415,36 @@ final class ChatRecommendationBuilderService
     private function tourPayload(Tour $tour): array
     {
         return [
-            'id'               => $tour->id,
-            'name'             => $tour->name,
-            'slug'             => $tour->slug,
+            'id' => $tour->id,
+            'name' => $tour->name,
+            'slug' => $tour->slug,
             'tour_category_id' => $tour->tour_category_id,
-            'description'      => $tour->description,
-            'short_desc'       => $tour->short_desc,
-            'itinerary'        => $tour->itinerary,
-            'inclusions'       => is_array($tour->inclusions) ? implode("\n", $tour->inclusions) : $tour->inclusions,
-            'exclusions'       => is_array($tour->exclusions) ? implode("\n", $tour->exclusions) : $tour->exclusions,
-            'price_adult'      => (string) $tour->price_adult,
-            'price_child'      => (string) $tour->price_child,
-            'price_infant'     => (string) $tour->price_infant,
+            'description' => $tour->description,
+            'short_desc' => $tour->short_desc,
+            'itinerary' => $tour->itinerary,
+            'inclusions' => is_array($tour->inclusions) ? implode("\n", $tour->inclusions) : $tour->inclusions,
+            'exclusions' => is_array($tour->exclusions) ? implode("\n", $tour->exclusions) : $tour->exclusions,
+            'price_adult' => (string) $tour->price_adult,
+            'price_child' => (string) $tour->price_child,
+            'price_infant' => (string) $tour->price_infant,
             'discount_percent' => (int) $tour->discount_percent,
-            'duration'         => $tour->duration,
-            'start_time'       => $tour->start_time,
-            'meeting_point'    => $tour->meeting_point,
-            'max_people'       => (int) $tour->max_people,
-            'min_people'       => (int) $tour->min_people,
-            'available_from'   => $tour->available_from?->toDateString(),
-            'available_to'     => $tour->available_to?->toDateString(),
-            'thumbnail'        => $tour->thumbnail,
-            'images'           => $tour->images,
-            'video_url'        => $tour->video_url,
-            'status'           => $tour->status,
-            'is_featured'      => (bool) $tour->is_featured,
-            'is_hot'           => (bool) $tour->is_hot,
-            'view_count'       => (int) $tour->view_count,
-            'booking_count'    => (int) $tour->booking_count,
-            'avg_rating'       => (string) ($tour->rating_avg ?? '0.00'),
-            'review_count'     => (int) ($tour->rating_count ?? 0),
+            'duration' => $tour->duration,
+            'start_time' => $tour->start_time,
+            'meeting_point' => $tour->meeting_point,
+            'max_people' => (int) $tour->max_people,
+            'min_people' => (int) $tour->min_people,
+            'available_from' => $tour->available_from?->toDateString(),
+            'available_to' => $tour->available_to?->toDateString(),
+            'thumbnail' => $tour->thumbnail,
+            'images' => $tour->images,
+            'video_url' => $tour->video_url,
+            'status' => $tour->status,
+            'is_featured' => (bool) $tour->is_featured,
+            'is_hot' => (bool) $tour->is_hot,
+            'view_count' => (int) $tour->view_count,
+            'booking_count' => (int) $tour->booking_count,
+            'avg_rating' => (string) ($tour->rating_avg ?? '0.00'),
+            'review_count' => (int) ($tour->rating_count ?? 0),
         ];
     }
 
@@ -438,30 +452,30 @@ final class ChatRecommendationBuilderService
     private function locationPayload(Location $location): array
     {
         return [
-            'id'               => $location->id,
-            'name'             => $location->name,
-            'slug'             => $location->slug,
-            'category_id'      => $location->category_id,
-            'subcategory_id'   => $location->subcategory_id,
-            'description'      => $location->description,
-            'short_description'=> $location->short_description,
-            'address'          => $location->address,
-            'district'         => $location->district,
-            'ward'             => $location->ward,
-            'latitude'         => (string) $location->latitude,
-            'longitude'        => (string) $location->longitude,
-            'phone'            => $location->phone,
-            'opening_hours'    => $location->opening_hours,
-            'price_min'        => $location->price_min ? (float) $location->price_min : null,
-            'price_max'        => $location->price_max ? (float) $location->price_max : null,
-            'price_level'      => $location->price_level,
-            'thumbnail'        => $location->thumbnail,
-            'images'           => $location->images,
-            'status'           => $location->status,
-            'is_featured'      => (bool) $location->is_featured,
-            'view_count'       => (int) $location->view_count,
-            'avg_rating'       => (string) $location->avg_rating,
-            'review_count'     => (int) $location->review_count,
+            'id' => $location->id,
+            'name' => $location->name,
+            'slug' => $location->slug,
+            'category_id' => $location->category_id,
+            'subcategory_id' => $location->subcategory_id,
+            'description' => $location->description,
+            'short_description' => $location->short_description,
+            'address' => $location->address,
+            'district' => $location->district,
+            'ward' => $location->ward,
+            'latitude' => (string) $location->latitude,
+            'longitude' => (string) $location->longitude,
+            'phone' => $location->phone,
+            'opening_hours' => $location->opening_hours,
+            'price_min' => $location->price_min ? (float) $location->price_min : null,
+            'price_max' => $location->price_max ? (float) $location->price_max : null,
+            'price_level' => $location->price_level,
+            'thumbnail' => $location->thumbnail,
+            'images' => $location->images,
+            'status' => $location->status,
+            'is_featured' => (bool) $location->is_featured,
+            'view_count' => (int) $location->view_count,
+            'avg_rating' => (string) $location->avg_rating,
+            'review_count' => (int) $location->review_count,
         ];
     }
 
@@ -469,14 +483,14 @@ final class ChatRecommendationBuilderService
     private function blogPayload(BlogPost $blog): array
     {
         return [
-            'id'            => $blog->id,
-            'title'         => $blog->title,
-            'slug'          => $blog->slug,
-            'excerpt'       => $blog->excerpt,
-            'featured_image'=> $blog->featured_image,
-            'view_count'    => (int) $blog->view_count,
-            'status'        => $blog->status,
-            'published_at'  => optional($blog->published_at)->toISOString(),
+            'id' => $blog->id,
+            'title' => $blog->title,
+            'slug' => $blog->slug,
+            'excerpt' => $blog->excerpt,
+            'featured_image' => $blog->featured_image,
+            'view_count' => (int) $blog->view_count,
+            'status' => $blog->status,
+            'published_at' => optional($blog->published_at)->toISOString(),
         ];
     }
 }

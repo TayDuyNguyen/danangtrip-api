@@ -16,22 +16,22 @@ final class ChatQueryUnderstandingService
         $normalized = $this->applyAliases($this->normalize($question));
 
         $entities = [
-            'original_question'    => $question,
-            'normalized_question'  => $normalized,
-            'destination'          => $this->extractDestination($normalized),
-            'region'               => $this->extractRegion($normalized),
-            'location_topic'       => $this->extractLocationTopic($normalized),
-            'max_price'            => $this->extractMaxPrice($normalized),
-            'min_price'            => $this->extractPrice($normalized, ['trên', 'tren', '>', 'từ', 'tu', 'ít nhất', 'it nhat', 'tối thiểu']),
-            'people'               => $this->extractPeople($normalized),
-            'date'                 => $this->extractDate($normalized, $locale),
-            'duration_days'        => $this->extractDurationDays($normalized),
-            'cheapest_first'       => $this->containsAny($normalized, ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price', 'affordable', 'budget']),
-            'best_first'           => $this->containsAny($normalized, ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top', 'highly rated', 'popular', 'nổi tiếng']),
+            'original_question' => $question,
+            'normalized_question' => $normalized,
+            'destination' => $this->extractDestination($normalized),
+            'region' => $this->extractRegion($normalized),
+            'location_topic' => $this->extractLocationTopic($normalized),
+            'max_price' => $this->extractMaxPrice($normalized),
+            'min_price' => $this->extractPrice($normalized, ['trên', 'tren', '>', 'từ', 'tu', 'ít nhất', 'it nhat', 'tối thiểu']),
+            'people' => $this->extractPeople($normalized),
+            'date' => $this->extractDate($normalized, $locale),
+            'duration_days' => $this->extractDurationDays($normalized),
+            'cheapest_first' => $this->containsAny($normalized, ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price', 'affordable', 'budget']),
+            'best_first' => $this->containsAny($normalized, ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top', 'highly rated', 'popular', 'nổi tiếng']),
             // NEW: content_type_hints — rule-based gợi ý loại nội dung cần tìm
-            'content_type_hints'   => $this->extractContentTypeHints($normalized),
+            'content_type_hints' => $this->extractContentTypeHints($normalized),
             // NEW: topic_hints — chủ đề cụ thể hơn
-            'topic_hints'          => $this->extractTopicHints($normalized),
+            'topic_hints' => $this->extractTopicHints($normalized),
         ];
 
         $entities['confidence'] = $this->calculateConfidence($entities);
@@ -98,22 +98,22 @@ final class ChatQueryUnderstandingService
         $topics = [];
 
         $topicMap = [
-            'local_food'     => ['ăn gì', 'đặc sản', 'món ngon', 'ẩm thực', 'mì quảng', 'bún chả cá', 'hải sản', 'local food'],
-            'restaurant'     => ['nhà hàng', 'quán ăn', 'restaurant', 'quán'],
-            'cafe'           => ['cafe', 'cà phê', 'coffee', 'quán cà phê'],
-            'seafood'        => ['hải sản', 'seafood', 'tôm', 'cua', 'cá'],
-            'hotel'          => ['khách sạn', 'hotel', 'accommodation'],
-            'resort'         => ['resort', 'villa'],
-            'homestay'       => ['homestay', 'guesthouse'],
-            'beach'          => ['bãi biển', 'beach', 'tắm biển', 'ven biển', 'view biển'],
-            'mountain'       => ['núi', 'mountain', 'đèo'],
-            'temple'         => ['chùa', 'đền', 'temple', 'tâm linh'],
-            'museum'         => ['bảo tàng', 'museum', 'di tích'],
-            'market'         => ['chợ', 'market', 'mua sắm', 'shopping'],
-            'family_friendly'=> ['gia đình', 'trẻ em', 'trẻ nhỏ', 'family', 'kids', 'children'],
-            'romantic'       => ['lãng mạn', 'cặp đôi', 'romantic', 'couple', 'honeymoon'],
-            'budget'         => ['tiết kiệm', 'giá rẻ', 'budget', 'rẻ', 'ít tiền'],
-            'luxury'         => ['sang trọng', 'luxury', '5 sao', 'vip', 'cao cấp'],
+            'local_food' => ['ăn gì', 'đặc sản', 'món ngon', 'ẩm thực', 'mì quảng', 'bún chả cá', 'hải sản', 'local food'],
+            'restaurant' => ['nhà hàng', 'quán ăn', 'restaurant', 'quán'],
+            'cafe' => ['cafe', 'cà phê', 'coffee', 'quán cà phê'],
+            'seafood' => ['hải sản', 'seafood', 'tôm', 'cua', 'cá'],
+            'hotel' => ['khách sạn', 'hotel', 'accommodation'],
+            'resort' => ['resort', 'villa'],
+            'homestay' => ['homestay', 'guesthouse'],
+            'beach' => ['bãi biển', 'beach', 'tắm biển', 'ven biển', 'view biển'],
+            'mountain' => ['núi', 'mountain', 'đèo'],
+            'temple' => ['chùa', 'đền', 'temple', 'tâm linh'],
+            'museum' => ['bảo tàng', 'museum', 'di tích'],
+            'market' => ['chợ', 'market', 'mua sắm', 'shopping'],
+            'family_friendly' => ['gia đình', 'trẻ em', 'trẻ nhỏ', 'family', 'kids', 'children'],
+            'romantic' => ['lãng mạn', 'cặp đôi', 'romantic', 'couple', 'honeymoon'],
+            'budget' => ['tiết kiệm', 'giá rẻ', 'budget', 'rẻ', 'ít tiền'],
+            'luxury' => ['sang trọng', 'luxury', '5 sao', 'vip', 'cao cấp'],
         ];
 
         foreach ($topicMap as $topic => $keywords) {
@@ -129,12 +129,12 @@ final class ChatQueryUnderstandingService
     {
         $weights = (array) config('chatbot.nlu.weights', [
             'destination' => 35,
-            'price'       => 25,
-            'people'      => 20,
-            'date'        => 20,
+            'price' => 25,
+            'people' => 20,
+            'date' => 20,
         ]);
 
-        $score       = 0;
+        $score = 0;
         $totalWeight = (float) array_sum($weights);
 
         if (! empty($entities['destination']) || ! empty($entities['region'])) {
@@ -177,15 +177,15 @@ final class ChatQueryUnderstandingService
                 $dbDestinations = array_merge($locations, $tours);
 
                 $dictionary = [
-                    'bà nà hills'   => ['bà nà hills', 'bà nà', 'ba na hills', 'bana hills', 'ba na'],
-                    'hội an'        => ['hội an', 'phố cổ hội an', 'hoi an'],
-                    'huế'           => ['huế', 'cố đô huế', 'hue'],
-                    'cù lao chàm'   => ['cù lao chàm', 'cu lao cham', 'cham island'],
-                    'mỹ sơn'        => ['mỹ sơn', 'my son', 'thánh địa mỹ sơn'],
-                    'ngũ hành sơn'  => ['ngũ hành sơn', 'ngu hanh son', 'marble mountains'],
-                    'sơn trà'       => ['sơn trà', 'son tra', 'bán đảo sơn trà'],
-                    'mỹ khê'        => ['mỹ khê', 'my khe', 'bãi biển mỹ khê'],
-                    'cầu rồng'      => ['cầu rồng', 'cau rong', 'dragon bridge'],
+                    'bà nà hills' => ['bà nà hills', 'bà nà', 'ba na hills', 'bana hills', 'ba na'],
+                    'hội an' => ['hội an', 'phố cổ hội an', 'hoi an'],
+                    'huế' => ['huế', 'cố đô huế', 'hue'],
+                    'cù lao chàm' => ['cù lao chàm', 'cu lao cham', 'cham island'],
+                    'mỹ sơn' => ['mỹ sơn', 'my son', 'thánh địa mỹ sơn'],
+                    'ngũ hành sơn' => ['ngũ hành sơn', 'ngu hanh son', 'marble mountains'],
+                    'sơn trà' => ['sơn trà', 'son tra', 'bán đảo sơn trà'],
+                    'mỹ khê' => ['mỹ khê', 'my khe', 'bãi biển mỹ khê'],
+                    'cầu rồng' => ['cầu rồng', 'cau rong', 'dragon bridge'],
                 ];
 
                 foreach ($dbDestinations as $name) {
@@ -203,7 +203,7 @@ final class ChatQueryUnderstandingService
                     }
 
                     if (! $alreadyExists) {
-                        $ascii   = $this->removeVietnameseTones($normalized);
+                        $ascii = $this->removeVietnameseTones($normalized);
                         $aliases = [$normalized];
                         if ($ascii !== $normalized) {
                             $aliases[] = $ascii;
@@ -218,15 +218,15 @@ final class ChatQueryUnderstandingService
             Log::warning('CHATBOT_DYNAMIC_DICTIONARY_FAILED', ['message' => $e->getMessage()]);
 
             return [
-                'bà nà hills'  => ['bà nà hills', 'bà nà', 'ba na hills'],
-                'hội an'       => ['hội an', 'phố cổ hội an'],
-                'huế'          => ['huế', 'cố đô huế'],
-                'cù lao chàm'  => ['cù lao chàm', 'cu lao cham'],
-                'mỹ sơn'       => ['mỹ sơn', 'my son'],
+                'bà nà hills' => ['bà nà hills', 'bà nà', 'ba na hills'],
+                'hội an' => ['hội an', 'phố cổ hội an'],
+                'huế' => ['huế', 'cố đô huế'],
+                'cù lao chàm' => ['cù lao chàm', 'cu lao cham'],
+                'mỹ sơn' => ['mỹ sơn', 'my son'],
                 'ngũ hành sơn' => ['ngũ hành sơn', 'ngu hanh son'],
-                'sơn trà'      => ['sơn trà', 'son tra'],
-                'mỹ khê'       => ['mỹ khê', 'my khe'],
-                'cầu rồng'     => ['cầu rồng', 'cau rong'],
+                'sơn trà' => ['sơn trà', 'son tra'],
+                'mỹ khê' => ['mỹ khê', 'my khe'],
+                'cầu rồng' => ['cầu rồng', 'cau rong'],
             ];
         }
     }
@@ -267,41 +267,41 @@ final class ChatQueryUnderstandingService
     private function applyAliases(string $text): string
     {
         $aliases = [
-            'toà'          => 'tour',
-            'toa'          => 'tour',
-            'tuor'         => 'tour',
-            'tua '         => 'tour ',
-            'tua du lich'  => 'tour du lich',
-            'du lich'      => 'du lịch',
-            're nhat'      => 'rẻ nhất',
-            'gia re'       => 'giá rẻ',
-            'duoi'         => 'dưới',
-            'tren'         => 'trên',
-            'hom nay'      => 'hôm nay',
-            'ngay mai'     => 'ngày mai',
-            'thanh toan'   => 'thanh toán',
-            'hoan tien'    => 'hoàn tiền',
-            'dat tour'     => 'đặt tour',
-            'ba na'        => 'bà nà',
-            'bana'         => 'bà nà',
-            'banahill'     => 'bà nà',
-            'hoi an'       => 'hội an',
-            'hue'          => 'huế',
-            'da nang'      => 'đà nẵng',
-            'danang'       => 'đà nẵng',
-            'ks'           => 'khách sạn',
-            'nha hang'     => 'nhà hàng',
-            'an uong'      => 'ăn uống',
-            'cu lao cham'  => 'cù lao chàm',
-            'my son'       => 'mỹ sơn',
-            'son tra'      => 'sơn trà',
-            'my khe'       => 'mỹ khê',
-            'lịch trình'   => 'itinerary',
-            'lich trinh'   => 'itinerary',
-            'ngày'         => 'days',
-            'ngay'         => 'days',
-            'đêm'          => 'nights',
-            'dem'          => 'nights',
+            'toà' => 'tour',
+            'toa' => 'tour',
+            'tuor' => 'tour',
+            'tua ' => 'tour ',
+            'tua du lich' => 'tour du lich',
+            'du lich' => 'du lịch',
+            're nhat' => 'rẻ nhất',
+            'gia re' => 'giá rẻ',
+            'duoi' => 'dưới',
+            'tren' => 'trên',
+            'hom nay' => 'hôm nay',
+            'ngay mai' => 'ngày mai',
+            'thanh toan' => 'thanh toán',
+            'hoan tien' => 'hoàn tiền',
+            'dat tour' => 'đặt tour',
+            'ba na' => 'bà nà',
+            'bana' => 'bà nà',
+            'banahill' => 'bà nà',
+            'hoi an' => 'hội an',
+            'hue' => 'huế',
+            'da nang' => 'đà nẵng',
+            'danang' => 'đà nẵng',
+            'ks' => 'khách sạn',
+            'nha hang' => 'nhà hàng',
+            'an uong' => 'ăn uống',
+            'cu lao cham' => 'cù lao chàm',
+            'my son' => 'mỹ sơn',
+            'son tra' => 'sơn trà',
+            'my khe' => 'mỹ khê',
+            'lịch trình' => 'itinerary',
+            'lich trinh' => 'itinerary',
+            'ngày' => 'days',
+            'ngay' => 'days',
+            'đêm' => 'nights',
+            'dem' => 'nights',
         ];
 
         return strtr($text, $aliases);
@@ -325,9 +325,9 @@ final class ChatQueryUnderstandingService
     private function extractRegion(string $query): ?string
     {
         $regions = [
-            'đà nẵng'   => ['đà nẵng', 'danang', 'da nang'],
-            'hội an'    => ['hội an'],
-            'huế'       => ['huế'],
+            'đà nẵng' => ['đà nẵng', 'danang', 'da nang'],
+            'hội an' => ['hội an'],
+            'huế' => ['huế'],
             'quảng nam' => ['quảng nam'],
         ];
 
@@ -345,15 +345,15 @@ final class ChatQueryUnderstandingService
     private function extractLocationTopic(string $query): ?string
     {
         $topics = [
-            'beach'    => ['bãi biển', 'tắm biển', 'ven biển', 'beach', 'gần biển'],
-            'food'     => ['ăn uống', 'ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'ăn gì'],
-            'hotel'    => ['khách sạn', 'resort', 'homestay', 'lưu trú', 'chỗ ở'],
-            'spiritual'=> ['chùa', 'tâm linh', 'nhà thờ', 'đền'],
-            'nature'   => ['thiên nhiên', 'núi', 'hang động', 'thác', 'rừng'],
-            'park'     => ['công viên', 'vườn hoa'],
-            'museum'   => ['bảo tàng', 'di tích', 'museum'],
-            'market'   => ['chợ', 'mua sắm', 'market'],
-            'cafe'     => ['cafe', 'cà phê', 'coffee'],
+            'beach' => ['bãi biển', 'tắm biển', 'ven biển', 'beach', 'gần biển'],
+            'food' => ['ăn uống', 'ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'ăn gì'],
+            'hotel' => ['khách sạn', 'resort', 'homestay', 'lưu trú', 'chỗ ở'],
+            'spiritual' => ['chùa', 'tâm linh', 'nhà thờ', 'đền'],
+            'nature' => ['thiên nhiên', 'núi', 'hang động', 'thác', 'rừng'],
+            'park' => ['công viên', 'vườn hoa'],
+            'museum' => ['bảo tàng', 'di tích', 'museum'],
+            'market' => ['chợ', 'mua sắm', 'market'],
+            'cafe' => ['cafe', 'cà phê', 'coffee'],
         ];
 
         foreach ($topics as $topic => $aliases) {
@@ -369,13 +369,13 @@ final class ChatQueryUnderstandingService
     private function extractPrice(string $query, array $markers): ?int
     {
         $markerPattern = implode('|', array_map(fn (string $marker) => preg_quote($marker, '/'), $markers));
-        if (! preg_match('/(?:' . $markerPattern . ')\s*([\d\.,]+)\s*(triệu|trieu|nghìn|nghin|k)?/u', $query, $matches)) {
+        if (! preg_match('/(?:'.$markerPattern.')\s*([\d\.,]+)\s*(triệu|trieu|nghìn|nghin|k)?/u', $query, $matches)) {
             return null;
         }
 
         $rawNumber = str_replace(',', '.', $matches[1]);
-        $number    = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
-        $unit      = $matches[2] ?? '';
+        $number = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
+        $unit = $matches[2] ?? '';
 
         return match ($unit) {
             'triệu', 'trieu' => (int) round($number * 1000000),
@@ -418,8 +418,8 @@ final class ChatQueryUnderstandingService
             $matches
         )) {
             $rawNumber = str_replace(',', '.', $matches[1]);
-            $number    = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
-            $unit      = $matches[2] ?? '';
+            $number = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
+            $unit = $matches[2] ?? '';
 
             return match ($unit) {
                 'triệu', 'trieu' => (int) round($number * 1000000),
@@ -435,8 +435,8 @@ final class ChatQueryUnderstandingService
             $matches
         )) {
             $rawNumber = str_replace(',', '.', $matches[1]);
-            $number    = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
-            $unit      = $matches[2] ?? '';
+            $number = (float) preg_replace('/(?<=\d)\.(?=\d{3}(\D|$))/u', '', $rawNumber);
+            $unit = $matches[2] ?? '';
 
             return match ($unit) {
                 'triệu', 'trieu' => (int) round($number * 1000000),
@@ -485,9 +485,9 @@ final class ChatQueryUnderstandingService
         }
 
         if (preg_match('/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{4}))?/u', $query, $matches)) {
-            $day   = (int) $matches[1];
+            $day = (int) $matches[1];
             $month = (int) $matches[2];
-            $year  = isset($matches[3]) ? (int) $matches[3] : (int) $today->year;
+            $year = isset($matches[3]) ? (int) $matches[3] : (int) $today->year;
 
             if (checkdate($month, $day, $year)) {
                 return CarbonImmutable::create($year, $month, $day, 0, 0, 0, 'Asia/Ho_Chi_Minh')->toDateString();
@@ -522,7 +522,8 @@ final class ChatQueryUnderstandingService
     {
         $sensitive = ['cá', 'rẻ', 'đẹp', 'tua', 'né', 'mai', 'tour', 'ks', 'ngày', 'đêm'];
         if (in_array($needle, $sensitive, true)) {
-            $pattern = '/(?<=\s|^)' . preg_quote($needle, '/') . '(?=\s|$|[.,!?\-])/u';
+            $pattern = '/(?<=\s|^)'.preg_quote($needle, '/').'(?=\s|$|[.,!?\-])/u';
+
             return (bool) preg_match($pattern, $haystack);
         }
 
@@ -532,8 +533,7 @@ final class ChatQueryUnderstandingService
     /**
      * Dọn dẹp mềm các thực thể không liên quan dựa trên intent mới.
      *
-     * @param array<string,mixed> $understanding
-     * @param string $intent
+     * @param  array<string,mixed>  $understanding
      * @return array<string,mixed>
      */
     public function normalizeEntitiesForIntent(array $understanding, string $intent): array
@@ -618,4 +618,3 @@ final class ChatQueryUnderstandingService
         return $understanding;
     }
 }
-

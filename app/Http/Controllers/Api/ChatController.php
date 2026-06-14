@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Chat\SendChatRequest;
+use App\Models\ChatMessage;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class ChatController extends Controller
 {
@@ -23,14 +25,14 @@ final class ChatController extends Controller
             : $this->error($result['message'], $result['status']);
     }
 
-    public function feedback(\Illuminate\Http\Request $request): JsonResponse
+    public function feedback(Request $request): JsonResponse
     {
         $data = $request->validate([
             'message_id' => 'required|integer|exists:chat_messages,id',
-            'rating'     => 'required|string|in:positive,negative',
+            'rating' => 'required|string|in:positive,negative',
         ]);
 
-        $message = \App\Models\ChatMessage::findOrFail($data['message_id']);
+        $message = ChatMessage::findOrFail($data['message_id']);
         $metadata = $message->metadata ?? [];
         $metadata['rating'] = $data['rating'];
         $message->metadata = $metadata;

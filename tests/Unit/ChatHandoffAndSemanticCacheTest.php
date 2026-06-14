@@ -4,8 +4,8 @@ namespace Tests\Unit;
 
 use App\Enums\HttpStatusCode;
 use App\Models\ChatCache;
-use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatEmbeddingService;
+use App\Services\Chat\ChatService;
 use App\Services\Chat\ChatSessionMemoryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -15,7 +15,9 @@ use Tests\TestCase;
 final class ChatHandoffAndSemanticCacheTest extends TestCase
 {
     private ChatService $chatService;
+
     private ChatSessionMemoryService $sessionMemory;
+
     private $mockEmbeddingService;
 
     protected function setUp(): void
@@ -144,7 +146,7 @@ final class ChatHandoffAndSemanticCacheTest extends TestCase
 
     public function test_handoff_by_keywords(): void
     {
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => 'tôi muốn gặp nhân viên tư vấn gấp',
             'session_id' => 'handoff-session-1',
@@ -167,13 +169,13 @@ final class ChatHandoffAndSemanticCacheTest extends TestCase
                             'confidence' => 0.95,
                             'destination' => 'Bà Nà Hills',
                             'people' => 55,
-                        ])
-                    ]]]
-                ]]
-            ])
+                        ]),
+                    ]]],
+                ]],
+            ]),
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => 'đặt tour đi Bà Nà Hills cho 55 người',
             'session_id' => 'handoff-session-2',
@@ -223,7 +225,7 @@ final class ChatHandoffAndSemanticCacheTest extends TestCase
             'clarification_attempts' => 0,
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => 'đặt tour bà nà hills cho 3 người',
             'session_id' => $sessionId,
@@ -259,18 +261,18 @@ final class ChatHandoffAndSemanticCacheTest extends TestCase
                                 'confidence' => 0.95,
                                 'destination' => 'Bà Nà Hills',
                                 'people' => 5,
-                            ])
-                        ]]]
-                    ]]
+                            ]),
+                        ]]],
+                    ]],
                 ])
                 ->push([
                     'candidates' => [[
                         'content' => ['parts' => [[
-                            'text' => 'Câu trả lời sinh mới cho 5 người.'
-                        ]]]
+                            'text' => 'Câu trả lời sinh mới cho 5 người.',
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 100]
-                ])
+                    'usageMetadata' => ['totalTokenCount' => 100],
+                ]),
         ]);
 
         $response2 = $this->chatService->send([

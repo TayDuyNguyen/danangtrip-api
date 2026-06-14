@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 final class ChatSessionMemoryService
 {
     private const CACHE_PREFIX = 'chatbot_session_';
+
     private const TTL = 1800; // 30 minutes
 
     /**
@@ -18,8 +19,8 @@ final class ChatSessionMemoryService
     public function loadSession(string $sessionId): array
     {
         try {
-            $session = Cache::get(self::CACHE_PREFIX . $sessionId);
-            if (!$session) {
+            $session = Cache::get(self::CACHE_PREFIX.$sessionId);
+            if (! $session) {
                 return [
                     'intent' => null,
                     'slots' => [
@@ -33,12 +34,14 @@ final class ChatSessionMemoryService
                     'updated_at' => null,
                 ];
             }
-            if (!isset($session['clarification_attempts'])) {
+            if (! isset($session['clarification_attempts'])) {
                 $session['clarification_attempts'] = 0;
             }
+
             return $session;
         } catch (\Throwable $e) {
             Log::warning('CHATBOT_SESSION_LOAD_FAILED', ['message' => $e->getMessage()]);
+
             return [
                 'intent' => null,
                 'slots' => [
@@ -61,7 +64,7 @@ final class ChatSessionMemoryService
     {
         try {
             $sessionData['updated_at'] = now()->toDateTimeString();
-            Cache::put(self::CACHE_PREFIX . $sessionId, $sessionData, self::TTL);
+            Cache::put(self::CACHE_PREFIX.$sessionId, $sessionData, self::TTL);
         } catch (\Throwable $e) {
             Log::warning('CHATBOT_SESSION_SAVE_FAILED', ['message' => $e->getMessage()]);
         }
@@ -73,7 +76,7 @@ final class ChatSessionMemoryService
     public function clearSession(string $sessionId): void
     {
         try {
-            Cache::forget(self::CACHE_PREFIX . $sessionId);
+            Cache::forget(self::CACHE_PREFIX.$sessionId);
         } catch (\Throwable $e) {
             Log::warning('CHATBOT_SESSION_CLEAR_FAILED', ['message' => $e->getMessage()]);
         }
@@ -87,7 +90,7 @@ final class ChatSessionMemoryService
         $session = $this->loadSession($sessionId);
 
         // Reset slots if changing intent topic completely (exclude unknown/greeting/general)
-        if ($session['intent'] !== null && $session['intent'] !== $intent && !in_array($intent, ['unknown', 'greeting'], true)) {
+        if ($session['intent'] !== null && $session['intent'] !== $intent && ! in_array($intent, ['unknown', 'greeting'], true)) {
             if (in_array($intent, ['tour', 'booking', 'location', 'food', 'hotel'], true)) {
                 $session['slots'] = [
                     'destination' => null,
@@ -98,7 +101,7 @@ final class ChatSessionMemoryService
             }
         }
 
-        if (!in_array($intent, ['unknown'], true)) {
+        if (! in_array($intent, ['unknown'], true)) {
             $session['intent'] = $intent;
         } elseif ($session['intent'] !== null) {
             // Retain previous intent if current is unknown (replying to clarification)
@@ -171,13 +174,14 @@ final class ChatSessionMemoryService
         $words = [
             'một' => 1, 'mot' => 1, 'hai' => 2, 'ba' => 3, 'bốn' => 4, 'bon' => 4,
             'năm' => 5, 'nam' => 5, 'sáu' => 6, 'sau' => 6, 'bảy' => 7, 'bay' => 7,
-            'tám' => 8, 'tam' => 8, 'chín' => 9, 'chin' => 9, 'mười' => 10, 'muoi' => 10
+            'tám' => 8, 'tam' => 8, 'chín' => 9, 'chin' => 9, 'mười' => 10, 'muoi' => 10,
         ];
         foreach ($words as $word => $val) {
             if (mb_stripos($text, $word) !== false) {
                 return $val;
             }
         }
+
         return 0;
     }
 }

@@ -9,7 +9,6 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Class ChatbotController
@@ -43,52 +42,54 @@ final class ChatbotController extends Controller
             for ($i = 29; $i >= 0; $i--) {
                 $dateStr = Carbon::now()->subDays($i)->format('Y-m-d');
                 $dayMessages = $grouped->get($dateStr, collect());
-                
+
                 $total = $dayMessages->count();
                 $cacheHits = $dayMessages->where('cache_hit', true)->count();
-                
-                $latencies = $dayMessages->map(fn($m) => $m->metadata['latency_ms'] ?? null)->filter()->values();
+
+                $latencies = $dayMessages->map(fn ($m) => $m->metadata['latency_ms'] ?? null)->filter()->values();
                 $avgLatency = $latencies->isEmpty() ? 0 : $latencies->average();
-                
+
                 $tokens = $dayMessages->sum('tokens_used');
                 $estimatedCost = ($tokens / 1000) * 0.00015; // Ước lượng 0.15$ / 1M tokens
 
                 $errors = $dayMessages->filter(function ($msg) {
                     $meta = $msg->metadata ?? [];
-                    return ($meta['ai_ok'] ?? true) === false || (!empty($meta['reason']) && str_contains($meta['reason'], 'failover'));
+
+                    return ($meta['ai_ok'] ?? true) === false || (! empty($meta['reason']) && str_contains($meta['reason'], 'failover'));
                 })->count();
 
                 $latencyTrend[] = [
                     'date' => $dateStr,
-                    'latency' => round($avgLatency, 2)
+                    'latency' => round($avgLatency, 2),
                 ];
 
                 $cacheRateTrend[] = [
                     'date' => $dateStr,
-                    'hitRate' => $total > 0 ? round(($cacheHits / $total) * 100, 2) : 0
+                    'hitRate' => $total > 0 ? round(($cacheHits / $total) * 100, 2) : 0,
                 ];
 
                 $costTrend[] = [
                     'date' => $dateStr,
                     'cost' => round($estimatedCost, 6),
-                    'tokens' => $tokens
+                    'tokens' => $tokens,
                 ];
 
                 $errorTrend[] = [
                     'date' => $dateStr,
-                    'errors' => $errors
+                    'errors' => $errors,
                 ];
             }
 
             // 2. Tổng quan KPI kỹ thuật hiện tại
             $totalMsgsCount = $messages->count();
             $totalCacheHitsCount = $messages->where('cache_hit', true)->count();
-            $avgLatencyOverall = $messages->map(fn($m) => $m->metadata['latency_ms'] ?? null)->filter()->average() ?? 0;
+            $avgLatencyOverall = $messages->map(fn ($m) => $m->metadata['latency_ms'] ?? null)->filter()->average() ?? 0;
             $totalCostOverall = ($messages->sum('tokens_used') / 1000) * 0.00015;
 
             $systemErrorsCount = $messages->filter(function ($msg) {
                 $meta = $msg->metadata ?? [];
-                return ($meta['ai_ok'] ?? true) === false || (!empty($meta['reason']) && str_contains($meta['reason'], 'failover'));
+
+                return ($meta['ai_ok'] ?? true) === false || (! empty($meta['reason']) && str_contains($meta['reason'], 'failover'));
             })->count();
 
             // 3. Phân hệ Business Analytics
@@ -96,32 +97,33 @@ final class ChatbotController extends Controller
             $topDestinations = $messages->map(function ($msg) {
                 return $msg->metadata['understanding']['destination'] ?? $msg->metadata['session_slots']['destination'] ?? null;
             })->filter()
-              ->map(fn($x) => mb_convert_case(trim((string)$x), MB_CASE_TITLE, 'UTF-8'))
-              ->filter(fn($x) => $x !== '')
-              ->groupBy(fn($x) => $x)
-              ->map->count()
-              ->sortByDesc(fn($x) => $x)
-              ->take(5)
-              ->map(fn($count, $name) => ['name' => $name, 'value' => $count])
-              ->values()
-              ->toArray();
+                ->map(fn ($x) => mb_convert_case(trim((string) $x), MB_CASE_TITLE, 'UTF-8'))
+                ->filter(fn ($x) => $x !== '')
+                ->groupBy(fn ($x) => $x)
+                ->map->count()
+                ->sortByDesc(fn ($x) => $x)
+                ->take(5)
+                ->map(fn ($count, $name) => ['name' => $name, 'value' => $count])
+                ->values()
+                ->toArray();
 
             // Top Tours (lọc từ context type = tour)
             $topTours = $messages->flatMap(function ($msg) {
                 $ctx = $msg->context ?? [];
+
                 return collect($ctx)->where('type', 'tour')->pluck('title');
             })->filter()
-              ->groupBy(fn($x) => $x)
-              ->map->count()
-              ->sortByDesc(fn($x) => $x)
-              ->take(5)
-              ->map(fn($count, $title) => ['name' => $title, 'value' => $count])
-              ->values()
-              ->toArray();
+                ->groupBy(fn ($x) => $x)
+                ->map->count()
+                ->sortByDesc(fn ($x) => $x)
+                ->take(5)
+                ->map(fn ($count, $title) => ['name' => $title, 'value' => $count])
+                ->values()
+                ->toArray();
 
             // Intent Distribution
             $intentDistribution = $messages->groupBy('intent')
-                ->map(fn($group, $intent) => [
+                ->map(fn ($group, $intent) => [
                     'name' => match ($intent) {
                         'tour' => 'Tìm kiếm Tour 🏖',
                         'booking' => 'Đặt Tour 🛒',
@@ -137,7 +139,7 @@ final class ChatbotController extends Controller
                         'handoff' => 'Hỗ trợ người thật 📞',
                         default => 'Không rõ 🤖'
                     },
-                    'value' => $group->count()
+                    'value' => $group->count(),
                 ])->values()->toArray();
 
             // Unknown Intents list (recent 10)
@@ -202,14 +204,14 @@ final class ChatbotController extends Controller
                         'total_clarified_sessions' => $totalClarified,
                         'completed_sessions' => $completedClarified,
                         'completion_rate' => $clarificationRate,
-                        'drop_off_rate' => 100 - $clarificationRate
-                    ]
-                ]
+                        'drop_off_rate' => 100 - $clarificationRate,
+                    ],
+                ],
             ];
 
             return $this->success($stats, 'Chatbot analytics retrieved successfully.');
         } catch (\Throwable $e) {
-            return $this->error('Failed to retrieve chatbot analytics: ' . $e->getMessage(), 500);
+            return $this->error('Failed to retrieve chatbot analytics: '.$e->getMessage(), 500);
         }
     }
 
@@ -225,16 +227,16 @@ final class ChatbotController extends Controller
             $search = $request->input('search');
 
             $logs = ChatMessage::query()
-                ->when($intent, fn($q) => $q->where('intent', $intent))
-                ->when($cacheHit !== null, fn($q) => $q->where('cache_hit', filter_var($cacheHit, FILTER_VALIDATE_BOOLEAN)))
-                ->when($rating, fn($q) => $q->where('metadata->rating', $rating))
-                ->when($search, fn($q) => $q->where(fn($sq) => $sq->where('question', 'like', "%{$search}%")->orWhere('answer', 'like', "%{$search}%")))
+                ->when($intent, fn ($q) => $q->where('intent', $intent))
+                ->when($cacheHit !== null, fn ($q) => $q->where('cache_hit', filter_var($cacheHit, FILTER_VALIDATE_BOOLEAN)))
+                ->when($rating, fn ($q) => $q->where('metadata->rating', $rating))
+                ->when($search, fn ($q) => $q->where(fn ($sq) => $sq->where('question', 'like', "%{$search}%")->orWhere('answer', 'like', "%{$search}%")))
                 ->orderByDesc('created_at')
                 ->paginate(15);
 
             return $this->success($logs, 'Chat logs retrieved successfully.');
         } catch (\Throwable $e) {
-            return $this->error('Failed to retrieve chat logs: ' . $e->getMessage(), 500);
+            return $this->error('Failed to retrieve chat logs: '.$e->getMessage(), 500);
         }
     }
 
@@ -253,7 +255,7 @@ final class ChatbotController extends Controller
 
             return $this->success($caches, 'Active caches retrieved successfully.');
         } catch (\Throwable $e) {
-            return $this->error('Failed to retrieve cache list: ' . $e->getMessage(), 500);
+            return $this->error('Failed to retrieve cache list: '.$e->getMessage(), 500);
         }
     }
 
@@ -264,9 +266,10 @@ final class ChatbotController extends Controller
     {
         try {
             ChatCache::query()->where('question_hash', $hash)->delete();
+
             return $this->success(null, 'Cache entry deleted successfully.');
         } catch (\Throwable $e) {
-            return $this->error('Failed to delete cache entry: ' . $e->getMessage(), 500);
+            return $this->error('Failed to delete cache entry: '.$e->getMessage(), 500);
         }
     }
 
@@ -277,9 +280,10 @@ final class ChatbotController extends Controller
     {
         try {
             ChatCache::query()->truncate();
+
             return $this->success(null, 'All chatbot caches cleared successfully.');
         } catch (\Throwable $e) {
-            return $this->error('Failed to clear chatbot cache: ' . $e->getMessage(), 500);
+            return $this->error('Failed to clear chatbot cache: '.$e->getMessage(), 500);
         }
     }
 }

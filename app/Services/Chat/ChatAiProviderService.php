@@ -14,12 +14,12 @@ final class ChatAiProviderService
     /** @param array<int,array{role:string,content:string}> $messages */
     public function complete(array $messages, array $options = []): array
     {
-        $attempts    = 0;
+        $attempts = 0;
         $maxAttempts = max(1, (int) config('chatbot.max_retries', 3));
 
         foreach ((array) config('chatbot.provider_order', []) as $provider) {
             $providerConfig = (array) config("chatbot.providers.{$provider}", []);
-            $keys           = (array) ($providerConfig['keys'] ?? []);
+            $keys = (array) ($providerConfig['keys'] ?? []);
 
             foreach ($keys as $index => $key) {
                 if ($attempts >= $maxAttempts) {
@@ -34,38 +34,38 @@ final class ChatAiProviderService
 
                 try {
                     $result = match ($provider) {
-                        'gemini'                         => $this->completeGemini($messages, $providerConfig, (string) $key, $index, $options),
-                        'groq', 'openrouter', 'openai'  => $this->completeOpenAiCompatible($messages, $provider, $providerConfig, (string) $key, $index, $options),
-                        default                          => throw new RuntimeException("Unsupported chatbot provider: {$provider}"),
+                        'gemini' => $this->completeGemini($messages, $providerConfig, (string) $key, $index, $options),
+                        'groq', 'openrouter', 'openai' => $this->completeOpenAiCompatible($messages, $provider, $providerConfig, (string) $key, $index, $options),
+                        default => throw new RuntimeException("Unsupported chatbot provider: {$provider}"),
                     };
 
                     return [
-                        'ok'          => true,
-                        'text'        => $result['text'],
-                        'provider'    => $provider,
-                        'model'       => $providerConfig['model'] ?? null,
+                        'ok' => true,
+                        'text' => $result['text'],
+                        'provider' => $provider,
+                        'model' => $providerConfig['model'] ?? null,
                         'tokens_used' => $result['tokens_used'] ?? 0,
-                        'attempts'    => $attempts,
+                        'attempts' => $attempts,
                     ];
                 } catch (\Throwable $e) {
                     Log::warning('CHATBOT_PROVIDER_FAILED', [
-                        'provider'  => $provider,
-                        'model'     => $providerConfig['model'] ?? null,
+                        'provider' => $provider,
+                        'model' => $providerConfig['model'] ?? null,
                         'key_index' => $index,
-                        'key_hash'  => substr(hash('sha256', (string) $key), 0, 10),
-                        'message'   => $e->getMessage(),
+                        'key_hash' => substr(hash('sha256', (string) $key), 0, 10),
+                        'message' => $e->getMessage(),
                     ]);
                 }
             }
         }
 
         return [
-            'ok'          => false,
-            'text'        => null,
-            'provider'    => null,
-            'model'       => null,
+            'ok' => false,
+            'text' => null,
+            'provider' => null,
+            'model' => null,
             'tokens_used' => 0,
-            'attempts'    => $attempts,
+            'attempts' => $attempts,
         ];
     }
 
@@ -93,14 +93,14 @@ final class ChatAiProviderService
      */
     public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities, string $detectedIntent = '', string $reason = ''): array
     {
-        $provider       = 'gemini';
+        $provider = 'gemini';
         $providerConfig = (array) config("chatbot.providers.{$provider}", []);
-        $keys           = (array) ($providerConfig['keys'] ?? []);
+        $keys = (array) ($providerConfig['keys'] ?? []);
 
         $currentDate = CarbonImmutable::now('Asia/Ho_Chi_Minh')->locale($locale);
-        $dateInfo    = 'Hôm nay là: ' . $currentDate->isoFormat('dddd, DD/MM/YYYY') . ' (múi giờ Asia/Ho_Chi_Minh).';
+        $dateInfo = 'Hôm nay là: '.$currentDate->isoFormat('dddd, DD/MM/YYYY').' (múi giờ Asia/Ho_Chi_Minh).';
         if ($locale === 'en') {
-            $dateInfo = 'Today is: ' . $currentDate->isoFormat('dddd, MMMM DD, YYYY') . ' (timezone Asia/Ho_Chi_Minh).';
+            $dateInfo = 'Today is: '.$currentDate->isoFormat('dddd, MMMM DD, YYYY').' (timezone Asia/Ho_Chi_Minh).';
         }
 
         // Danh sách topics hợp lệ
@@ -125,7 +125,7 @@ final class ChatAiProviderService
             '  // Độ tin cậy của phân loại intent (giá trị float từ 0.0 đến 1.0)',
             '',
             '  "topics": ["<string>", ...],',
-            '  // Chủ đề cụ thể (chọn từ danh sách): ' . $validTopics,
+            '  // Chủ đề cụ thể (chọn từ danh sách): '.$validTopics,
             '',
             '  "content_types": ["<string>", ...],',
             '  // Loại nội dung cần tìm (chọn từ): tour | location | blog | policy',
@@ -180,36 +180,36 @@ final class ChatAiProviderService
             }
 
             try {
-                $model   = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
+                $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
                 $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? 'https://generativelanguage.googleapis.com/v1beta'), '/');
 
                 $response = Http::timeout((int) config('chatbot.timeout_seconds', 25))
                     ->post("{$baseUrl}/models/{$model}:generateContent?key={$key}", [
                         'contents' => [
                             [
-                                'role'  => 'user',
+                                'role' => 'user',
                                 'parts' => [
                                     ['text' => implode("\n\n", [
-                                        'SYSTEM: ' . $systemPrompt,
-                                        'STRUCTURED CONTEXT (INPUT): ' . json_encode([
-                                            'question'    => $question,
+                                        'SYSTEM: '.$systemPrompt,
+                                        'STRUCTURED CONTEXT (INPUT): '.json_encode([
+                                            'question' => $question,
                                             'rule_intent' => $detectedIntent,
-                                            'entities'    => $currentEntities,
-                                            'reason'      => $reason,
+                                            'entities' => $currentEntities,
+                                            'reason' => $reason,
                                         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                                     ])],
                                 ],
                             ],
                         ],
                         'generationConfig' => [
-                            'temperature'      => 0.1,
+                            'temperature' => 0.1,
                             'responseMimeType' => 'application/json',
                         ],
                     ]);
 
                 $this->ensureSuccessfulResponse($response, $provider, $index);
 
-                $text      = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+                $text = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
                 $extracted = json_decode(trim($text), true);
 
                 if (is_array($extracted)) {
@@ -217,9 +217,9 @@ final class ChatAiProviderService
                 }
             } catch (\Throwable $e) {
                 Log::warning('CHATBOT_AI_NLU_FAILED', [
-                    'provider'  => $provider,
+                    'provider' => $provider,
                     'key_index' => $index,
-                    'message'   => $e->getMessage(),
+                    'message' => $e->getMessage(),
                 ]);
             }
         }
@@ -255,7 +255,7 @@ final class ChatAiProviderService
 
         // Boolean fields
         $merged['cheapest_first'] = filter_var($aiExtracted['cheapest_first'] ?? $current['cheapest_first'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $merged['best_first']     = filter_var($aiExtracted['best_first'] ?? $current['best_first'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $merged['best_first'] = filter_var($aiExtracted['best_first'] ?? $current['best_first'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         // Migrate content_type_hints → content_types
         if (! empty($current['content_type_hints']) && ! isset($merged['content_types'])) {
@@ -273,23 +273,23 @@ final class ChatAiProviderService
     /** @param array<int,array{role:string,content:string}> $messages */
     private function completeGemini(array $messages, array $providerConfig, string $key, int $keyIndex, array $options = []): array
     {
-        $model   = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
+        $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
         $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? 'https://generativelanguage.googleapis.com/v1beta'), '/');
-        $system  = $this->extractSystemMessage($messages);
-        $prompt  = trim($system . "\n\n" . $this->messagesToPrompt($messages));
+        $system = $this->extractSystemMessage($messages);
+        $prompt = trim($system."\n\n".$this->messagesToPrompt($messages));
 
         $response = Http::timeout((int) config('chatbot.timeout_seconds', 25))
             ->post("{$baseUrl}/models/{$model}:generateContent?key={$key}", [
                 'contents' => [
                     [
-                        'role'  => 'user',
+                        'role' => 'user',
                         'parts' => [
                             ['text' => $prompt],
                         ],
                     ],
                 ],
                 'generationConfig' => [
-                    'temperature'     => (float) ($options['temperature'] ?? config('chatbot.temperature', 0.3)),
+                    'temperature' => (float) ($options['temperature'] ?? config('chatbot.temperature', 0.3)),
                     'maxOutputTokens' => (int) ($options['max_tokens'] ?? config('chatbot.max_tokens', 700)),
                 ],
             ]);
@@ -302,7 +302,7 @@ final class ChatAiProviderService
         }
 
         return [
-            'text'        => trim($text),
+            'text' => trim($text),
             'tokens_used' => (int) data_get($response->json(), 'usageMetadata.totalTokenCount', 0),
         ];
     }
@@ -313,7 +313,7 @@ final class ChatAiProviderService
         $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? ''), '/');
         $headers = [
             'Authorization' => "Bearer {$key}",
-            'Content-Type'  => 'application/json',
+            'Content-Type' => 'application/json',
         ];
 
         if ($provider === 'openrouter') {
@@ -328,10 +328,10 @@ final class ChatAiProviderService
         $response = Http::withHeaders($headers)
             ->timeout((int) config('chatbot.timeout_seconds', 25))
             ->post("{$baseUrl}/chat/completions", [
-                'model'       => (string) ($providerConfig['model'] ?? ''),
-                'messages'    => $messages,
+                'model' => (string) ($providerConfig['model'] ?? ''),
+                'messages' => $messages,
                 'temperature' => (float) ($options['temperature'] ?? config('chatbot.temperature', 0.3)),
-                'max_tokens'  => (int) ($options['max_tokens'] ?? config('chatbot.max_tokens', 700)),
+                'max_tokens' => (int) ($options['max_tokens'] ?? config('chatbot.max_tokens', 700)),
             ]);
 
         $this->ensureSuccessfulResponse($response, $provider, $keyIndex);
@@ -342,7 +342,7 @@ final class ChatAiProviderService
         }
 
         return [
-            'text'        => trim($text),
+            'text' => trim($text),
             'tokens_used' => (int) data_get($response->json(), 'usage.total_tokens', 0),
         ];
     }
@@ -353,7 +353,7 @@ final class ChatAiProviderService
             return;
         }
 
-        $status  = $response->status();
+        $status = $response->status();
         $message = (string) (
             data_get($response->json(), 'error.message')
             ?: data_get($response->json(), 'message')
@@ -364,7 +364,7 @@ final class ChatAiProviderService
             $this->coolDown($provider, $keyIndex, in_array($status, [401, 403], true) ? 86400 : null);
         }
 
-        throw new RuntimeException("{$provider} HTTP {$status}: " . mb_substr($message, 0, 300));
+        throw new RuntimeException("{$provider} HTTP {$status}: ".mb_substr($message, 0, 300));
     }
 
     /** @param array<int,array{role:string,content:string}> $messages */
@@ -384,7 +384,7 @@ final class ChatAiProviderService
     {
         return collect($messages)
             ->reject(fn (array $message) => ($message['role'] ?? '') === 'system')
-            ->map(fn (array $message) => strtoupper((string) $message['role']) . ":\n" . (string) $message['content'])
+            ->map(fn (array $message) => strtoupper((string) $message['role']).":\n".(string) $message['content'])
             ->implode("\n\n");
     }
 

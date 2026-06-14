@@ -22,10 +22,13 @@ use Illuminate\Support\Str;
 final class ChatKnowledgeSearchService
 {
     // Giới hạn cứng cho từng loại search
-    private const SQL_TOUR_LIMIT     = 50;
+    private const SQL_TOUR_LIMIT = 50;
+
     private const SQL_LOCATION_LIMIT = 50;
-    private const SQL_BLOG_LIMIT     = 20;
-    private const VECTOR_LIMIT       = 20;
+
+    private const SQL_BLOG_LIMIT = 20;
+
+    private const VECTOR_LIMIT = 20;
 
     public function __construct(
         private readonly ChatVectorSearchService $vectorSearch
@@ -34,7 +37,7 @@ final class ChatKnowledgeSearchService
     /**
      * Search tất cả nguồn dữ liệu.
      *
-     * @param  array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array{
      *     sql_results: array{tours: Collection, locations: Collection, blogs: Collection},
      *     vector_results: Collection,
@@ -45,18 +48,18 @@ final class ChatKnowledgeSearchService
      */
     public function search(string $question, string $intent, int $limit, array $understanding = []): array
     {
-        $limit        = max(1, min($limit, 10));
-        $query        = (string) ($understanding['normalized_question'] ?? $this->normalize($question));
+        $limit = max(1, min($limit, 10));
+        $query = (string) ($understanding['normalized_question'] ?? $this->normalize($question));
         $contentTypes = $this->resolveContentTypes($intent, $understanding);
-        $keywords     = (array) ($understanding['keywords'] ?? []);
-        $topics       = (array) ($understanding['topics'] ?? []);
+        $keywords = (array) ($understanding['keywords'] ?? []);
+        $topics = (array) ($understanding['topics'] ?? []);
 
-        $priceMax    = $understanding['max_price'] ?? $this->extractMaxPrice($query);
-        $priceMin    = $understanding['min_price'] ?? null;
-        $cheapest    = (bool) ($understanding['cheapest_first'] ?? $this->isCheapestQuery($query));
+        $priceMax = $understanding['max_price'] ?? $this->extractMaxPrice($query);
+        $priceMin = $understanding['min_price'] ?? null;
+        $cheapest = (bool) ($understanding['cheapest_first'] ?? $this->isCheapestQuery($query));
 
         // === SQL Search theo content_types ===
-        $tours     = in_array('tour', $contentTypes)
+        $tours = in_array('tour', $contentTypes)
             ? $this->searchTours($query, $intent, self::SQL_TOUR_LIMIT, $priceMax, $priceMin, $cheapest, $understanding)
             : collect();
 
@@ -104,14 +107,14 @@ final class ChatKnowledgeSearchService
 
         return [
             'sql_results' => [
-                'tours'     => $tours,
+                'tours' => $tours,
                 'locations' => $locations,
-                'blogs'     => $blogs,
+                'blogs' => $blogs,
             ],
             'vector_results' => $vectorKnowledge,
-            'context'        => $context,
-            'center'         => $center,
-            'zoom'           => $firstLocation instanceof Location ? 13 : 12,
+            'context' => $context,
+            'center' => $center,
+            'zoom' => $firstLocation instanceof Location ? 13 : 12,
         ];
     }
 
@@ -141,13 +144,13 @@ final class ChatKnowledgeSearchService
 
         // Default theo intent
         return match ($intent) {
-            'tour', 'booking', 'schedule'         => ['tour', 'blog'],
-            'location', 'food', 'hotel'           => ['location', 'blog'],
-            'blog'                                => ['blog'],
-            'payment', 'refund', 'loyalty'        => ['policy'],
-            'account', 'contact'                  => ['policy'],
-            'greeting'                            => ['tour', 'location', 'blog'],
-            default                               => ['tour', 'location', 'blog'],
+            'tour', 'booking', 'schedule' => ['tour', 'blog'],
+            'location', 'food', 'hotel' => ['location', 'blog'],
+            'blog' => ['blog'],
+            'payment', 'refund', 'loyalty' => ['policy'],
+            'account', 'contact' => ['policy'],
+            'greeting' => ['tour', 'location', 'blog'],
+            default => ['tour', 'location', 'blog'],
         };
     }
 
@@ -158,7 +161,7 @@ final class ChatKnowledgeSearchService
         array $understanding = [],
         array $topics = []
     ): Collection {
-        $topic  = (string) ($understanding['location_topic'] ?? '');
+        $topic = (string) ($understanding['location_topic'] ?? '');
         $region = (string) ($understanding['region'] ?? '');
 
         // Nếu AI đã đặt topics, ưu tiên dùng topics (chính xác hơn location_topic rule-based)
@@ -196,9 +199,9 @@ final class ChatKnowledgeSearchService
         bool $cheapestFirst,
         array $understanding = []
     ): Collection {
-        $date         = $understanding['date'] ?? null;
-        $people       = $understanding['people'] ?? null;
-        $keywords     = (array) ($understanding['keywords'] ?? []);
+        $date = $understanding['date'] ?? null;
+        $people = $understanding['people'] ?? null;
+        $keywords = (array) ($understanding['keywords'] ?? []);
         $durationDays = $understanding['duration_days'] ?? null;
 
         $builder = Tour::query()
@@ -259,7 +262,7 @@ final class ChatKnowledgeSearchService
             return collect();
         }
 
-        $topic  = (string) ($understanding['location_topic'] ?? '');
+        $topic = (string) ($understanding['location_topic'] ?? '');
         $region = (string) ($understanding['region'] ?? '');
 
         return BlogPost::query()
@@ -343,7 +346,7 @@ final class ChatKnowledgeSearchService
             ->merge($this->blogContext($blogs))
             ->merge($this->vectorContext($vectorKnowledge))
             ->merge($policies)
-            ->unique(fn (array $item): string => (string) ($item['type'] ?? '') . ':' . (string) ($item['id'] ?? $item['slug'] ?? md5((string) ($item['content'] ?? ''))))
+            ->unique(fn (array $item): string => (string) ($item['type'] ?? '').':'.(string) ($item['id'] ?? $item['slug'] ?? md5((string) ($item['content'] ?? ''))))
             ->take($limit)
             ->values()
             ->all();
@@ -370,13 +373,13 @@ final class ChatKnowledgeSearchService
                 ->implode(', ');
 
             return [
-                'type'    => 'tour',
-                'id'      => $tour->id,
-                'title'   => $tour->name,
-                'slug'    => $tour->slug,
+                'type' => 'tour',
+                'id' => $tour->id,
+                'title' => $tour->name,
+                'slug' => $tour->slug,
                 'content' => trim(implode("\n", array_filter([
                     "Tên tour: {$tour->name}",
-                    'Giá người lớn: ' . number_format((float) $tour->price_adult, 0, ',', '.') . ' VND',
+                    'Giá người lớn: '.number_format((float) $tour->price_adult, 0, ',', '.').' VND',
                     $tour->duration ? "Thời lượng: {$tour->duration}" : null,
                     $tour->meeting_point ? "Điểm đón: {$tour->meeting_point}" : null,
                     $scheduleDates ? "Lịch khởi hành: {$scheduleDates}" : 'Lịch khởi hành: Liên hệ để biết thêm chi tiết',
@@ -390,15 +393,15 @@ final class ChatKnowledgeSearchService
     private function locationContext(Collection $locations): Collection
     {
         return $locations->map(fn (Location $location) => [
-            'type'    => 'location',
-            'id'      => $location->id,
-            'title'   => $location->name,
-            'slug'    => $location->slug,
+            'type' => 'location',
+            'id' => $location->id,
+            'title' => $location->name,
+            'slug' => $location->slug,
             'content' => trim(implode("\n", array_filter([
                 "Địa điểm: {$location->name}",
                 "Địa chỉ: {$location->address}",
                 $location->district ? "Khu vực: {$location->district}" : null,
-                $location->price_min ? 'Giá tham khảo từ: ' . number_format((float) $location->price_min, 0, ',', '.') . ' VND' : null,
+                $location->price_min ? 'Giá tham khảo từ: '.number_format((float) $location->price_min, 0, ',', '.').' VND' : null,
                 $location->short_description ?: Str::limit(strip_tags((string) $location->description), 260),
             ]))),
         ]);
@@ -408,10 +411,10 @@ final class ChatKnowledgeSearchService
     private function blogContext(Collection $blogs): Collection
     {
         return $blogs->map(fn (BlogPost $blog) => [
-            'type'    => 'blog',
-            'id'      => $blog->id,
-            'title'   => $blog->title,
-            'slug'    => $blog->slug,
+            'type' => 'blog',
+            'id' => $blog->id,
+            'title' => $blog->title,
+            'slug' => $blog->slug,
             'content' => $blog->excerpt ?: Str::limit(strip_tags((string) $blog->content), 320),
         ]);
     }
@@ -420,11 +423,11 @@ final class ChatKnowledgeSearchService
     private function vectorContext(Collection $knowledgeItems): Collection
     {
         return $knowledgeItems->map(fn (ChatKnowledgeBase $item) => [
-            'type'     => 'vector_' . $item->type,
-            'id'       => $item->reference_id,
-            'title'    => $item->title,
-            'slug'     => $item->reference_slug,
-            'content'  => mb_substr($item->content, 0, 1200),
+            'type' => 'vector_'.$item->type,
+            'id' => $item->reference_id,
+            'title' => $item->title,
+            'slug' => $item->reference_slug,
+            'content' => mb_substr($item->content, 0, 1200),
             'metadata' => $item->metadata,
         ]);
     }
@@ -434,7 +437,7 @@ final class ChatKnowledgeSearchService
     {
         $items = [
             'payment' => 'DanangTrip hỗ trợ thanh toán bằng QR chuyển khoản SePay. Sau khi khách chuyển khoản đúng số tiền và đúng nội dung, hệ thống sẽ tự xác nhận đơn khi nhận IPN.',
-            'refund'  => 'Chính sách hủy tour và hoàn tiền phụ thuộc thời điểm hủy, điều kiện tour và trạng thái thanh toán. Khách nên kiểm tra chính sách trên màn đặt tour hoặc liên hệ hỗ trợ trước khi hủy.',
+            'refund' => 'Chính sách hủy tour và hoàn tiền phụ thuộc thời điểm hủy, điều kiện tour và trạng thái thanh toán. Khách nên kiểm tra chính sách trên màn đặt tour hoặc liên hệ hỗ trợ trước khi hủy.',
             'account' => 'Người dùng có thể đăng ký, đăng nhập, cập nhật hồ sơ, đổi mật khẩu, xem lịch sử đặt tour và quản lý đánh giá trong tài khoản DanangTrip.',
             'contact' => 'Khách hàng có thể gửi yêu cầu liên hệ qua form Liên hệ. Ban quản trị DanangTrip sẽ phản hồi qua email hoặc số điện thoại đã cung cấp.',
             'booking' => 'Khi đặt tour, khách cần chọn lịch khởi hành, số lượng khách và thông tin liên hệ. Đơn sẽ được xác nhận sau khi thanh toán thành công hoặc admin xử lý theo trạng thái đơn.',
@@ -453,10 +456,10 @@ final class ChatKnowledgeSearchService
         }
 
         return collect([[
-            'type'    => 'policy',
-            'id'      => null,
-            'title'   => 'Chính sách DanangTrip',
-            'slug'    => null,
+            'type' => 'policy',
+            'id' => null,
+            'title' => 'Chính sách DanangTrip',
+            'slug' => null,
             'content' => $items[$intent],
         ]]);
     }
@@ -500,6 +503,7 @@ final class ChatKnowledgeSearchService
                         return false;
                     }
                 }
+
                 return true;
             })
             ->take(8)
@@ -512,7 +516,7 @@ final class ChatKnowledgeSearchService
         if ($boolean === 'or') {
             return $builder->where(function (Builder $nested) use ($keywords, $columns): void {
                 foreach ($keywords as $keyword) {
-                    $like = '%' . $this->escapeLike($keyword) . '%';
+                    $like = '%'.$this->escapeLike($keyword).'%';
                     foreach ($columns as $column) {
                         $nested->orWhereRaw("LOWER(CAST({$column} AS TEXT)) LIKE ?", [$like]);
                     }
@@ -522,7 +526,7 @@ final class ChatKnowledgeSearchService
 
         return $builder->where(function (Builder $nested) use ($keywords, $columns): void {
             foreach ($keywords as $keyword) {
-                $like = '%' . $this->escapeLike($keyword) . '%';
+                $like = '%'.$this->escapeLike($keyword).'%';
                 $nested->where(function (Builder $or) use ($columns, $like): void {
                     foreach ($columns as $column) {
                         $or->orWhereRaw("LOWER(CAST({$column} AS TEXT)) LIKE ?", [$like]);
@@ -538,19 +542,19 @@ final class ChatKnowledgeSearchService
     private function applyTopicFilter(Builder $builder, array $topics): Builder
     {
         $topicTermMap = [
-            'local_food'  => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'food', 'restaurant'],
-            'restaurant'  => ['nhà hàng', 'restaurant', 'quán ăn'],
-            'cafe'        => ['cafe', 'cà phê', 'coffee'],
-            'seafood'     => ['hải sản', 'seafood', 'tôm', 'cua'],
-            'hotel'       => ['khách sạn', 'hotel'],
-            'resort'      => ['resort'],
-            'homestay'    => ['homestay'],
-            'beach'       => ['bãi biển', 'beach'],
-            'mountain'    => ['núi', 'mountain'],
-            'temple'      => ['chùa', 'đền', 'temple', 'tâm linh'],
-            'museum'      => ['bảo tàng', 'museum', 'di tích'],
-            'market'      => ['chợ', 'market'],
-            'park'        => ['công viên', 'vườn'],
+            'local_food' => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản', 'food', 'restaurant'],
+            'restaurant' => ['nhà hàng', 'restaurant', 'quán ăn'],
+            'cafe' => ['cafe', 'cà phê', 'coffee'],
+            'seafood' => ['hải sản', 'seafood', 'tôm', 'cua'],
+            'hotel' => ['khách sạn', 'hotel'],
+            'resort' => ['resort'],
+            'homestay' => ['homestay'],
+            'beach' => ['bãi biển', 'beach'],
+            'mountain' => ['núi', 'mountain'],
+            'temple' => ['chùa', 'đền', 'temple', 'tâm linh'],
+            'museum' => ['bảo tàng', 'museum', 'di tích'],
+            'market' => ['chợ', 'market'],
+            'park' => ['công viên', 'vườn'],
         ];
 
         $allTerms = [];
@@ -565,7 +569,7 @@ final class ChatKnowledgeSearchService
 
         return $builder->where(function (Builder $nested) use ($allTerms): void {
             foreach ($allTerms as $term) {
-                $like = '%' . $this->escapeLike($term) . '%';
+                $like = '%'.$this->escapeLike($term).'%';
                 $nested
                     ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(CAST(short_description AS TEXT)) LIKE ?', [$like])
@@ -581,7 +585,7 @@ final class ChatKnowledgeSearchService
         }
 
         $number = (float) str_replace(',', '.', str_replace('.', '', $matches[1]));
-        $unit   = $matches[2] ?? '';
+        $unit = $matches[2] ?? '';
 
         return match ($unit) {
             'triệu', 'trieu' => (int) ($number * 1000000),
@@ -612,15 +616,15 @@ final class ChatKnowledgeSearchService
         }
 
         $terms = match ($topic) {
-            'food'     => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản'],
-            'hotel'    => ['khách sạn', 'hotel', 'resort', 'homestay'],
-            'spiritual'=> ['chùa', 'nhà thờ', 'tâm linh'],
-            'nature'   => ['thiên nhiên', 'núi', 'hang động', 'thác'],
-            'park'     => ['công viên', 'vườn hoa'],
-            'museum'   => ['bảo tàng', 'di tích'],
-            'market'   => ['chợ', 'mua sắm'],
-            'cafe'     => ['cafe', 'cà phê', 'coffee'],
-            default    => [],
+            'food' => ['ẩm thực', 'nhà hàng', 'quán ăn', 'đặc sản'],
+            'hotel' => ['khách sạn', 'hotel', 'resort', 'homestay'],
+            'spiritual' => ['chùa', 'nhà thờ', 'tâm linh'],
+            'nature' => ['thiên nhiên', 'núi', 'hang động', 'thác'],
+            'park' => ['công viên', 'vườn hoa'],
+            'museum' => ['bảo tàng', 'di tích'],
+            'market' => ['chợ', 'mua sắm'],
+            'cafe' => ['cafe', 'cà phê', 'coffee'],
+            default => [],
         };
 
         if ($terms === []) {
@@ -629,7 +633,7 @@ final class ChatKnowledgeSearchService
 
         return $builder->where(function (Builder $nested) use ($terms, $topic): void {
             foreach ($terms as $term) {
-                $like = '%' . $this->escapeLike($term) . '%';
+                $like = '%'.$this->escapeLike($term).'%';
                 $nested->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', [$like]);
                 if ($topic !== 'beach') {
                     $nested
@@ -655,7 +659,7 @@ final class ChatKnowledgeSearchService
     private function applyRelationNameTerms(Builder $builder, array $terms): Builder
     {
         foreach ($terms as $term) {
-            $builder->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%' . $this->escapeLike($term) . '%']);
+            $builder->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', ['%'.$this->escapeLike($term).'%']);
         }
 
         return $builder;
@@ -664,16 +668,16 @@ final class ChatKnowledgeSearchService
     private function applyLocationRegion(Builder $builder, string $region): Builder
     {
         $terms = match ($region) {
-            'đà nẵng'   => ['đà nẵng', 'da nang', 'danang'],
-            'hội an'    => ['hội an', 'hoi an'],
-            'huế'       => ['huế', 'hue'],
+            'đà nẵng' => ['đà nẵng', 'da nang', 'danang'],
+            'hội an' => ['hội an', 'hoi an'],
+            'huế' => ['huế', 'hue'],
             'quảng nam' => ['quảng nam', 'quang nam'],
-            default     => [$region],
+            default => [$region],
         };
 
         return $builder->where(function (Builder $nested) use ($terms): void {
             foreach ($terms as $term) {
-                $like = '%' . $this->escapeLike($term) . '%';
+                $like = '%'.$this->escapeLike($term).'%';
                 $nested
                     ->orWhereRaw('LOWER(CAST(address AS TEXT)) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(CAST(district AS TEXT)) LIKE ?', [$like])
@@ -723,11 +727,9 @@ final class ChatKnowledgeSearchService
     /**
      * Build RAG context based on recommended items first, then fill with other items.
      *
-     * @param  array<int,array{type:string,data:array<string,mixed>}> $recommendations
-     * @param  array{tours:Collection,locations:Collection,blogs:Collection} $sqlResults
-     * @param  Collection<int,ChatKnowledgeBase>                             $vectorResults
-     * @param  string                                                         $intent
-     * @param  int                                                            $limit
+     * @param  array<int,array{type:string,data:array<string,mixed>}>  $recommendations
+     * @param  array{tours:Collection,locations:Collection,blogs:Collection}  $sqlResults
+     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
      * @return array<int,array<string,mixed>>
      */
     public function buildAlignedContext(
@@ -761,7 +763,7 @@ final class ChatKnowledgeSearchService
         // 2. Fetch/hydrate the models for recommendations to build primary context
         $recContextMap = [];
 
-        if (!empty($recTourIds)) {
+        if (! empty($recTourIds)) {
             $tours = Tour::query()->whereIn('id', $recTourIds)->get();
             $tourContexts = $this->tourContext($tours);
             foreach ($tourContexts as $ctx) {
@@ -769,7 +771,7 @@ final class ChatKnowledgeSearchService
             }
         }
 
-        if (!empty($recLocationIds)) {
+        if (! empty($recLocationIds)) {
             $locations = Location::query()->whereIn('id', $recLocationIds)->get();
             $locationContexts = $this->locationContext($locations);
             foreach ($locationContexts as $ctx) {
@@ -777,7 +779,7 @@ final class ChatKnowledgeSearchService
             }
         }
 
-        if (!empty($recBlogIds)) {
+        if (! empty($recBlogIds)) {
             $blogs = BlogPost::query()->whereIn('id', $recBlogIds)->get();
             $blogContexts = $this->blogContext($blogs);
             foreach ($blogContexts as $ctx) {
@@ -787,7 +789,7 @@ final class ChatKnowledgeSearchService
 
         // Add recommendations to primary context in order
         foreach ($recommendations as $rec) {
-            $key = "{$rec['type']}:" . ($rec['data']['id'] ?? '');
+            $key = "{$rec['type']}:".($rec['data']['id'] ?? '');
             if (isset($recContextMap[$key])) {
                 $primaryContext->push($recContextMap[$key]);
             }
@@ -806,21 +808,21 @@ final class ChatKnowledgeSearchService
 
         // Other SQL results (excluding recommendations)
         $otherTours = collect($sqlResults['tours'] ?? [])
-            ->reject(fn($t) => in_array($t->id, $recTourIds))
+            ->reject(fn ($t) => in_array($t->id, $recTourIds))
             ->take(5);
         if ($otherTours->isNotEmpty()) {
             $secondaryContext = $secondaryContext->merge($this->tourContext($otherTours));
         }
 
         $otherLocations = collect($sqlResults['locations'] ?? [])
-            ->reject(fn($l) => in_array($l->id, $recLocationIds))
+            ->reject(fn ($l) => in_array($l->id, $recLocationIds))
             ->take(5);
         if ($otherLocations->isNotEmpty()) {
             $secondaryContext = $secondaryContext->merge($this->locationContext($otherLocations));
         }
 
         $otherBlogs = collect($sqlResults['blogs'] ?? [])
-            ->reject(fn($b) => in_array($b->id, $recBlogIds))
+            ->reject(fn ($b) => in_array($b->id, $recBlogIds))
             ->take(5);
         if ($otherBlogs->isNotEmpty()) {
             $secondaryContext = $secondaryContext->merge($this->blogContext($otherBlogs));
@@ -830,10 +832,9 @@ final class ChatKnowledgeSearchService
         return collect()
             ->merge($primaryContext)
             ->merge($secondaryContext)
-            ->unique(fn (array $item): string => (string) ($item['type'] ?? '') . ':' . (string) ($item['id'] ?? $item['slug'] ?? md5((string) ($item['content'] ?? ''))))
+            ->unique(fn (array $item): string => (string) ($item['type'] ?? '').':'.(string) ($item['id'] ?? $item['slug'] ?? md5((string) ($item['content'] ?? ''))))
             ->take($limit)
             ->values()
             ->all();
     }
 }
-

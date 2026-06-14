@@ -51,6 +51,7 @@ final class ChatVectorSearchService
             ->take($limit)
             ->map(function (array $result) {
                 $result['item']->similarity_score = $result['score'];
+
                 return $result['item'];
             })
             ->values();

@@ -12,7 +12,7 @@ final class IntentConsistencyServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = new IntentConsistencyService();
+        $this->service = new IntentConsistencyService;
     }
 
     public function test_it_returns_false_when_intent_has_no_config(): void

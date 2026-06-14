@@ -200,22 +200,22 @@ final class ChatServiceNluTest extends TestCase
                                 'destination' => 'cầu rồng',
                                 'people' => 3,
                                 'max_price' => 1500000,
-                            ])
-                        ]]]
+                            ]),
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 100]
+                    'usageMetadata' => ['totalTokenCount' => 100],
                 ])
                 ->push([ // complete()
                     'candidates' => [[
                         'content' => ['parts' => [[
-                            'text' => 'Đây là câu trả lời mock cho tour Cầu Rồng.'
-                        ]]]
+                            'text' => 'Đây là câu trả lời mock cho tour Cầu Rồng.',
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 120]
-                ])
+                    'usageMetadata' => ['totalTokenCount' => 120],
+                ]),
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => $question,
             'session_id' => 'test-session',
@@ -239,13 +239,13 @@ final class ChatServiceNluTest extends TestCase
                             'text' => json_encode([
                                 'intent' => 'unknown',
                                 'confidence' => 0.95,
-                            ])
-                        ]]]
-                    ]]
-                ])
+                            ]),
+                        ]]],
+                    ]],
+                ]),
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => $question,
             'session_id' => 'test-session',
@@ -272,22 +272,22 @@ final class ChatServiceNluTest extends TestCase
                             'text' => json_encode([
                                 'intent' => 'tour',
                                 'confidence' => 0.99,
-                            ])
-                        ]]]
+                            ]),
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 100]
+                    'usageMetadata' => ['totalTokenCount' => 100],
                 ])
                 ->push([ // complete
                     'candidates' => [[
                         'content' => ['parts' => [[
-                            'text' => 'Câu trả lời mock ẩm thực.'
-                        ]]]
+                            'text' => 'Câu trả lời mock ẩm thực.',
+                        ]]],
                     ]],
-                    'usageMetadata' => ['totalTokenCount' => 120]
-                ])
+                    'usageMetadata' => ['totalTokenCount' => 120],
+                ]),
         ]);
 
-        $request = new Request();
+        $request = new Request;
         $response = $this->chatService->send([
             'message' => $question,
             'session_id' => 'test-session',

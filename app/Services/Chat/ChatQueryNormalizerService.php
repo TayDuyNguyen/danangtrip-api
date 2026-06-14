@@ -3,7 +3,6 @@
 namespace App\Services\Chat;
 
 use App\Models\Location;
-use App\Models\Tour;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -20,7 +19,7 @@ final class ChatQueryNormalizerService
     /**
      * Chuẩn hóa toàn bộ understanding array sau NLU.
      *
-     * @param  array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array<string,mixed>
      */
     public function normalize(array $understanding): array
@@ -46,7 +45,7 @@ final class ChatQueryNormalizerService
      * Lookup location_id từ destination name trong DB.
      * Ưu tiên: exact match → partial match (LIKE).
      *
-     * @param  array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array<string,mixed>
      */
     private function resolveDestinationId(array $understanding): array
@@ -56,7 +55,7 @@ final class ChatQueryNormalizerService
             return $understanding;
         }
 
-        $cacheKey = 'chatbot:dest_id:' . md5(mb_strtolower($destinationName));
+        $cacheKey = 'chatbot:dest_id:'.md5(mb_strtolower($destinationName));
 
         try {
             $locationId = Cache::remember($cacheKey, 3600, function () use ($destinationName): ?int {
@@ -73,7 +72,7 @@ final class ChatQueryNormalizerService
                 // 2. Partial match
                 $id = Location::query()
                     ->where('status', 'active')
-                    ->whereRaw('LOWER(name) LIKE ?', ['%' . mb_strtolower($destinationName) . '%'])
+                    ->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($destinationName).'%'])
                     ->orderByDesc('is_featured')
                     ->value('id');
 
@@ -86,7 +85,7 @@ final class ChatQueryNormalizerService
         } catch (\Throwable $e) {
             Log::warning('CHATBOT_NORMALIZER_DEST_LOOKUP_FAILED', [
                 'destination' => $destinationName,
-                'message'     => $e->getMessage(),
+                'message' => $e->getMessage(),
             ]);
         }
 
@@ -96,7 +95,7 @@ final class ChatQueryNormalizerService
     /**
      * Nếu AI NLU chưa set content_types, dùng content_type_hints từ rule-based.
      *
-     * @param  array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array<string,mixed>
      */
     private function resolveContentTypes(array $understanding): array
@@ -119,7 +118,7 @@ final class ChatQueryNormalizerService
     /**
      * Nếu AI NLU chưa set topics, dùng topic_hints từ rule-based.
      *
-     * @param  array<string,mixed> $understanding
+     * @param  array<string,mixed>  $understanding
      * @return array<string,mixed>
      */
     private function resolveTopics(array $understanding): array
