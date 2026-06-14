@@ -17,6 +17,9 @@ final class SendChatRequest extends FormRequest
             'message' => ['required', 'string', 'min:1', 'max:1000'],
             'locale' => ['sometimes', 'string', 'in:vi,en'],
             'session_id' => ['sometimes', 'string', 'max:100'],
+            'history' => ['sometimes', 'array'],
+            'history.*.role' => ['required', 'string', 'in:user,assistant'],
+            'history.*.content' => ['required', 'string'],
         ];
     }
 

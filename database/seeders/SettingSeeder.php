@@ -162,6 +162,31 @@ class SettingSeeder extends Seeder
                 'value_type' => 'string',
                 'is_public' => true,
             ],
+            // Chatbot settings
+            [
+                'key' => 'chatbot.enabled',
+                'value' => 'true',
+                'value_type' => 'boolean',
+                'is_public' => false,
+            ],
+            [
+                'key' => 'chatbot.clarification_attempt_limit',
+                'value' => '2',
+                'value_type' => 'number',
+                'is_public' => false,
+            ],
+            [
+                'key' => 'chatbot.cache_ttl_seconds',
+                'value' => '86400',
+                'value_type' => 'number',
+                'is_public' => false,
+            ],
+            [
+                'key' => 'chatbot.cache',
+                'value' => '{"threshold_transactional":0.97,"threshold_faq":0.92}',
+                'value_type' => 'json',
+                'is_public' => false,
+            ],
         ];
 
         foreach ($defaultSettings as $setting) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Admin\AmenityController as AdminAmenityController;
 use App\Http\Controllers\Api\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Api\Admin\BookingController as AdminBookingController;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Api\Admin\ChatbotController;
 use App\Http\Controllers\Api\Admin\ContactController as AdminContactController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\LandingPageController as AdminLandingPageController;
@@ -121,6 +122,7 @@ Route::prefix('v1')->group(function () {
     // Chatbot: DanangTrip AI assistant
     // (Chatbot: Trợ lý AI DanangTrip)
     Route::post('/chat', [ChatController::class, 'send'])->middleware('throttle:api.strict');
+    Route::post('/chat/feedback', [ChatController::class, 'feedback'])->middleware('throttle:api.standard');
 
     // Ratings: Public access
     // (Đánh giá: Truy cập công khai)
@@ -461,5 +463,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/landing-pages/{id}', [AdminLandingPageController::class, 'update'])->whereNumber('id');
         Route::patch('/landing-pages/{id}/status', [AdminLandingPageController::class, 'updateStatus'])->whereNumber('id');
         Route::delete('/landing-pages/{id}', [AdminLandingPageController::class, 'destroy'])->whereNumber('id');
+
+        // Chatbot Management
+        Route::get('/chatbot/stats', [ChatbotController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/logs', [ChatbotController::class, 'logs'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/cache', [ChatbotController::class, 'cache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache/{hash}', [ChatbotController::class, 'deleteCache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache', [ChatbotController::class, 'clearAllCache'])->middleware('throttle:api.admin');
     });
 });
