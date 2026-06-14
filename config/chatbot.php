@@ -15,7 +15,7 @@ return [
     'vector_candidate_limit' => (int) env('CHATBOT_VECTOR_CANDIDATE_LIMIT', 80),
     'vector_context_limit' => (int) env('CHATBOT_VECTOR_CONTEXT_LIMIT', 5),
     'max_context_items' => (int) env('CHATBOT_MAX_CONTEXT_ITEMS', 5),
-    'max_tokens' => (int) env('CHATBOT_MAX_TOKENS', 700),
+    'max_tokens' => (int) env('CHATBOT_MAX_TOKENS', 2000),
     'temperature' => (float) env('CHATBOT_TEMPERATURE', 0.3),
     'timeout_seconds' => (int) env('CHATBOT_TIMEOUT_SECONDS', 25),
     'max_retries' => (int) env('CHATBOT_MAX_RETRIES', 8),

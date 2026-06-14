@@ -76,6 +76,15 @@ class UpdateSettingsRequest extends FormRequest
             'settings.seo.meta_title' => 'required|string|min:10|max:100',
             'settings.seo.meta_description' => 'required|string|min:20|max:200',
             'settings.seo.og_image' => 'nullable|string|max:2048',
+
+            // Chatbot settings
+            'settings.chatbot' => 'required|array',
+            'settings.chatbot.enabled' => 'required|boolean',
+            'settings.chatbot.clarification_attempt_limit' => 'required|integer|min:1|max:5',
+            'settings.chatbot.cache_ttl_seconds' => 'required|integer|min:60',
+            'settings.chatbot.cache' => 'required|array',
+            'settings.chatbot.cache.threshold_transactional' => 'required|numeric|min:0.5|max:1.0',
+            'settings.chatbot.cache.threshold_faq' => 'required|numeric|min:0.5|max:1.0',
         ];
     }
 

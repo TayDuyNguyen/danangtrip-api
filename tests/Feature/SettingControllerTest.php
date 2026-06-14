@@ -135,6 +135,15 @@ class SettingControllerTest extends TestCase
                     'meta_description' => 'Great experiences with DaNangTrip travel and tourism.',
                     'og_image' => 'https://res.cloudinary.com/og_image.png',
                 ],
+                'chatbot' => [
+                    'enabled' => true,
+                    'clarification_attempt_limit' => 3,
+                    'cache_ttl_seconds' => 3600,
+                    'cache' => [
+                        'threshold_transactional' => 0.85,
+                        'threshold_faq' => 0.90,
+                    ],
+                ],
             ],
         ];
 
@@ -259,6 +268,15 @@ class SettingControllerTest extends TestCase
                     'meta_title' => 'DaNangTrip - New Title SEO Page',
                     'meta_description' => 'Great experiences with DaNangTrip travel and tourism.',
                     'og_image' => 'https://res.cloudinary.com/og_image.png',
+                ],
+                'chatbot' => [
+                    'enabled' => true,
+                    'clarification_attempt_limit' => 3,
+                    'cache_ttl_seconds' => 3600,
+                    'cache' => [
+                        'threshold_transactional' => 0.85,
+                        'threshold_faq' => 0.90,
+                    ],
                 ],
             ],
         ];

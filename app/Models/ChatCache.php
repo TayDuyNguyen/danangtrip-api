@@ -15,6 +15,9 @@ final class ChatCache extends Model
         'intent',
         'answer',
         'recommendations',
+        'suggested_questions',
+        'embedding',
+        'slots',
         'center',
         'zoom',
         'provider',
@@ -26,6 +29,9 @@ final class ChatCache extends Model
     {
         return [
             'recommendations' => 'array',
+            'suggested_questions' => 'array',
+            'embedding' => 'array',
+            'slots' => 'array',
             'center' => 'array',
             'zoom' => 'integer',
             'expires_at' => 'datetime',

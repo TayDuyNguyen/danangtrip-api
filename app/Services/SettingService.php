@@ -78,6 +78,7 @@ final class SettingService
 
             // Invalidate the public configurations cache
             Cache::forget(self::CACHE_KEY);
+            Cache::forget('chatbot_db_settings');
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

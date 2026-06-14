@@ -22,4 +22,20 @@ final class ChatController extends Controller
             ? $this->success($result['data'], $result['message'] ?? 'Success')
             : $this->error($result['message'], $result['status']);
     }
+
+    public function feedback(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'message_id' => 'required|integer|exists:chat_messages,id',
+            'rating'     => 'required|string|in:positive,negative',
+        ]);
+
+        $message = \App\Models\ChatMessage::findOrFail($data['message_id']);
+        $metadata = $message->metadata ?? [];
+        $metadata['rating'] = $data['rating'];
+        $message->metadata = $metadata;
+        $message->save();
+
+        return $this->success(null, 'Feedback saved successfully.');
+    }
 }

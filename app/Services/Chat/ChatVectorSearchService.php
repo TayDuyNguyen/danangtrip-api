@@ -39,8 +39,6 @@ final class ChatVectorSearchService
         $queryVector = $embedding['values'];
 
         return $baseQuery
-            ->orderByDesc('updated_at')
-            ->limit($candidateLimit)
             ->get()
             ->map(function (ChatKnowledgeBase $item) use ($queryVector): array {
                 return [
@@ -51,7 +49,10 @@ final class ChatVectorSearchService
             ->filter(fn (array $result): bool => $result['score'] >= $minSimilarity)
             ->sortByDesc('score')
             ->take($limit)
-            ->pluck('item')
+            ->map(function (array $result) {
+                $result['item']->similarity_score = $result['score'];
+                return $result['item'];
+            })
             ->values();
     }
 

@@ -148,7 +148,7 @@ final class SearchService
                 ? []
                 : $this->tourRepository->getNameSuggestions($q, $limit, $tourFilters);
 
-            $suggestions = collect($locationSuggestions)
+            $suggestionsCollection = collect($locationSuggestions)
                 ->merge($tourSuggestions)
                 ->unique(function ($item) {
                     if (! is_array($item)) {
@@ -159,10 +159,13 @@ final class SearchService
                     $label = (string) ($item['title'] ?? $item['name'] ?? '');
 
                     return $type.':'.mb_strtolower($label);
-                })
-                ->take($limit)
-                ->values()
-                ->all();
+                });
+
+            if ($type !== 'all') {
+                $suggestionsCollection = $suggestionsCollection->take($limit);
+            }
+
+            $suggestions = $suggestionsCollection->values()->all();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,

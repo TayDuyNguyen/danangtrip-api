@@ -121,6 +121,7 @@ Route::prefix('v1')->group(function () {
     // Chatbot: DanangTrip AI assistant
     // (Chatbot: Trợ lý AI DanangTrip)
     Route::post('/chat', [ChatController::class, 'send'])->middleware('throttle:api.strict');
+    Route::post('/chat/feedback', [ChatController::class, 'feedback'])->middleware('throttle:api.standard');
 
     // Ratings: Public access
     // (Đánh giá: Truy cập công khai)
@@ -461,5 +462,12 @@ Route::prefix('v1')->group(function () {
         Route::put('/landing-pages/{id}', [AdminLandingPageController::class, 'update'])->whereNumber('id');
         Route::patch('/landing-pages/{id}/status', [AdminLandingPageController::class, 'updateStatus'])->whereNumber('id');
         Route::delete('/landing-pages/{id}', [AdminLandingPageController::class, 'destroy'])->whereNumber('id');
+
+        // Chatbot Management
+        Route::get('/chatbot/stats', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'stats'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/logs', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'logs'])->middleware('throttle:api.admin');
+        Route::get('/chatbot/cache', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'cache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache/{hash}', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'deleteCache'])->middleware('throttle:api.admin');
+        Route::delete('/chatbot/cache', [\App\Http\Controllers\Api\Admin\ChatbotController::class, 'clearAllCache'])->middleware('throttle:api.admin');
     });
 });
