@@ -160,19 +160,25 @@ final class ChatQueryUnderstandingService
     {
         try {
             return Cache::remember('chatbot:dynamic_destinations', 3600, function (): array {
-                $locations = Location::query()
-                    ->where('status', 'active')
-                    ->pluck('name')
-                    ->filter()
-                    ->unique()
-                    ->toArray();
+                $locations = [];
+                if (\Illuminate\Support\Facades\Schema::hasTable('locations')) {
+                    $locations = Location::query()
+                        ->where('status', 'active')
+                        ->pluck('name')
+                        ->filter()
+                        ->unique()
+                        ->toArray();
+                }
 
-                $tours = Tour::query()
-                    ->where('status', 'active')
-                    ->pluck('name')
-                    ->filter()
-                    ->unique()
-                    ->toArray();
+                $tours = [];
+                if (\Illuminate\Support\Facades\Schema::hasTable('tours')) {
+                    $tours = Tour::query()
+                        ->where('status', 'active')
+                        ->pluck('name')
+                        ->filter()
+                        ->unique()
+                        ->toArray();
+                }
 
                 $dbDestinations = array_merge($locations, $tours);
 

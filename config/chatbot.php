@@ -10,6 +10,7 @@ return [
     'provider_order' => $csv('CHATBOT_PROVIDER_ORDER') ?: ['gemini', 'groq', 'openrouter'],
     'cache_driver' => env('CHATBOT_CACHE_DRIVER', 'database'),
     'cache_ttl_seconds' => (int) env('CHATBOT_CACHE_TTL_SECONDS', 86400),
+    'session_ttl_seconds' => (int) env('CHATBOT_SESSION_TTL_SECONDS', 3600),
     'vector_enabled' => (bool) env('CHATBOT_VECTOR_ENABLED', false),
     'vector_min_similarity' => (float) env('CHATBOT_VECTOR_MIN_SIMILARITY', 0.68),
     'vector_candidate_limit' => (int) env('CHATBOT_VECTOR_CANDIDATE_LIMIT', 80),
