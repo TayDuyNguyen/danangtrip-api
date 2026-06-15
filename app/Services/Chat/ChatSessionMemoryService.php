@@ -9,7 +9,7 @@ final class ChatSessionMemoryService
 {
     private const CACHE_PREFIX = 'chatbot_session_';
 
-    private const TTL = 1800; // 30 minutes
+    private const TTL = 3600; // 1 hour
 
     /**
      * Load session memory.
@@ -64,7 +64,8 @@ final class ChatSessionMemoryService
     {
         try {
             $sessionData['updated_at'] = now()->toDateTimeString();
-            Cache::put(self::CACHE_PREFIX.$sessionId, $sessionData, self::TTL);
+            $ttl = (int) config('chatbot.session_ttl_seconds', self::TTL);
+            Cache::put(self::CACHE_PREFIX.$sessionId, $sessionData, $ttl);
         } catch (\Throwable $e) {
             Log::warning('CHATBOT_SESSION_SAVE_FAILED', ['message' => $e->getMessage()]);
         }

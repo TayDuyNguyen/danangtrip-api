@@ -228,6 +228,9 @@ final class ChatAiProviderService
                         'generationConfig' => [
                             'temperature' => 0.1,
                             'responseMimeType' => 'application/json',
+                            'thinkingConfig' => [
+                                'thinkingBudget' => 0,
+                            ],
                         ],
                     ]);
 
@@ -318,6 +321,9 @@ final class ChatAiProviderService
                 'generationConfig' => [
                     'temperature' => (float) ($options['temperature'] ?? config('chatbot.temperature', 0.3)),
                     'maxOutputTokens' => (int) ($options['max_tokens'] ?? config('chatbot.max_tokens', 700)),
+                    'thinkingConfig' => [
+                        'thinkingBudget' => 0,
+                    ],
                 ],
             ]);
 
