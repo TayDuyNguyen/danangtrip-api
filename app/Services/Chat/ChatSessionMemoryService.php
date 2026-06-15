@@ -89,6 +89,12 @@ final class ChatSessionMemoryService
     {
         $session = $this->loadSession($sessionId);
 
+        // If we are in a clarification step and the new intent is a fallback (location/unknown),
+        // we retain the previous intent so we don't break the clarification flow.
+        if ($session['clarification_step'] !== null && in_array($intent, ['location', 'unknown'], true) && $session['intent'] !== null) {
+            $intent = $session['intent'];
+        }
+
         // Reset slots if changing intent topic completely (exclude unknown/greeting/general)
         if ($session['intent'] !== null && $session['intent'] !== $intent && ! in_array($intent, ['unknown', 'greeting'], true)) {
             if (in_array($intent, ['tour', 'booking', 'location', 'food', 'hotel'], true)) {
@@ -165,12 +171,34 @@ final class ChatSessionMemoryService
 
     private function extractNumber(string $text): int
     {
-        if (preg_match('/(\d+)\s*(người|nguoi|pax|khách|khach|vé|ve)/i', $text, $matches)) {
+        // Pattern: dạng khoảng "3 - 5 người", "3-5 pax" → lấy số cuối (max)
+        if (preg_match('/(\d+)\s*[-–]\s*(\d+)\s*(người|nguoi|pax|khách|khach|vé|ve|ng|ngs)?/iu', $text, $matches)) {
+            return (int) $matches[2]; // lấy số lớn hơn trong khoảng
+        }
+
+        // Pattern: "3 người", "5 pax", "2 khách"
+        if (preg_match('/(\d+)\s*(người|nguoi|pax|khách|khach|vé|ve|ng|ngs)/iu', $text, $matches)) {
             return (int) $matches[1];
         }
+
+        // Pattern: "đoàn 3", "đoàn 4", "nhóm 5" (đứng trước số)
+        if (preg_match('/(?:đoàn|doan|nhóm|nhom|group)\s+(\d+)/iu', $text, $matches)) {
+            return (int) $matches[1];
+        }
+
+        // Pattern: số đứng một mình "5", "3"
         if (preg_match('/^\s*(\d+)\s*$/', $text, $matches)) {
             return (int) $matches[1];
         }
+
+        // Pattern: số bất kỳ trong câu (fallback)
+        if (preg_match('/\b(\d{1,2})\b/', $text, $matches)) {
+            $n = (int) $matches[1];
+            if ($n >= 1 && $n <= 50) {
+                return $n;
+            }
+        }
+
         $words = [
             'một' => 1, 'mot' => 1, 'hai' => 2, 'ba' => 3, 'bốn' => 4, 'bon' => 4,
             'năm' => 5, 'nam' => 5, 'sáu' => 6, 'sau' => 6, 'bảy' => 7, 'bay' => 7,

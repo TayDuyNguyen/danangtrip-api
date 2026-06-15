@@ -203,6 +203,8 @@ final class ChatKnowledgeSearchService
         $people = $understanding['people'] ?? null;
         $keywords = (array) ($understanding['keywords'] ?? []);
         $durationDays = $understanding['duration_days'] ?? null;
+        $destinationId = isset($understanding['destination_id']) ? (int) $understanding['destination_id'] : null;
+        $destinationName = (string) ($understanding['destination'] ?? '');
 
         $builder = Tour::query()
             ->where('status', 'active')
@@ -232,10 +234,36 @@ final class ChatKnowledgeSearchService
                         ->orWhereRaw('LOWER(duration) LIKE ?', ["%{$durationDays}d%"]);
                 });
             })
-            ->when($query !== '', fn (Builder $builder) => $this->applyLike($builder, $query, [
+            // === DESTINATION FILTER (ưu tiên destination_id → rồi mới đến LIKE) ===
+            ->when($destinationId !== null, function (Builder $builder) use ($destinationId, $destinationName): void {
+                // Nếu có destination_id đã được normalize → filter qua pivot tour_locations
+                $builder->where(function (Builder $nested) use ($destinationId, $destinationName): void {
+                    $nested->whereHas('locations', fn (Builder $loc) => $loc->where('locations.id', $destinationId));
+                    // Fallback: name/desc chứa tên địa điểm (đề phòng tour không có location liên kết)
+                    if ($destinationName !== '') {
+                        $nameLike = '%'.$this->escapeLike(mb_strtolower($destinationName)).'%';
+                        $nested
+                            ->orWhereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', [$nameLike])
+                            ->orWhereRaw('LOWER(CAST(short_desc AS TEXT)) LIKE ?', [$nameLike])
+                            ->orWhereRaw('LOWER(CAST(description AS TEXT)) LIKE ?', [$nameLike]);
+                    }
+                });
+            })
+            ->when($destinationId === null && $destinationName !== '', function (Builder $builder) use ($destinationName): void {
+                // Không có destination_id → fallback LIKE theo destination name
+                $nameLike = '%'.$this->escapeLike(mb_strtolower($destinationName)).'%';
+                $builder->where(function (Builder $nested) use ($nameLike): void {
+                    $nested
+                        ->whereRaw('LOWER(CAST(name AS TEXT)) LIKE ?', [$nameLike])
+                        ->orWhereRaw('LOWER(CAST(short_desc AS TEXT)) LIKE ?', [$nameLike])
+                        ->orWhereRaw('LOWER(CAST(description AS TEXT)) LIKE ?', [$nameLike]);
+                });
+            })
+            // === KEYWORD SEARCH (chỉ áp dụng khi không có destination cụ thể) ===
+            ->when($destinationId === null && $destinationName === '' && $query !== '', fn (Builder $builder) => $this->applyLike($builder, $query, [
                 'name', 'short_desc', 'description', 'duration', 'meeting_point',
             ]))
-            ->when(! empty($keywords), function (Builder $builder) use ($keywords) {
+            ->when(! empty($keywords) && $destinationId === null && $destinationName === '', function (Builder $builder) use ($keywords) {
                 $kwQuery = implode(' ', $keywords);
                 if ($kwQuery !== '') {
                     $this->applyLike($builder, $kwQuery, ['name', 'short_desc', 'description'], 'or');
@@ -303,12 +331,18 @@ final class ChatKnowledgeSearchService
         return Location::query()
             ->where('status', 'active')
             ->when($region !== '', fn (Builder $builder) => $this->applyLocationRegion($builder, $region))
-            ->when($intent === 'food' || in_array('local_food', $topics, true) || in_array('restaurant', $topics, true), fn (Builder $builder) => $this->applyLike($builder, 'ăn nhà hàng quán hải sản đặc sản cafe cà phê ẩm thực', [
-                'name', 'short_description', 'description',
-            ], 'or'))
-            ->when($intent === 'hotel' || in_array('hotel', $topics, true) || in_array('resort', $topics, true) || in_array('homestay', $topics, true), fn (Builder $builder) => $this->applyLike($builder, 'khách sạn hotel resort homestay lưu trú', [
-                'name', 'short_description', 'description',
-            ], 'or'))
+            ->when($intent === 'food' || in_array('local_food', $topics, true) || in_array('restaurant', $topics, true) || in_array('cafe', $topics, true), function (Builder $builder): void {
+                $builder->whereIn('category_id', [1, 2, 3, 4, 15, 31, 32, 65])
+                    ->where(fn (Builder $nested) => $this->applyLike($nested, 'ăn nhà hàng quán hải sản đặc sản cafe cà phê ẩm thực', [
+                        'name', 'short_description', 'description',
+                    ], 'or'));
+            })
+            ->when($intent === 'hotel' || in_array('hotel', $topics, true) || in_array('resort', $topics, true) || in_array('homestay', $topics, true), function (Builder $builder): void {
+                $builder->whereIn('category_id', [5, 6])
+                    ->where(fn (Builder $nested) => $this->applyLike($nested, 'khách sạn hotel resort homestay lưu trú', [
+                        'name', 'short_description', 'description',
+                    ], 'or'));
+            })
             ->orderByDesc('is_featured')
             ->orderByDesc('avg_rating')
             ->orderByDesc('view_count')
@@ -629,6 +663,15 @@ final class ChatKnowledgeSearchService
 
         if ($terms === []) {
             return $builder;
+        }
+
+        // Apply category restrictions for specific topics to avoid cross-contamination
+        if ($topic === 'cafe') {
+            $builder->whereIn('category_id', [3]); // Category 3: Cà phê & Trà sữa
+        } elseif ($topic === 'food') {
+            $builder->whereIn('category_id', [1, 2, 3, 4, 15, 31, 32, 65]);
+        } elseif ($topic === 'hotel') {
+            $builder->whereIn('category_id', [5, 6]); // Category 5, 6: Resort, Villa, Hotel, Homestay
         }
 
         return $builder->where(function (Builder $nested) use ($terms, $topic): void {

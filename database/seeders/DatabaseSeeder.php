@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
             InteractionSeeder::class,
             SqlSeeder::class,
             SettingSeeder::class,
-            CrawlerSeeder::class,
+            // CrawlerSeeder::class,
             TestCheckoutSeeder::class,
             ChatKnowledgeBaseSeeder::class,
             PointSeeder::class,

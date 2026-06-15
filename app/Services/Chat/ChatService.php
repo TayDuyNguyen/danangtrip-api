@@ -35,383 +35,431 @@ final class ChatService
         $sessionId = $this->resolveSessionId($request, $data['session_id'] ?? null);
         $history = $data['history'] ?? [];
 
-        // Load dynamic DB settings first to ensure all thresholds, TTL, enabled state, etc. are updated
-        $this->loadDbSettings();
+        $trace = [
+            'timestamp' => now()->toDateTimeString(),
+            'session_id' => $sessionId,
+            'question' => $question,
+            'steps' => [],
+            'error' => null,
+        ];
 
-        // === Chatbot disabled check ===
-        if (! (bool) config('chatbot.enabled', true)) {
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload(
-                    'Chatbot hiện đang tạm bảo trì. Bạn vui lòng thử lại sau.',
-                    [], 'disabled', false, false
-                ),
-            ];
-        }
+        try {
+            $this->aiProvider->clearLogs();
 
-        $knowledgeVersion = $this->getKnowledgeVersion();
+            // Load dynamic DB settings first to ensure all thresholds, TTL, enabled state, etc. are updated
+            $this->loadDbSettings();
 
-        // =====================================================================
-        // BƯỚC 1: Rule-based NLU (luôn chạy, nhanh, không tốn API)
-        // =====================================================================
-        $understanding = $this->queryUnderstanding->understand($question, $locale);
+            // === Chatbot disabled check ===
+            if (! (bool) config('chatbot.enabled', true)) {
+                $ans = 'Chatbot hiện đang tạm bảo trì. Bạn vui lòng thử lại sau.';
+                $trace['steps'][] = '❌ Chatbot disabled check failed.';
+                $this->writeTraceToLog($trace);
 
-        // =====================================================================
-        // BƯỚC 2: Intent Guard (dùng normalized_question sau rule-based)
-        // =====================================================================
-        $classification = $this->intentGuard->classify((string) $understanding['normalized_question']);
-        $intent = $classification['intent'];
-        $isInScope = $classification['is_in_scope'];
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($ans, [], 'disabled', false, false),
+                ];
+            }
 
-        if (! $isInScope) {
-            $answer = $this->outOfScopeAnswer($locale);
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, false, false, [], [
-                'reason' => $classification['reason'] ?? null,
-            ], $startTime);
+            $knowledgeVersion = $this->getKnowledgeVersion();
 
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload($answer, [], $intent, false, false),
-            ];
-        }
+            // =====================================================================
+            // BƯỚC 1: Rule-based NLU (luôn chạy, nhanh, không tốn API)
+            // =====================================================================
+            $understanding = $this->queryUnderstanding->understand($question, $locale);
+            $trace['steps'][] = '1️⃣  NLU (Rule-based): intent='.($understanding['intent'] ?? 'null').' | destination='.($understanding['destination'] ?? 'null').' | people='.($understanding['people'] ?? 'null').' | price='.($understanding['max_price'] ?? 'null').' | location_topic='.($understanding['location_topic'] ?? 'null').' | content_type_hints='.implode(',', (array) ($understanding['content_type_hints'] ?? []));
 
-        // =====================================================================
-        // BƯỚC 3: GREETING HANDLER — Fast path, bypass toàn bộ search pipeline
-        // =====================================================================
-        if ($intent === 'greeting') {
-            $answer = $this->greetingAnswer($locale);
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
-                'greeting_fast_path' => true,
-            ], $startTime);
+            // =====================================================================
+            // BƯỚC 2: Intent Guard (dùng normalized_question sau rule-based)
+            // =====================================================================
+            $classification = $this->intentGuard->classify((string) $understanding['normalized_question']);
+            $intent = $classification['intent'];
+            $isInScope = $classification['is_in_scope'];
+            $trace['steps'][] = "2️⃣  INTENT GUARD: intent=$intent | in_scope=".($isInScope ? 'YES' : 'NO').' | reason='.($classification['reason'] ?? 'none');
 
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload($answer, [], $intent, true, false),
-            ];
-        }
+            if (! $isInScope) {
+                $answer = $this->outOfScopeAnswer($locale);
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, false, false, [], [
+                    'reason' => $classification['reason'] ?? null,
+                ], $startTime);
+                $trace['steps'][] = "⚠️  Out of scope answer generated: \"$answer\"";
+                $this->writeTraceToLog($trace);
 
-        // =====================================================================
-        // BƯỚC 3b: HANDOFF HANDLER (Rule-based detection)
-        // =====================================================================
-        if ($intent === 'handoff') {
-            $answer = $this->handoffAnswer($locale);
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
-                'reason' => 'handoff_keyword_intent',
-                'needs_handoff' => true,
-            ], $startTime);
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($answer, [], $intent, false, false),
+                ];
+            }
 
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload($answer, [], $intent, true, false),
-            ];
-        }
+            // =====================================================================
+            // BƯỚC 3: GREETING HANDLER — Fast path, bypass toàn bộ search pipeline
+            // =====================================================================
+            if ($intent === 'greeting') {
+                $answer = $this->greetingAnswer($locale);
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
+                    'greeting_fast_path' => true,
+                ], $startTime);
+                $trace['steps'][] = "⚡ Fast path Greeting answered: \"$answer\"";
+                $this->writeTraceToLog($trace);
 
-        // =====================================================================
-        // BƯỚC 5: HYBRID NLU & CONSISTENCY CHECK — Kiểm tra nhất quán & Biểu quyết
-        // =====================================================================
-        $ruleIntent = $intent;
-        $ruleConfidence = (float) ($understanding['confidence'] ?? 0.0);
-        $threshold = (float) config('chatbot.nlu.confidence_threshold', 0.8);
-        $aiNluTriggered = false;
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($answer, [], $intent, true, false),
+                ];
+            }
 
-        // Kiểm tra tính nhất quán của intent rule-based với các thực thể tìm được
-        $isConsistent = ! $this->consistencyService->shouldForceAi($ruleIntent, $understanding);
+            // =====================================================================
+            // BƯỚC 3b: HANDOFF HANDLER (Rule-based detection)
+            // =====================================================================
+            if ($intent === 'handoff') {
+                $answer = $this->handoffAnswer($locale);
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
+                    'reason' => 'handoff_keyword_intent',
+                    'needs_handoff' => true,
+                ], $startTime);
+                $trace['steps'][] = "⚡ Fast path Handoff answered: \"$answer\"";
+                $this->writeTraceToLog($trace);
 
-        $alpha = 0.7; // Trọng số Rule-based
-        $beta = 0.3;  // Trọng số AI NLU
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($answer, [], $intent, true, false),
+                ];
+            }
 
-        $needsAiNlu = in_array($ruleIntent, ['tour', 'booking', 'schedule', 'location', 'food', 'hotel', 'blog'], true);
-        $reason = 'low_confidence';
+            // =====================================================================
+            // BƯỚC 5: HYBRID NLU & CONSISTENCY CHECK — Kiểm tra nhất quán & Biểu quyết
+            // =====================================================================
+            $ruleIntent = $intent;
+            $ruleConfidence = (float) ($understanding['confidence'] ?? 0.0);
+            $threshold = (float) config('chatbot.nlu.confidence_threshold', 0.8);
+            $aiNluTriggered = false;
 
-        if (! $isConsistent) {
-            // Ép Rule confidence về 0.0 và giao toàn quyền quyết định cho AI NLU
-            $ruleConfidence = 0.0;
-            $alpha = 0.0;
-            $beta = 1.0;
-            $needsAiNlu = true;
-            $reason = 'consistency_failed';
-        }
+            // Kiểm tra tính nhất quán của intent rule-based với các thực thể tìm được
+            $isConsistent = ! $this->consistencyService->shouldForceAi($ruleIntent, $understanding);
 
-        $finalIntent = $ruleIntent;
-        $aiExtracted = null;
+            $alpha = 0.7; // Trọng số Rule-based
+            $beta = 0.3;  // Trọng số AI NLU
 
-        if ($needsAiNlu && ($ruleConfidence < $threshold || ! $isConsistent)) {
-            $aiExtracted = $this->aiProvider->extractEntitiesWithAi($question, $locale, $understanding, $ruleIntent, $reason);
-            $aiNluTriggered = true;
+            $needsAiNlu = in_array($ruleIntent, ['tour', 'booking', 'schedule', 'location', 'food', 'hotel', 'blog'], true);
+            $reason = 'low_confidence';
 
-            $aiIntent = (string) ($aiExtracted['intent'] ?? '');
-            $aiConfidence = (float) ($aiExtracted['confidence'] ?? 0.5);
+            if (! $isConsistent) {
+                // Ép Rule confidence về 0.0 và giao toàn quyền quyết định cho AI NLU
+                $ruleConfidence = 0.0;
+                $alpha = 0.0;
+                $beta = 1.0;
+                $needsAiNlu = true;
+                $reason = 'consistency_failed';
+            }
 
-            if ($aiIntent !== '') {
-                if ($aiIntent === $ruleIntent) {
-                    $finalIntent = $ruleIntent;
-                } else {
-                    // Tính điểm biểu quyết có trọng số
-                    $ruleScore = $alpha * $ruleConfidence;
-                    $aiScore = $beta * $aiConfidence;
+            $finalIntent = $ruleIntent;
+            $aiExtracted = null;
 
-                    if ($aiScore > $ruleScore) {
-                        $finalIntent = $aiIntent;
-                    } else {
-                        $finalIntent = $ruleIntent;
+            if ($needsAiNlu && ($ruleConfidence < $threshold || ! $isConsistent)) {
+                $aiExtracted = $this->aiProvider->extractEntitiesWithAi($question, $locale, $understanding, $ruleIntent, $reason);
+                if ($aiExtracted !== null) {
+                    $aiNluTriggered = true;
+
+                    $aiIntent = (string) ($aiExtracted['intent'] ?? '');
+                    $aiConfidence = (float) ($aiExtracted['confidence'] ?? 0.5);
+
+                    if ($aiIntent !== '') {
+                        if ($aiIntent === $ruleIntent) {
+                            $finalIntent = $ruleIntent;
+                        } else {
+                            // Tính điểm biểu quyết có trọng số
+                            $ruleScore = $alpha * $ruleConfidence;
+                            $aiScore = $beta * $aiConfidence;
+
+                            if ($aiScore > $ruleScore) {
+                                $finalIntent = $aiIntent;
+                            } else {
+                                $finalIntent = $ruleIntent;
+                            }
+                        }
                     }
+
+                    // Ghi đè thực thể từ AI
+                    $understanding = array_merge($understanding, $aiExtracted);
                 }
             }
 
-            // Ghi đè thực thể từ AI
-            $understanding = array_merge($understanding, $aiExtracted);
-        }
+            // Cập nhật lại intent cuối cùng
+            $intent = $finalIntent;
+            $understanding['intent'] = $intent;
 
-        // Cập nhật lại intent cuối cùng
-        $intent = $finalIntent;
-        $understanding['intent'] = $intent;
+            // Load session memory early to check clarification state
+            $session = $this->sessionMemory->loadSession($sessionId);
 
-        // Load session memory early to check clarification state
-        $session = $this->sessionMemory->loadSession($sessionId);
-
-        // Nếu đang trong luồng hỏi lại (clarification) và người dùng trả lời:
-        // Ta giữ nguyên intent cũ (e.g. 'tour' hoặc 'booking') trừ khi người dùng chủ động đổi sang ý định hệ thống khác (greeting, handoff, v.v.)
-        if ($session['clarification_step'] !== null && $session['intent'] !== null) {
-            $systemIntents = ['greeting', 'handoff', 'loyalty', 'payment', 'refund', 'contact', 'account'];
-            if (! in_array($intent, $systemIntents, true)) {
-                $intent = $session['intent'];
-                $understanding['intent'] = $intent;
+            // Nếu đang trong luồng hỏi lại (clarification) và người dùng trả lời:
+            // Ta giữ nguyên intent cũ (e.g. 'tour' hoặc 'booking') trừ khi người dùng chủ động đổi sang ý định hệ thống khác (greeting, handoff, v.v.)
+            if ($session['clarification_step'] !== null && $session['intent'] !== null) {
+                $systemIntents = ['greeting', 'handoff', 'loyalty', 'payment', 'refund', 'contact', 'account'];
+                if (! in_array($intent, $systemIntents, true)) {
+                    $intent = $session['intent'];
+                    $understanding['intent'] = $intent;
+                }
             }
-        }
+            $trace['steps'][] = "3️⃣  HYBRID NLU: final_intent=$intent | ai_nlu_triggered=".($aiNluTriggered ? 'YES' : 'no').' | understanding='.json_encode($understanding, JSON_UNESCAPED_UNICODE);
 
-        // Xử lý Unknown Intent (Nâng cấp 5)
-        $finalConfidence = $understanding['confidence'] ?? 0.5;
-        if ($aiNluTriggered && isset($aiExtracted['confidence'])) {
-            $finalConfidence = (float) $aiExtracted['confidence'];
-        }
+            // Xử lý Unknown Intent (Nâng cấp 5)
+            $finalConfidence = $understanding['confidence'] ?? 0.5;
+            if ($aiNluTriggered && isset($aiExtracted['confidence'])) {
+                $finalConfidence = (float) $aiExtracted['confidence'];
+            }
 
-        if ($intent === 'unknown' || ($aiNluTriggered && $finalConfidence < 0.4)) {
-            $intent = 'unknown';
-            $understanding['intent'] = 'unknown';
-            $answer = $this->unknownAnswer($locale);
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
-                'reason' => 'unknown_intent_clarification',
+            if ($intent === 'unknown' || ($aiNluTriggered && $finalConfidence < 0.4)) {
+                $intent = 'unknown';
+                $understanding['intent'] = 'unknown';
+                $answer = $this->unknownAnswer($locale);
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
+                    'reason' => 'unknown_intent_clarification',
+                    'understanding' => $understanding,
+                    'ai_nlu_triggered' => $aiNluTriggered,
+                ], $startTime);
+                $trace['steps'][] = '⚠️  Unknown intent fallback triggered.';
+                $this->writeTraceToLog($trace);
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($answer, [], $intent, true, false, null, null, null, null, 0, $understanding, $aiNluTriggered),
+                ];
+            }
+
+            // Hậu xử lý: Đảm bảo độ chính xác của bộ lọc rẻ nhất/tốt nhất từ từ khóa trực tiếp
+            $normalizedQuestion = mb_strtolower(preg_replace('/\s+/u', ' ', trim($question)));
+            $cheapestKeywords = ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price', 'affordable', 'budget'];
+            foreach ($cheapestKeywords as $kw) {
+                if (str_contains($normalizedQuestion, $kw)) {
+                    $understanding['cheapest_first'] = true;
+                    break;
+                }
+            }
+            $bestKeywords = ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top', 'highly rated', 'popular', 'nổi tiếng'];
+            foreach ($bestKeywords as $kw) {
+                if (str_contains($normalizedQuestion, $kw)) {
+                    $understanding['best_first'] = true;
+                    break;
+                }
+            }
+
+            // Soft Entity Normalization nếu intent bị thay đổi (Nâng cấp 6)
+            if ($intent !== $ruleIntent) {
+                $understanding = $this->queryUnderstanding->normalizeEntitiesForIntent($understanding, $intent);
+            }
+
+            // =====================================================================
+            // NÂNG CẤP BƯỚC: SESSION MEMORY & CLARIFICATION FLOW
+            // =====================================================================
+            // Cập nhật session memory với intent và understanding hiện tại
+            $session = $this->sessionMemory->updateSession($sessionId, $understanding, $intent);
+            $trace['steps'][] = '4️⃣  SESSION MEMORY: slots='.json_encode($session['slots'] ?? [], JSON_UNESCAPED_UNICODE).' | clarification_step='.($session['clarification_step'] ?? 'null');
+
+            // Check group booking handoff (>50 people) or intent handoff
+            $peopleCount = (int) ($session['slots']['people'] ?? $understanding['people'] ?? 0);
+            if ($intent === 'handoff' || $peopleCount > 50) {
+                $intent = 'handoff';
+                $answer = $this->handoffAnswer($locale);
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
+                    'reason' => $peopleCount > 50 ? 'group_booking_large' : 'handoff_intent',
+                    'people_count' => $peopleCount,
+                    'needs_handoff' => true,
+                ], $startTime);
+
+                // Clear session memory to avoid loop
+                $this->sessionMemory->clearSession($sessionId);
+                $trace['steps'][] = '👋 Large group or handoff intent triggered handoff.';
+                $this->writeTraceToLog($trace);
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload($answer, [], $intent, true, false),
+                ];
+            }
+
+            // Nếu hệ thống xác định thiếu thông tin và cần hỏi lại làm rõ
+            if ($session['clarification_step'] !== null) {
+                $answer = $this->getClarificationAnswer($session['clarification_step'], $locale);
+
+                $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
+                    'reason' => 'clarification_step_triggered',
+                    'clarification_step' => $session['clarification_step'],
+                    'session_slots' => $session['slots'],
+                    'understanding' => $understanding,
+                ], $startTime);
+                $trace['steps'][] = '⚠️  Clarification requested for: '.$session['clarification_step']." (Bot: \"$answer\")";
+                $this->writeTraceToLog($trace);
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'message' => 'Clarification requested.',
+                    'data' => $this->responsePayload(
+                        $answer,
+                        [],
+                        $intent,
+                        true,
+                        false,
+                        null,
+                        null,
+                        null,
+                        null,
+                        0,
+                        $understanding,
+                        $aiNluTriggered,
+                        $session['clarification_step']
+                    ),
+                ];
+            }
+
+            // Tích lũy các slot từ Session Memory ngược lại vào understanding để phục vụ câu truy vấn
+            $understanding['destination'] = $session['slots']['destination'] ?? $understanding['destination'];
+            $understanding['people'] = $session['slots']['people'] ?? $understanding['people'];
+            $understanding['max_price'] = $session['slots']['max_price'] ?? $understanding['max_price'];
+            $understanding['date'] = $session['slots']['date'] ?? $understanding['date'];
+
+            // =====================================================================
+            // BƯỚC 5b: SEMANTIC CACHE CHECK (Sau khi NLU và Slots hoàn thành)
+            // =====================================================================
+            $cached = $this->lookupSemanticCache($question, $locale, $intent, $session['slots'] ?? [], $knowledgeVersion);
+            if ($cached) {
+                $this->recordMessage($request, $sessionId, $question, $cached->answer, $intent, true, true, [], [
+                    'provider' => $cached->provider,
+                    'model' => $cached->model,
+                    'semantic_cache_hit' => true,
+                ], $startTime);
+                $trace['steps'][] = '🚀 Semantic cache HIT!';
+                $this->writeTraceToLog($trace);
+
+                return [
+                    'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->responsePayload(
+                        $cached->answer,
+                        $cached->recommendations ?? [],
+                        $intent,
+                        true,
+                        true,
+                        $cached->center,
+                        $cached->zoom,
+                        $cached->provider,
+                        $cached->model,
+                        0,
+                        $understanding,
+                        $aiNluTriggered
+                    ),
+                ];
+            }
+
+            // =====================================================================
+            // NÂNG CẤP BƯỚC: TOOL GUARDRAIL LAYER
+            // =====================================================================
+            $guardrailResult = $this->guardrail->validate($understanding);
+            $understanding = $guardrailResult['understanding'];
+            $warnings = $guardrailResult['warnings'];
+
+            // =====================================================================
+            // BƯỚC 6: QUERY NORMALIZATION — map destination_name → location_id
+            // =====================================================================
+            $understanding = $this->normalizer->normalize($understanding);
+            $trace['steps'][] = '5️⃣  NORMALIZER: destination_id='.($understanding['destination_id'] ?? 'null').' | slots='.json_encode($understanding, JSON_UNESCAPED_UNICODE);
+
+            // =====================================================================
+            // BƯỚC 7: KNOWLEDGE SEARCH — SQL (limits: 50/50/20) + Vector (20)
+            // =====================================================================
+            $knowledge = $this->knowledgeSearch->search(
+                $question,
+                $intent,
+                (int) config('chatbot.max_context_items', 8),
+                $understanding
+            );
+            $trace['steps'][] = '6️⃣  SEARCH: tours='.$knowledge['sql_results']['tours']->count().' | locations='.$knowledge['sql_results']['locations']->count().' | blogs='.$knowledge['sql_results']['blogs']->count().' | vector='.$knowledge['vector_results']->count();
+
+            // =====================================================================
+            // BƯỚC 8: RECOMMENDATION BUILDER — merge, rank, top N
+            // =====================================================================
+            $recommendations = $this->recommendationBuilder->build(
+                $knowledge['sql_results'],
+                $knowledge['vector_results'],
+                $understanding,
+                (int) config('chatbot.max_recommendations', 5)
+            );
+            $trace['steps'][] = '7️⃣  RECOMMENDATIONS: count='.count($recommendations).' | items='.implode(' | ', array_map(fn ($r) => ($r['data']['name'] ?? $r['data']['title'] ?? '?').' ('.$r['type'].')', $recommendations));
+
+            // =====================================================================
+            // BƯỚC 8b: SYNC CONTEXT — đồng bộ context với recommendations đã rank
+            // Đảm bảo text AI mô tả đúng các item sẽ hiển thị trong card
+            // =====================================================================
+            $alignedContext = $this->knowledgeSearch->buildAlignedContext(
+                $recommendations,
+                $knowledge['sql_results'],
+                $knowledge['vector_results'],
+                $intent,
+                (int) config('chatbot.max_context_items', 8) + 4
+            );
+
+            // =====================================================================
+            // BƯỚC 9: RESPONSE GENERATOR — AI diễn đạt lại từ context thật
+            // =====================================================================
+            $messages = $this->buildAiMessages($question, $locale, $intent, $alignedContext, $understanding, $history, $warnings);
+            $ai = $this->aiProvider->complete($messages);
+            $answer = $ai['ok']
+                ? (string) $ai['text']
+                : $this->fallbackAnswer($locale, $intent, $alignedContext);
+
+            $provider = $ai['provider'] ?? null;
+            $model = $ai['model'] ?? null;
+            $tokensUsed = (int) ($ai['tokens_used'] ?? 0);
+            $trace['steps'][] = "8️⃣  AI PROVIDER: provider=$provider | model=$model | tokens=$tokensUsed | status=".($ai['ok'] ? 'SUCCESS' : 'FALLBACK').' | attempts='.($ai['attempts'] ?? 1);
+
+            // =====================================================================
+            // Cache + Record + Return
+            // =====================================================================
+            $cacheHash = $this->cacheHash($locale, $intent, (string) $understanding['normalized_question'], $knowledgeVersion);
+            $this->storeCache(
+                $cacheHash, $question, $locale, $intent, $answer,
+                $recommendations, $knowledge['center'], $knowledge['zoom'],
+                $provider, $model, null, $session['slots'] ?? []
+            );
+
+            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, $alignedContext, [
+                'provider' => $provider,
+                'model' => $model,
+                'tokens_used' => $tokensUsed,
+                'ai_ok' => $ai['ok'],
+                'attempts' => $ai['attempts'] ?? 0,
                 'understanding' => $understanding,
                 'ai_nlu_triggered' => $aiNluTriggered,
             ], $startTime);
 
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload($answer, [], $intent, true, false, null, null, null, null, 0, $understanding, $aiNluTriggered),
-            ];
-        }
-
-        // Hậu xử lý: Đảm bảo độ chính xác của bộ lọc rẻ nhất/tốt nhất từ từ khóa trực tiếp
-        $normalizedQuestion = mb_strtolower(preg_replace('/\s+/u', ' ', trim($question)));
-        $cheapestKeywords = ['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price', 'affordable', 'budget'];
-        foreach ($cheapestKeywords as $kw) {
-            if (str_contains($normalizedQuestion, $kw)) {
-                $understanding['cheapest_first'] = true;
-                break;
-            }
-        }
-        $bestKeywords = ['tốt nhất', 'hay nhất', 'đẹp', 'nổi bật', 'đánh giá cao', 'best', 'top', 'highly rated', 'popular', 'nổi tiếng'];
-        foreach ($bestKeywords as $kw) {
-            if (str_contains($normalizedQuestion, $kw)) {
-                $understanding['best_first'] = true;
-                break;
-            }
-        }
-
-        // Soft Entity Normalization nếu intent bị thay đổi (Nâng cấp 6)
-        if ($intent !== $ruleIntent) {
-            $understanding = $this->queryUnderstanding->normalizeEntitiesForIntent($understanding, $intent);
-        }
-
-        // =====================================================================
-        // NÂNG CẤP BƯỚC: SESSION MEMORY & CLARIFICATION FLOW
-        // =====================================================================
-        // Cập nhật session memory với intent và understanding hiện tại
-        $session = $this->sessionMemory->updateSession($sessionId, $understanding, $intent);
-
-        // Check group booking handoff (>50 people) or intent handoff
-        $peopleCount = (int) ($session['slots']['people'] ?? $understanding['people'] ?? 0);
-        if ($intent === 'handoff' || $peopleCount > 50) {
-            $intent = 'handoff';
-            $answer = $this->handoffAnswer($locale);
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
-                'reason' => $peopleCount > 50 ? 'group_booking_large' : 'handoff_intent',
-                'people_count' => $peopleCount,
-                'needs_handoff' => true,
-            ], $startTime);
-
-            // Clear session memory to avoid loop
-            $this->sessionMemory->clearSession($sessionId);
+            $trace['steps'][] = '🤖 BOT ANSWER: '.str_replace("\n", ' ', substr($answer, 0, 120)).'...';
+            $this->writeTraceToLog($trace);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload($answer, [], $intent, true, false),
-            ];
-        }
-
-        // Nếu hệ thống xác định thiếu thông tin và cần hỏi lại làm rõ
-        if ($session['clarification_step'] !== null) {
-            $answer = $this->getClarificationAnswer($session['clarification_step'], $locale);
-
-            $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
-                'reason' => 'clarification_step_triggered',
-                'clarification_step' => $session['clarification_step'],
-                'session_slots' => $session['slots'],
-                'understanding' => $understanding,
-            ], $startTime);
-
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'message' => 'Clarification requested.',
+                'message' => 'Chat response generated successfully.',
                 'data' => $this->responsePayload(
                     $answer,
-                    [],
+                    $recommendations,
                     $intent,
                     true,
                     false,
-                    null,
-                    null,
-                    null,
-                    null,
-                    0,
-                    $understanding,
-                    $aiNluTriggered,
-                    $session['clarification_step']
-                ),
-            ];
-        }
-
-        // Tích lũy các slot từ Session Memory ngược lại vào understanding để phục vụ câu truy vấn
-        $understanding['destination'] = $session['slots']['destination'] ?? $understanding['destination'];
-        $understanding['people'] = $session['slots']['people'] ?? $understanding['people'];
-        $understanding['max_price'] = $session['slots']['max_price'] ?? $understanding['max_price'];
-        $understanding['date'] = $session['slots']['date'] ?? $understanding['date'];
-
-        // =====================================================================
-        // BƯỚC 5b: SEMANTIC CACHE CHECK (Sau khi NLU và Slots hoàn thành)
-        // =====================================================================
-        $cached = $this->lookupSemanticCache($question, $locale, $intent, $session['slots'] ?? [], $knowledgeVersion);
-        if ($cached) {
-            $this->recordMessage($request, $sessionId, $question, $cached->answer, $intent, true, true, [], [
-                'provider' => $cached->provider,
-                'model' => $cached->model,
-                'semantic_cache_hit' => true,
-            ], $startTime);
-
-            return [
-                'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->responsePayload(
-                    $cached->answer,
-                    $cached->recommendations ?? [],
-                    $intent,
-                    true,
-                    true,
-                    $cached->center,
-                    $cached->zoom,
-                    $cached->provider,
-                    $cached->model,
-                    0,
+                    $knowledge['center'],
+                    $knowledge['zoom'],
+                    $provider,
+                    $model,
+                    $tokensUsed,
                     $understanding,
                     $aiNluTriggered
                 ),
             ];
+        } catch (\Throwable $e) {
+            $trace['error'] = [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile().':'.$e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ];
+            $this->writeTraceToLog($trace);
+            throw $e;
         }
-
-        // =====================================================================
-        // NÂNG CẤP BƯỚC: TOOL GUARDRAIL LAYER
-        // =====================================================================
-        $guardrailResult = $this->guardrail->validate($understanding);
-        $understanding = $guardrailResult['understanding'];
-        $warnings = $guardrailResult['warnings'];
-
-        // =====================================================================
-        // BƯỚC 6: QUERY NORMALIZATION — map destination_name → location_id
-        // =====================================================================
-        $understanding = $this->normalizer->normalize($understanding);
-
-        // =====================================================================
-        // BƯỚC 7: KNOWLEDGE SEARCH — SQL (limits: 50/50/20) + Vector (20)
-        // =====================================================================
-        $knowledge = $this->knowledgeSearch->search(
-            $question,
-            $intent,
-            (int) config('chatbot.max_context_items', 8),
-            $understanding
-        );
-
-        // =====================================================================
-        // BƯỚC 8: RECOMMENDATION BUILDER — merge, rank, top N
-        // =====================================================================
-        $recommendations = $this->recommendationBuilder->build(
-            $knowledge['sql_results'],
-            $knowledge['vector_results'],
-            $understanding,
-            (int) config('chatbot.max_recommendations', 5)
-        );
-
-        // =====================================================================
-        // BƯỚC 8b: SYNC CONTEXT — đồng bộ context với recommendations đã rank
-        // Đảm bảo text AI mô tả đúng các item sẽ hiển thị trong card
-        // =====================================================================
-        $alignedContext = $this->knowledgeSearch->buildAlignedContext(
-            $recommendations,
-            $knowledge['sql_results'],
-            $knowledge['vector_results'],
-            $intent,
-            (int) config('chatbot.max_context_items', 8) + 4
-        );
-
-        // =====================================================================
-        // BƯỚC 9: RESPONSE GENERATOR — AI diễn đạt lại từ context thật
-        // =====================================================================
-        $messages = $this->buildAiMessages($question, $locale, $intent, $alignedContext, $understanding, $history, $warnings);
-        $ai = $this->aiProvider->complete($messages);
-        $answer = $ai['ok']
-            ? (string) $ai['text']
-            : $this->fallbackAnswer($locale, $intent, $alignedContext);
-
-        $provider = $ai['provider'] ?? null;
-        $model = $ai['model'] ?? null;
-        $tokensUsed = (int) ($ai['tokens_used'] ?? 0);
-
-        // =====================================================================
-        // Cache + Record + Return
-        // =====================================================================
-        $cacheHash = $this->cacheHash($locale, $intent, (string) $understanding['normalized_question'], $knowledgeVersion);
-        $this->storeCache(
-            $cacheHash, $question, $locale, $intent, $answer,
-            $recommendations, $knowledge['center'], $knowledge['zoom'],
-            $provider, $model, null, $session['slots'] ?? []
-        );
-
-        $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, $alignedContext, [
-            'provider' => $provider,
-            'model' => $model,
-            'tokens_used' => $tokensUsed,
-            'ai_ok' => $ai['ok'],
-            'attempts' => $ai['attempts'] ?? 0,
-            'understanding' => $understanding,
-            'ai_nlu_triggered' => $aiNluTriggered,
-        ], $startTime);
-
-        return [
-            'status' => HttpStatusCode::SUCCESS->value,
-            'message' => 'Chat response generated successfully.',
-            'data' => $this->responsePayload(
-                $answer,
-                $recommendations,
-                $intent,
-                true,
-                false,
-                $knowledge['center'],
-                $knowledge['zoom'],
-                $provider,
-                $model,
-                $tokensUsed,
-                $understanding,
-                $aiNluTriggered
-            ),
-        ];
     }
 
     // =========================================================================
@@ -479,11 +527,33 @@ final class ChatService
             }
         }
 
+        // Tái tạo câu hỏi thực sự khi người dùng đang trong luồng clarification
+        // (VD: bước 3 user gõ "Đoàn 3-5 người" thay vì "Tìm tour Bà Nà cho 5 người")
+        $effectiveQuestion = $question;
+        if (! empty($understanding['destination']) || ! empty($understanding['people'])) {
+            $parts = [];
+            if (! empty($understanding['destination'])) {
+                $parts[] = 'điểm đến: '.$understanding['destination'];
+            }
+            if (! empty($understanding['people'])) {
+                $parts[] = 'số người: '.$understanding['people'];
+            }
+            if (! empty($understanding['max_price'])) {
+                $parts[] = 'giá tối đa: '.number_format((int) $understanding['max_price']).' VND';
+            }
+            if (! empty($understanding['date'])) {
+                $parts[] = 'ngày đi: '.$understanding['date'];
+            }
+            if ($intent === 'tour' && ! empty($parts)) {
+                $effectiveQuestion = 'Tìm '.$intent.' cho tôi với: '.implode(', ', $parts).'. Ưu tiên '.(($understanding['cheapest_first'] ?? false) ? 'giá rẻ nhất' : 'phổ biến nhất').'.';
+            }
+        }
+
         $messages[] = [
             'role' => 'user',
             'content' => json_encode([
                 'intent' => $intent,
-                'question' => $question,
+                'question' => $effectiveQuestion,
                 'understanding' => [
                     'destination' => $understanding['destination'] ?? null,
                     'topics' => $understanding['topics'] ?? [],
@@ -1134,5 +1204,50 @@ final class ChatService
             'What to eat in Da Nang that is cheap and good?',
             'Can you suggest a 3-day 2-night Da Nang itinerary?',
         ];
+    }
+
+    /**
+     * Ghi dấu vết pipeline vào Laravel log
+     */
+    private function writeTraceToLog(array $trace): void
+    {
+        try {
+            $content = "\n".str_repeat('═', 80)."\n";
+            $content .= "📅 TIMESTAMP: {$trace['timestamp']}\n";
+            $content .= "🔑 SESSION ID: {$trace['session_id']}\n";
+            $content .= "📝 INPUT: \"{$trace['question']}\"\n";
+            $content .= str_repeat('─', 80)."\n";
+
+            foreach ($trace['steps'] as $step) {
+                $content .= '   '.$step."\n";
+            }
+
+            // Append AI provider details/errors/key rotation attempts
+            $providerLogs = $this->aiProvider->getLogs();
+            if (! empty($providerLogs)) {
+                $content .= "   ⚠️  AI PROVIDER LOGS:\n";
+                foreach ($providerLogs as $log) {
+                    $content .= '      - '.$log."\n";
+                }
+            }
+
+            if ($trace['error'] !== null) {
+                $content .= str_repeat('❌', 40)."\n";
+                $content .= "❌ ERROR OCCURRED:\n";
+                $content .= "   Message: {$trace['error']['message']}\n";
+                $content .= "   File: {$trace['error']['file']}\n";
+                $content .= "   Trace:\n".$trace['error']['trace']."\n";
+            }
+
+            $content .= str_repeat('═', 80)."\n";
+
+            Log::warning('CHATBOT_PIPELINE_TRACE'.$content);
+
+            if (app()->runningInConsole()) {
+                echo $content;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('CHATBOT_TRACE_LOG_FAILED', ['message' => $e->getMessage()]);
+        }
     }
 }

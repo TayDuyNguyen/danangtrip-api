@@ -84,11 +84,12 @@ final class ChatIntentGuardService
                 'đọc bài', 'xem bài', 'bài về', 'tips', 'mẹo',
             ],
 
-            // === Itinerary & Schedule ===
+            // === Itinerary & Schedule (MUST be before 'tour' to avoid 'du lịch' hijacking) ===
             'schedule' => [
                 'lịch trình', 'kế hoạch', 'mấy ngày', '3 ngày', '2 ngày',
                 '1 ngày', 'itinerary', 'schedule', 'plan', 'lên kế hoạch',
                 'ngày mấy', 'bao lâu', 'chuyến đi', 'hành trình',
+                '3 days', '2 days', '4 days', '5 days', '3 nights', '2 nights',
             ],
 
             // === Tours ===
@@ -105,8 +106,9 @@ final class ChatIntentGuardService
                 'ăn', 'uống', 'ẩm thực', 'đặc sản', 'nhà hàng', 'quán',
                 'hải sản', 'mì quảng', 'bún chả cá', 'nên ăn gì', 'ăn gì',
                 'food', 'restaurant', 'eat', 'drink', 'local food', 'cuisine',
-                'quán ăn', 'seafood', 'cafe', 'cà phê', 'coffee',
-                'món ngon', 'đặc sản', 'bánh', 'quán ngon',
+                'quán ăn', 'seafood', 'cafe', 'cà phê', 'coffee', 'cà phê',
+                'món ngon', 'bánh', 'quán ngon', 'quán cà phê', 'view biển',
+                'ngàn ăn', 'nơi ăn', 'chỗ ăn', 'bữa ăn',
             ],
 
             // === Hotels & Accommodation ===
@@ -194,10 +196,10 @@ final class ChatIntentGuardService
             'an uong' => 'ăn uống',
             'di dau' => 'đi đâu',
             'can biet' => 'cần biết',
-            'lịch trình' => 'itinerary',
-            'lich trinh' => 'itinerary',
-            'ngày' => 'days',
-            'ngay' => 'days',
+            'lịch trình' => 'lịch trình',
+            'lich trinh' => 'lịch trình',
+            'ngày' => 'ngày',
+            'ngay' => 'ngày',
             'đêm' => 'nights',
             'dem' => 'nights',
         ];

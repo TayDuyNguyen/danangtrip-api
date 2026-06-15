@@ -288,6 +288,7 @@ final class ChatRecommendationBuilderService
         $destination = mb_strtolower((string) ($understanding['destination'] ?? ''));
         $topics = (array) ($understanding['topics'] ?? []);
         $keywords = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
+        $locationTopic = (string) ($understanding['location_topic'] ?? '');
 
         $haystack = mb_strtolower(implode(' ', array_filter([
             $location->name,
@@ -305,6 +306,30 @@ final class ChatRecommendationBuilderService
         $intent = (string) ($understanding['intent'] ?? '');
         if ($intent === 'location' || $intent === 'food' || $intent === 'hotel') {
             $score += 150.0;
+        }
+
+        // Category-based boosting / deboosting based on intent & topics
+        $catId = (int) $location->category_id;
+        if ($intent === 'food' || $locationTopic === 'cafe' || $locationTopic === 'food') {
+            // Food/dining categories: 1, 2, 3, 4, 15, 31, 32, 65
+            if (in_array($catId, [1, 2, 3, 4, 15, 31, 32, 65], true)) {
+                $score += 300.0;
+                // Extra boost if topic is cafe and category is specifically café (3)
+                if (($locationTopic === 'cafe' || in_array('cafe', $topics, true)) && $catId === 3) {
+                    $score += 200.0;
+                }
+            } elseif (in_array($catId, [5, 6], true)) {
+                // Deboost hotels when looking for food/café
+                $score -= 300.0;
+            }
+        } elseif ($intent === 'hotel' || $locationTopic === 'hotel') {
+            // Hotel categories: 5, 6
+            if (in_array($catId, [5, 6], true)) {
+                $score += 300.0;
+            } elseif (in_array($catId, [1, 2, 3, 4], true)) {
+                // Deboost restaurants/cafes when looking for accommodation
+                $score -= 300.0;
+            }
         }
 
         // Intent-specific topic boosts (Dining vs Accommodation)

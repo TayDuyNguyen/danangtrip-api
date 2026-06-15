@@ -11,6 +11,23 @@ use RuntimeException;
 
 final class ChatAiProviderService
 {
+    private array $logs = [];
+
+    public function clearLogs(): void
+    {
+        $this->logs = [];
+    }
+
+    public function getLogs(): array
+    {
+        return $this->logs;
+    }
+
+    private function addLog(string $message): void
+    {
+        $this->logs[] = $message;
+    }
+
     /** @param array<int,array{role:string,content:string}> $messages */
     public function complete(array $messages, array $options = []): array
     {
@@ -27,6 +44,8 @@ final class ChatAiProviderService
                 }
 
                 if ($this->isCoolingDown($provider, $index)) {
+                    $this->addLog("Skipped key {$index} for provider '{$provider}' (cooling down)");
+
                     continue;
                 }
 
@@ -39,6 +58,8 @@ final class ChatAiProviderService
                         default => throw new RuntimeException("Unsupported chatbot provider: {$provider}"),
                     };
 
+                    $this->addLog("AI Completion SUCCESS with provider '{$provider}', model '".($providerConfig['model'] ?? 'N/A')."', key_index={$index}");
+
                     return [
                         'ok' => true,
                         'text' => $result['text'],
@@ -48,6 +69,7 @@ final class ChatAiProviderService
                         'attempts' => $attempts,
                     ];
                 } catch (\Throwable $e) {
+                    $this->addLog("AI Completion FAILED for provider '{$provider}', key_index={$index}, error: ".$e->getMessage());
                     Log::warning('CHATBOT_PROVIDER_FAILED', [
                         'provider' => $provider,
                         'model' => $providerConfig['model'] ?? null,
@@ -91,7 +113,7 @@ final class ChatAiProviderService
      *
      * @return array<string,mixed>
      */
-    public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities, string $detectedIntent = '', string $reason = ''): array
+    public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities, string $detectedIntent = '', string $reason = ''): ?array
     {
         $provider = 'gemini';
         $providerConfig = (array) config("chatbot.providers.{$provider}", []);
@@ -176,6 +198,8 @@ final class ChatAiProviderService
 
         foreach ($keys as $index => $key) {
             if ($this->isCoolingDown($provider, $index)) {
+                $this->addLog("Skipped NLU key {$index} for provider '{$provider}' (cooling down)");
+
                 continue;
             }
 
@@ -213,9 +237,12 @@ final class ChatAiProviderService
                 $extracted = json_decode(trim($text), true);
 
                 if (is_array($extracted)) {
+                    $this->addLog("AI NLU SUCCESS with provider '{$provider}', model '{$model}', key_index={$index}");
+
                     return $this->mergeEntities($currentEntities, $extracted);
                 }
             } catch (\Throwable $e) {
+                $this->addLog("AI NLU FAILED for provider '{$provider}', key_index={$index}, error: ".$e->getMessage());
                 Log::warning('CHATBOT_AI_NLU_FAILED', [
                     'provider' => $provider,
                     'key_index' => $index,
@@ -224,7 +251,7 @@ final class ChatAiProviderService
             }
         }
 
-        return $currentEntities;
+        return null;
     }
 
     /**
@@ -361,7 +388,15 @@ final class ChatAiProviderService
         );
 
         if (in_array($status, (array) config('chatbot.failover_status_codes', []), true) || in_array($status, [401, 403], true)) {
-            $this->coolDown($provider, $keyIndex, in_array($status, [401, 403], true) ? 86400 : null);
+            $cooldownTime = 3600; // default 1 hour
+            if (in_array($status, [401, 403], true)) {
+                $cooldownTime = 86400; // 1 day for invalid keys
+            } elseif (in_array($status, [429, 503], true)) {
+                $cooldownTime = 60; // 60 seconds for rate limit or temp overload
+            } else {
+                $cooldownTime = (int) config('chatbot.key_cooldown_seconds', 3600);
+            }
+            $this->coolDown($provider, $keyIndex, $cooldownTime);
         }
 
         throw new RuntimeException("{$provider} HTTP {$status}: ".mb_substr($message, 0, 300));
