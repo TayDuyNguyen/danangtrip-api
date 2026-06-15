@@ -57,6 +57,10 @@ class AuthController extends Controller
                 ->withCookie($this->makeRefreshTokenCookie($refreshToken, $remember));
         }
 
+        if ($result['status'] == HttpStatusCode::FORBIDDEN->value) {
+            return $this->forbidden($result['message']);
+        }
+
         return $this->unauthorized($result['message']);
     }
 

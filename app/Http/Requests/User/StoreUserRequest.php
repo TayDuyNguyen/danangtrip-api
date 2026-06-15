@@ -31,6 +31,7 @@ class StoreUserRequest extends FormRequest
                 'required',
                 'string',
                 'min:8',
+                'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/',
             ],
             'full_name' => [
                 'required',
@@ -82,6 +83,7 @@ class StoreUserRequest extends FormRequest
             'email.max' => 'The email must not exceed 100 characters. (Email không được vượt quá 100 ký tự.)',
             'password.required' => 'The password field is required. (Trường mật khẩu là bắt buộc.)',
             'password.min' => 'The password must be at least 8 characters. (Mật khẩu phải có ít nhất 8 ký tự.)',
+            'password.regex' => 'The password must include both letters and numbers. (Mật khẩu phải bao gồm cả chữ và số.)',
             'full_name.required' => 'The full name is required. (Họ và tên là bắt buộc.)',
             'phone.max' => 'The phone number must not exceed 20 characters. (Số điện thoại không được vượt quá 20 ký tự.)',
             'phone.regex' => 'The phone number format is invalid. (Định dạng số điện thoại không hợp lệ.)',

@@ -94,6 +94,16 @@ class AuthService
 
             $user = Auth::guard('api')->user();
 
+            if ($user && $user->status === 'banned') {
+                Auth::guard('api')->logout();
+
+                return [
+                    'status' => HttpStatusCode::FORBIDDEN->value,
+                    'error' => 'ACCOUNT_BANNED',
+                    'message' => 'Your account has been banned.',
+                ];
+            }
+
             // Sinh Refresh Token an toàn và mã hoá vào DB (Cấp chuẩn OAuth 2.1)
             $refreshTokenStr = Str::random(64);
             $expiresInDays = $remember ? 14 : 1;
@@ -195,6 +205,16 @@ class AuthService
                     'status' => HttpStatusCode::UNAUTHORIZED->value,
                     'error' => 'REFRESH_TOKEN_EXPIRED',
                     'message' => 'Refresh token expired',
+                ];
+            }
+
+            if ($storedToken->user?->status === 'banned') {
+                $this->refreshTokenRepository->deleteAllByUserId($storedToken->user_id);
+
+                return [
+                    'status' => HttpStatusCode::FORBIDDEN->value,
+                    'error' => 'ACCOUNT_BANNED',
+                    'message' => 'Your account has been banned.',
                 ];
             }
 

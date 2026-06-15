@@ -144,6 +144,21 @@ final class ChatServiceNluTest extends TestCase
             $table->timestamps();
         });
 
+        Schema::create('tour_locations', function ($table) {
+            $table->unsignedBigInteger('tour_id');
+            $table->unsignedBigInteger('location_id');
+            $table->primary(['tour_id', 'location_id']);
+        });
+
+        Schema::create('tour_schedules', function ($table) {
+            $table->id();
+            $table->unsignedBigInteger('tour_id');
+            $table->string('status', 20)->default('available');
+            $table->string('booking_availability', 20)->default('open');
+            $table->dateTime('start_date');
+            $table->timestamps();
+        });
+
         $this->chatService = app(ChatService::class);
 
         // Bật cấu hình chatbot cho test
@@ -180,6 +195,8 @@ final class ChatServiceNluTest extends TestCase
         Schema::dropIfExists('chat_knowledge_base');
         Schema::dropIfExists('categories');
         Schema::dropIfExists('subcategories');
+        Schema::dropIfExists('tour_locations');
+        Schema::dropIfExists('tour_schedules');
 
         parent::tearDown();
     }

@@ -180,31 +180,47 @@ final class ChatKnowledgeSyncService
             [
                 'slug' => 'payment',
                 'title' => 'Chính sách thanh toán DanangTrip',
-                'content' => 'DanangTrip hỗ trợ thanh toán bằng QR chuyển khoản SePay. Sau khi khách chuyển khoản đúng số tiền và đúng nội dung, hệ thống sẽ tự xác nhận đơn khi nhận IPN.',
+                'content' => implode(' ', [
+                    'DanangTrip hỗ trợ thanh toán trực tuyến qua hình thức chuyển khoản ngân hàng quét mã QR tự động.',
+                    'Khách hàng sử dụng ứng dụng ngân hàng quét mã QR hiển thị tại trang thanh toán để thực hiện giao dịch chuyển khoản với số tiền và nội dung chuyển khoản được nhập tự động (chính là mã đơn hàng).',
+                    'Quý khách lưu ý không tự ý thay đổi số tiền hoặc nội dung chuyển khoản để tránh lỗi hệ thống.',
+                    'Khi giao dịch thành công, hệ thống tự động ghi nhận thanh toán, chuyển trạng thái đơn hàng sang đã thanh toán và gửi email xác nhận đặt tour thành công trong vòng 1 phút.',
+                ]),
             ],
             [
                 'slug' => 'refund',
                 'title' => 'Chính sách hủy tour và hoàn tiền DanangTrip',
-                'content' => 'Chính sách hủy tour và hoàn tiền phụ thuộc thời điểm hủy, điều kiện tour và trạng thái thanh toán. Khách nên kiểm tra chính sách trên màn đặt tour hoặc liên hệ hỗ trợ trước khi hủy.',
+                'content' => implode(' ', [
+                    'Thời hạn và chính sách hoàn tiền khi hủy tour tại DanangTrip như sau:',
+                    '- Hủy trước ngày khởi hành từ 7 ngày trở lên: Hoàn trả 100% số tiền đã thanh toán.',
+                    '- Hủy trước ngày khởi hành từ 3 đến 6 ngày: Phí hủy là 50% tổng giá trị đơn hàng, hoàn trả 50% số tiền còn lại.',
+                    '- Hủy trong vòng 48 giờ trước ngày khởi hành hoặc vắng mặt vào ngày khởi hành: Phí hủy là 100% tổng giá trị đơn hàng, không áp dụng hoàn tiền.',
+                    'Đối với các tour vào ngày Lễ, Tết hoặc mùa cao điểm, quy định hoàn tiền chi tiết sẽ hiển thị cụ thể trên giao diện đặt tour.',
+                    'Khách hàng thực hiện hủy đơn tại mục Lịch sử đặt tour hoặc liên hệ bộ phận hỗ trợ chăm sóc khách hàng để được xử lý hoàn tiền chuyển khoản.',
+                ]),
             ],
             [
                 'slug' => 'account',
                 'title' => 'Tài khoản người dùng DanangTrip',
-                'content' => 'Người dùng có thể đăng ký, đăng nhập, cập nhật hồ sơ, đổi mật khẩu, xem lịch sử đặt tour và quản lý đánh giá trong tài khoản DanangTrip.',
+                'content' => implode(' ', [
+                    'Người dùng đăng ký tài khoản DanangTrip bằng tên, email và mật khẩu hoặc đăng nhập nhanh bằng tài khoản Google.',
+                    'Sau khi đăng nhập, quý khách có thể cập nhật thông tin cá nhân bao gồm số điện thoại, ảnh đại diện, ngày sinh và mật khẩu tại trang cài đặt hồ sơ.',
+                    'Mục Lịch sử đặt tour cho phép khách hàng theo dõi chi tiết hành trình, tải hóa đơn thanh toán và kiểm tra trạng thái đơn hàng (chờ thanh toán, đã thanh toán, hoàn thành hoặc đã hủy).',
+                    'Quý khách cũng có thể viết đánh giá, chấm điểm từ 1 đến 5 sao và đính kèm hình ảnh thực tế cho các tour hoặc địa điểm đã trải nghiệm sau khi được quản trị viên duyệt hiển thị.',
+                ]),
             ],
             [
                 'slug' => 'loyalty-points',
                 'title' => 'Điểm thưởng và voucher DanangTrip',
                 'content' => implode(' ', [
-                    'DanangTrip có hệ thống điểm thưởng dành cho người dùng đã đăng ký.',
-                    'Người dùng được cộng 10 điểm khi thanh toán đơn tour thành công.',
-                    'Người dùng được cộng 5 điểm khi đánh giá tour hoặc địa điểm được duyệt.',
-                    'Nếu đánh giá được duyệt có ít nhất một ảnh đính kèm đã lưu thành công, người dùng được cộng thêm 3 điểm. Hệ thống hiện chỉ kiểm tra ảnh đính kèm, chưa tự động xác minh ảnh có phải ảnh thật hay không.',
-                    'Khi một người dùng khác đánh dấu đánh giá đã duyệt là hữu ích, chủ đánh giá được cộng 1 điểm cho mỗi lượt hợp lệ. Mỗi người chỉ được đánh dấu một lần cho một đánh giá và không được tự đánh dấu đánh giá của mình.',
-                    'Điểm nhận từ lượt hữu ích được giới hạn tối đa 10 điểm mỗi ngày cho mỗi chủ đánh giá. Lượt hữu ích vẫn được ghi nhận sau khi đạt giới hạn nhưng không cộng thêm điểm trong ngày đó.',
-                    'Mỗi đánh giá được thưởng thêm một lần 5 điểm khi đạt đúng mốc 5 lượt hữu ích và một lần 10 điểm khi đạt đúng mốc 10 lượt hữu ích. Điểm thưởng mốc được tính riêng với giới hạn điểm hữu ích hằng ngày.',
-                    'Đánh giá chỉ được nhận điểm sau khi quản trị viên duyệt. Nội dung bị từ chối không được cộng điểm; hệ thống hiện chưa tự động chấm toàn bộ nội dung spam, quá ngắn hoặc trùng lặp bằng AI.',
-                    'Điểm thưởng có thể đổi thành voucher giảm giá tour trong trang Ví điểm.',
+                    'Hệ thống tích điểm thành viên DanangTrip áp dụng quy định cụ thể như sau:',
+                    '- Tặng 10 điểm khi đặt và hoàn thành chuyến đi thành công.',
+                    '- Tặng 5 điểm cho mỗi bài đánh giá tour hoặc địa điểm được quản trị viên duyệt hiển thị.',
+                    '- Tặng thêm 3 điểm (tổng cộng 8 điểm) cho bài đánh giá được duyệt có kèm hình ảnh thực tế.',
+                    '- Tặng 1 điểm cho mỗi lượt người dùng khác đánh dấu đánh giá của bạn là Hữu ích (tối đa 10 điểm mỗi ngày). Thành viên không tự đánh dấu hữu ích cho chính mình.',
+                    '- Tặng thêm 5 điểm khi bài đánh giá đạt mốc 5 lượt hữu ích và 10 điểm khi đạt mốc 10 lượt hữu ích (điểm thưởng mốc này không tính vào hạn mức ngày).',
+                    'Đánh giá có nội dung ngắn, quảng cáo hoặc spam sẽ bị từ chối và không được cộng điểm.',
+                    'Quý khách có thể sử dụng điểm tích lũy để đổi thành các mã giảm giá thanh toán tour tại mục Ví điểm.',
                 ]),
             ],
             [
@@ -271,7 +287,7 @@ final class ChatKnowledgeSyncService
         $email = Setting::query()->where('key', 'general.email')->value('value') ?: 'info@danangtrip.com';
         $hours = Setting::query()->where('key', 'general.support_hours')->value('value') ?: '08:00 - 22:00';
 
-        return "Khách hàng có thể gửi yêu cầu liên hệ qua form Liên hệ. Hotline: {$hotline}. Email: {$email}. Thời gian hỗ trợ: {$hours}.";
+        return "Khách hàng có thể gửi yêu cầu liên hệ qua biểu mẫu Liên hệ trực tuyến trên website. Hotline hỗ trợ khẩn cấp: {$hotline}. Email tiếp nhận phản hồi: {$email}. Thời gian hỗ trợ: từ {$hours} tất cả các ngày trong tuần (bao gồm cả ngày lễ, Tết).";
     }
 
     private function jsonText(string $label, mixed $value): ?string
