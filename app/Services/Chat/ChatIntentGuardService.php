@@ -37,8 +37,9 @@ final class ChatIntentGuardService
                 // Không dấu (người dùng hay gõ tắt)
                 'xin chao', 'chao ban', 'chao buoi', 'ban la ai',
                 'ban co the', 'ban giup', 'toi can giup',
-                // English
-                'hello', 'hi ', 'hi!', 'hey', 'alo', 'howdy',
+                // English — chú ý: 'hi ' có dấu cách để tránh match 'khi', 'thi', 'chi'
+                // Nhưng 'hi ' vẫn match 'khi ' → dùng prefix ^ hoặc điểu kiện bổ sung
+                'hello', 'hey ', 'howdy',
                 'good morning', 'good afternoon', 'good evening', 'good day',
                 'what are you', 'who are you', 'help me', 'i need help',
             ],
@@ -70,6 +71,8 @@ final class ChatIntentGuardService
             'refund' => [
                 'hoàn tiền', 'hủy tour', 'huỷ tour',
                 'chính sách hủy', 'chính sách huỷ', 'đổi lịch', 'refund', 'cancel',
+                'chính sách hoàn', 'hoàn trả', 'phí hủy', 'phí huỷ',
+                'có được hoàn', 'muốn hủy', 'cần hủy',
             ],
             'booking' => [
                 'đặt tour', 'booking', 'đơn hàng', 'đặt chỗ',
@@ -141,6 +144,15 @@ final class ChatIntentGuardService
                 'contact', 'support', 'help', 'chat với người', 'gặp nhân viên',
             ],
         ];
+
+        // ── Greeting: word-boundary check cho các từ ngắn dễ false positive ──
+        // Chỉ check 'hi' và 'alo' nếu xuất hiện tại đầu câu hoặc là toàn bộ câu
+        // để tránh match 'khi', 'chi', 'thi', 'nhà hàng', 'alo ngon'...
+        $startsWithHi  = (bool) preg_match('/^hi[!?.\s]?$/u', $text) || str_starts_with($text, 'hi ') && mb_strlen($text) <= 10;
+        $startsWithAlo = (bool) preg_match('/^alo[!?.\s]?$/u', $text) || $text === 'alo';
+        if ($startsWithHi || $startsWithAlo) {
+            return ['intent' => 'greeting', 'is_in_scope' => true, 'reason' => 'hi_alo_greeting'];
+        }
 
         foreach ($intents as $intent => $keywords) {
             foreach ($keywords as $keyword) {
