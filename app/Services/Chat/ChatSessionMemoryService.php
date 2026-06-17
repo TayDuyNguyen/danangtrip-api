@@ -12,9 +12,11 @@ final class ChatSessionMemoryService
     private const TTL = 3600; // 1 hour
 
     /**
-     * Load session memory.
+     * Tải thông tin phiên làm việc của chatbot từ bộ nhớ cache.
+     * Nếu không có phiên làm việc tồn tại, trả về cấu trúc mặc định.
      *
-     * @return array<string,mixed>
+     * @param string $sessionId ID của phiên làm việc
+     * @return array<string,mixed> Dữ liệu phiên làm việc
      */
     public function loadSession(string $sessionId): array
     {
@@ -58,7 +60,11 @@ final class ChatSessionMemoryService
     }
 
     /**
-     * Save session memory.
+     * Lưu thông tin phiên làm việc của chatbot vào bộ nhớ cache.
+     *
+     * @param string $sessionId ID của phiên làm việc
+     * @param array<string,mixed> $sessionData Dữ liệu phiên làm việc cần lưu
+     * @return void
      */
     public function saveSession(string $sessionId, array $sessionData): void
     {
@@ -72,7 +78,10 @@ final class ChatSessionMemoryService
     }
 
     /**
-     * Clear session memory.
+     * Xóa thông tin phiên làm việc của chatbot khỏi bộ nhớ cache.
+     *
+     * @param string $sessionId ID của phiên làm việc
+     * @return void
      */
     public function clearSession(string $sessionId): void
     {
@@ -84,7 +93,13 @@ final class ChatSessionMemoryService
     }
 
     /**
-     * Merge new understanding into the session slots and determine clarification steps.
+     * Cập nhật thông tin phiên làm việc dựa trên kết quả phân tích câu hỏi mới.
+     * Đồng thời tự động cập nhật các slots và xác định bước làm rõ (clarification) tiếp theo.
+     *
+     * @param string $sessionId ID của phiên làm việc
+     * @param array<string,mixed> $understanding Kết quả phân tích câu hỏi từ NLU
+     * @param string $intent Ý định hiện tại của người dùng
+     * @return array<string,mixed> Dữ liệu phiên làm việc sau khi cập nhật
      */
     public function updateSession(string $sessionId, array $understanding, string $intent): array
     {
@@ -170,6 +185,13 @@ final class ChatSessionMemoryService
         return $session;
     }
 
+    /**
+     * Phân tích và trích xuất số lượng từ văn bản đầu vào.
+     * Hỗ trợ phát hiện khoảng số, số đứng một mình, hoặc số bằng chữ tiếng Việt.
+     *
+     * @param string $text Văn bản đầu vào cần phân tích
+     * @return int Số được trích xuất (mặc định trả về 0 nếu không tìm thấy)
+     */
     private function extractNumber(string $text): int
     {
         // Pattern: dạng khoảng "3 - 5 người", "3-5 pax" → lấy số cuối (max)

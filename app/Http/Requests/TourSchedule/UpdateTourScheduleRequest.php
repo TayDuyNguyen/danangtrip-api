@@ -59,6 +59,12 @@ class UpdateTourScheduleRequest extends FormRequest
                 'sometimes',
                 'integer',
                 'min:1',
+                function ($attribute, $value, $fail) {
+                    $schedule = TourSchedule::find($this->route('id'));
+                    if ($schedule && (int) $value < (int) $schedule->booked_people) {
+                        $fail('Max people cannot be less than the number of booked seats ('.$schedule->booked_people.').');
+                    }
+                },
             ],
             'price_adult' => [
                 'sometimes',
@@ -120,6 +126,7 @@ class UpdateTourScheduleRequest extends FormRequest
             'end_date.date_format' => 'End date must be in Y-m-d format.',
             'end_date.after_or_equal' => 'End date must be after or equal to start date.',
             'max_people.required' => 'Max people is required.',
+            'max_people.min' => 'Max people must be at least 1.',
             'departure_code.max' => 'Departure code may not be greater than 50 characters.',
             'departure_place.max' => 'Departure place may not be greater than 255 characters.',
             'booking_deadline.date' => 'Booking deadline must be a valid date.',

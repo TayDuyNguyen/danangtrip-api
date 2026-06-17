@@ -46,7 +46,7 @@ final class TourScheduleController extends Controller
     public function statusCounts(IndexTourScheduleRequest $request): JsonResponse
     {
         $filters = $request->validated();
-        unset($filters['status'], $filters['page'], $filters['per_page'], $filters['sort'], $filters['order']);
+        unset($filters['page'], $filters['per_page'], $filters['sort'], $filters['order']);
 
         $result = $this->tourScheduleService->getStatusCounts($filters);
 

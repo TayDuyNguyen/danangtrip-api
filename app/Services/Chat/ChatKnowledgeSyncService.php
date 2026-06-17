@@ -12,7 +12,11 @@ use Illuminate\Support\Str;
 
 final class ChatKnowledgeSyncService
 {
-    /** @return array{tour:int,location:int,blog:int,policy:int} */
+    /**
+     * Đồng bộ hóa toàn bộ cơ sở tri thức (tours, locations, blogs, policies) vào bảng tri thức chatbot.
+     *
+     * @return array{tour:int,location:int,blog:int,policy:int} Số lượng bản ghi đồng bộ thành công của mỗi loại
+     */
     public function syncAll(): array
     {
         ChatKnowledgeBase::query()->update(['is_active' => false]);
@@ -25,6 +29,12 @@ final class ChatKnowledgeSyncService
         ];
     }
 
+    /**
+     * Đồng bộ hóa một Eloquent Model cụ thể vào cơ sở tri thức chatbot.
+     *
+     * @param Model $model Đối tượng Eloquent model cần đồng bộ (Tour, Location, BlogPost)
+     * @return ChatKnowledgeBase|null Bản ghi cơ sở tri thức sau khi đồng bộ, hoặc null nếu không hỗ trợ
+     */
     public function syncModel(Model $model): ?ChatKnowledgeBase
     {
         return match (true) {
@@ -35,6 +45,11 @@ final class ChatKnowledgeSyncService
         };
     }
 
+    /**
+     * Đồng bộ hóa toàn bộ các tour đang hoạt động vào cơ sở tri thức.
+     *
+     * @return int Số lượng tour được đồng bộ
+     */
     private function syncTours(): int
     {
         $count = 0;
@@ -52,6 +67,11 @@ final class ChatKnowledgeSyncService
         return $count;
     }
 
+    /**
+     * Đồng bộ hóa toàn bộ các địa điểm đang hoạt động vào cơ sở tri thức.
+     *
+     * @return int Số lượng địa điểm được đồng bộ
+     */
     private function syncLocations(): int
     {
         $count = 0;
@@ -69,6 +89,11 @@ final class ChatKnowledgeSyncService
         return $count;
     }
 
+    /**
+     * Đồng bộ hóa toàn bộ các bài viết đã xuất bản vào cơ sở tri thức.
+     *
+     * @return int Số lượng bài viết được đồng bộ
+     */
     private function syncBlogPosts(): int
     {
         $count = 0;
@@ -86,6 +111,12 @@ final class ChatKnowledgeSyncService
         return $count;
     }
 
+    /**
+     * Đồng bộ hóa một tour cụ thể vào cơ sở tri thức.
+     *
+     * @param Tour $tour Đối tượng tour cần đồng bộ
+     * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của tour
+     */
     private function syncTour(Tour $tour): ChatKnowledgeBase
     {
         return $this->upsertKnowledge(
@@ -120,6 +151,12 @@ final class ChatKnowledgeSyncService
         );
     }
 
+    /**
+     * Đồng bộ hóa một địa điểm cụ thể vào cơ sở tri thức.
+     *
+     * @param Location $location Đối tượng địa điểm cần đồng bộ
+     * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của địa điểm
+     */
     private function syncLocation(Location $location): ChatKnowledgeBase
     {
         return $this->upsertKnowledge(
@@ -151,6 +188,12 @@ final class ChatKnowledgeSyncService
         );
     }
 
+    /**
+     * Đồng bộ hóa một bài viết cụ thể vào cơ sở tri thức.
+     *
+     * @param BlogPost $post Đối tượng bài viết cần đồng bộ
+     * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của bài viết
+     */
     private function syncBlogPost(BlogPost $post): ChatKnowledgeBase
     {
         return $this->upsertKnowledge(
@@ -174,6 +217,11 @@ final class ChatKnowledgeSyncService
         );
     }
 
+    /**
+     * Đồng bộ hóa các chính sách chung vào cơ sở tri thức.
+     *
+     * @return int Số lượng chính sách được đồng bộ
+     */
     public function syncPolicies(): int
     {
         $policies = [
@@ -248,7 +296,14 @@ final class ChatKnowledgeSyncService
         return count($policies);
     }
 
-    /** @param array<string,mixed> $identity @param array<string,mixed> $payload */
+    /**
+     * Thực hiện thêm mới hoặc cập nhật thông tin tri thức vào cơ sở dữ liệu.
+     * Tự động xóa embedding nếu nội dung thay đổi.
+     *
+     * @param array<string,mixed> $identity Khóa định danh của bản ghi (type, reference_id...)
+     * @param array<string,mixed> $payload Dữ liệu cập nhật
+     * @return ChatKnowledgeBase
+     */
     private function upsertKnowledge(array $identity, array $payload): ChatKnowledgeBase
     {
         $hash = $this->contentHash($payload);
@@ -270,7 +325,12 @@ final class ChatKnowledgeSyncService
         return $knowledge;
     }
 
-    /** @param array<string,mixed> $payload */
+    /**
+     * Tạo mã hash SHA-256 từ nội dung bản ghi để phát hiện thay đổi.
+     *
+     * @param array<string,mixed> $payload Dữ liệu của bản ghi tri thức
+     * @return string Chuỗi hash SHA-256
+     */
     private function contentHash(array $payload): string
     {
         return hash('sha256', json_encode([
@@ -281,6 +341,11 @@ final class ChatKnowledgeSyncService
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }
 
+    /**
+     * Trích xuất thông tin liên hệ và giờ làm việc từ cài đặt hệ thống để làm nội dung chính sách hỗ trợ.
+     *
+     * @return string Văn bản mô tả chính sách hỗ trợ liên hệ
+     */
     private function supportPolicyContent(): string
     {
         $hotline = Setting::query()->where('key', 'general.hotline')->value('value') ?: '1900 1800';
@@ -290,6 +355,13 @@ final class ChatKnowledgeSyncService
         return "Khách hàng có thể gửi yêu cầu liên hệ qua biểu mẫu Liên hệ trực tuyến trên website. Hotline hỗ trợ khẩn cấp: {$hotline}. Email tiếp nhận phản hồi: {$email}. Thời gian hỗ trợ: từ {$hours} tất cả các ngày trong tuần (bao gồm cả ngày lễ, Tết).";
     }
 
+    /**
+     * Định dạng dữ liệu thành chuỗi có nhãn (ví dụ: "Lịch trình: ...").
+     *
+     * @param string $label Nhãn của thông tin
+     * @param mixed $value Giá trị thông tin cần chuyển đổi
+     * @return string|null Chuỗi thông tin đã định dạng hoặc null
+     */
     private function jsonText(string $label, mixed $value): ?string
     {
         if ($value === null || $value === '') {
@@ -299,6 +371,12 @@ final class ChatKnowledgeSyncService
         return $label.': '.$this->valueToText($value);
     }
 
+    /**
+     * Chuyển đổi các kiểu dữ liệu phức tạp (mảng, object) thành chuỗi văn bản phẳng.
+     *
+     * @param mixed $value Giá trị cần chuyển đổi
+     * @return string Chuỗi văn bản phẳng
+     */
     private function valueToText(mixed $value): string
     {
         if (is_array($value)) {
@@ -320,6 +398,12 @@ final class ChatKnowledgeSyncService
         return is_scalar($value) ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * Làm sạch văn bản: giải mã thực thể HTML, loại bỏ thẻ HTML và khoảng trắng dư thừa.
+     *
+     * @param string $text Văn bản thô
+     * @return string Văn bản đã được làm sạch
+     */
     private function cleanText(string $text): string
     {
         $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');

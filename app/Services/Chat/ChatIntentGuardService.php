@@ -4,7 +4,13 @@ namespace App\Services\Chat;
 
 final class ChatIntentGuardService
 {
-    /** @return array{intent:string,is_in_scope:bool,reason:string|null} */
+    /**
+     * Phân loại ý định (intent) của câu hỏi từ người dùng.
+     * Đồng thời xác định xem câu hỏi có nằm trong phạm vi hỗ trợ (in-scope) hay không.
+     *
+     * @param string $message Câu hỏi/thông điệp từ người dùng
+     * @return array{intent:string,is_in_scope:bool,reason:string|null}
+     */
     public function classify(string $message): array
     {
         $text = $this->normalize($message);
@@ -167,6 +173,12 @@ final class ChatIntentGuardService
         return ['intent' => 'location', 'is_in_scope' => true, 'reason' => 'default_travel'];
     }
 
+    /**
+     * Chuẩn hóa văn bản: loại bỏ khoảng trắng dư thừa và chuyển về chữ thường.
+     *
+     * @param string $message Chuỗi tin nhắn gốc
+     * @return string Tin nhắn đã được chuẩn hóa
+     */
     private function normalize(string $message): string
     {
         $normalized = preg_replace('/\s+/u', ' ', trim($message));
@@ -174,6 +186,13 @@ final class ChatIntentGuardService
         return mb_strtolower(is_string($normalized) ? $normalized : trim($message));
     }
 
+    /**
+     * Áp dụng từ đồng nghĩa hoặc viết tắt (aliases) cho chuỗi văn bản đã chuẩn hóa.
+     * Giúp cải thiện tỷ lệ khớp từ khóa.
+     *
+     * @param string $text Tin nhắn đã được chuẩn hóa
+     * @return string Tin nhắn sau khi áp dụng từ đồng nghĩa
+     */
     private function applyAliases(string $text): string
     {
         $aliases = [

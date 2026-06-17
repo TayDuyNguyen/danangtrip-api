@@ -8,10 +8,11 @@ use Illuminate\Support\Facades\Log;
 final class ChatToolGuardrailService
 {
     /**
-     * Validate and clean up understanding parameters before search engine/DB queries.
-     * Returns an array with 'understanding' (cleaned) and 'warnings' (list of friendly issues found).
+     * Kiểm tra tính hợp lệ và làm sạch các tham số phân tích ý định (understanding parameters)
+     * trước khi chuyển cho các bộ tìm kiếm hoặc truy vấn database.
+     * Trả về mảng chứa cấu trúc đã làm sạch và danh sách các cảnh báo (warnings) nếu có tham số không hợp lệ.
      *
-     * @param  array<string,mixed>  $understanding
+     * @param array<string,mixed> $understanding Mảng chứa kết quả phân tích ý định hiện tại
      * @return array{understanding: array<string,mixed>, warnings: array<int,string>}
      */
     public function validate(array $understanding): array

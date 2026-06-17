@@ -17,12 +17,14 @@ use Illuminate\Support\Collection;
 final class ChatRecommendationBuilderService
 {
     /**
-     * Build danh sách recommendation cuối cùng.
+     * Tổng hợp, tính điểm, xếp hạng và chọn lọc ra danh sách các đề xuất cuối cùng.
+     * Hỗ trợ gộp kết quả tìm kiếm SQL và Vector Search, loại bỏ trùng lặp.
      *
-     * @param  array{tours:Collection,locations:Collection,blogs:Collection}  $sqlResults
-     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
-     * @param  array<string,mixed>  $understanding
-     * @return array<int,array{type:string,data:array<string,mixed>}>
+     * @param array{tours:Collection,locations:Collection,blogs:Collection} $sqlResults Kết quả tìm kiếm SQL
+     * @param Collection<int,ChatKnowledgeBase> $vectorResults Kết quả từ Vector search
+     * @param array<string,mixed> $understanding Kết quả phân tích câu hỏi
+     * @param int $limit Giới hạn số lượng đề xuất tối đa trả về (mặc định là 5)
+     * @return array<int,array{type:string,data:array<string,mixed>}> Danh sách các đề xuất đã xếp hạng
      */
     public function build(
         array $sqlResults,
@@ -178,10 +180,10 @@ final class ChatRecommendationBuilderService
     }
 
     /**
-     * Build vector key → similarity_score map để lookup nhanh.
+     * Xây dựng bản đồ lookup nhanh từ Vector tri thức (khóa định dạng type:reference_id -> điểm tương đồng).
      *
-     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
-     * @return array<string,float>
+     * @param Collection<int,ChatKnowledgeBase> $vectorResults Kết quả từ Vector search
+     * @return array<string,float> Bản đồ tra cứu nhanh
      */
     private function buildVectorKeyMap(Collection $vectorResults): array
     {
@@ -194,10 +196,13 @@ final class ChatRecommendationBuilderService
         return $map;
     }
 
-    // =========================================================================
-    // Scoring methods
-    // =========================================================================
-
+    /**
+     * Tính toán điểm xếp hạng cho tour du lịch dựa trên các tiêu chí (khoảng giá, điểm đến, độ khả dụng, lượt đặt...).
+     *
+     * @param Tour $tour Đối tượng tour cần tính điểm
+     * @param array<string,mixed> $understanding Các thực thể phân tích ý định
+     * @return float Điểm xếp hạng tour
+     */
     private function scoreTour(Tour $tour, array $understanding): float
     {
         $score = 0.0;
@@ -282,6 +287,13 @@ final class ChatRecommendationBuilderService
         return $score;
     }
 
+    /**
+     * Tính toán điểm xếp hạng cho địa điểm du lịch dựa trên ý định, khoảng giá, đánh giá và từ khóa.
+     *
+     * @param Location $location Đối tượng địa điểm cần tính điểm
+     * @param array<string,mixed> $understanding Các thực thể phân tích ý định
+     * @return float Điểm xếp hạng địa điểm
+     */
     private function scoreLocation(Location $location, array $understanding): float
     {
         $score = 0.0;
@@ -391,12 +403,18 @@ final class ChatRecommendationBuilderService
         return $score;
     }
 
+    /**
+     * Tính toán điểm xếp hạng cho bài viết (blog) dựa trên từ khóa, tiêu đề và mức độ phổ biến.
+     *
+     * @param BlogPost $blog Đối tượng bài viết cần tính điểm
+     * @param array<string,mixed> $understanding Các thực thể phân tích ý định
+     * @return float Điểm xếp hạng bài viết
+     */
     private function scoreBlog(BlogPost $blog, array $understanding): float
     {
         $score = 0.0;
         $intent = (string) ($understanding['intent'] ?? '');
         $keywords = array_map('mb_strtolower', (array) ($understanding['keywords'] ?? []));
-        $topics = (array) ($understanding['topics'] ?? []);
 
         $haystack = mb_strtolower(implode(' ', array_filter([
             $blog->title,
@@ -432,11 +450,12 @@ final class ChatRecommendationBuilderService
         return $score;
     }
 
-    // =========================================================================
-    // Payload builders
-    // =========================================================================
-
-    /** @return array<string,mixed> */
+    /**
+     * Chuẩn bị payload thông tin chi tiết cho Tour du lịch để trả về giao diện.
+     *
+     * @param Tour $tour Đối tượng Tour du lịch
+     * @return array<string,mixed> Mảng payload được định dạng chi tiết
+     */
     private function tourPayload(Tour $tour): array
     {
         return [
@@ -473,7 +492,12 @@ final class ChatRecommendationBuilderService
         ];
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Chuẩn bị payload thông tin địa điểm để trả về giao diện.
+     *
+     * @param Location $location Đối tượng địa điểm du lịch
+     * @return array<string,mixed> Mảng payload địa điểm được định dạng chi tiết
+     */
     private function locationPayload(Location $location): array
     {
         return [
@@ -504,7 +528,12 @@ final class ChatRecommendationBuilderService
         ];
     }
 
-    /** @return array<string,mixed> */
+    /**
+     * Chuẩn bị payload thông tin bài viết (blog) để trả về giao diện.
+     *
+     * @param BlogPost $blog Đối tượng bài viết
+     * @return array<string,mixed> Mảng payload bài viết được định dạng chi tiết
+     */
     private function blogPayload(BlogPost $blog): array
     {
         return [
