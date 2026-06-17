@@ -4,7 +4,13 @@ namespace App\Services\Chat;
 
 final class ChatIntentGuardService
 {
-    /** @return array{intent:string,is_in_scope:bool,reason:string|null} */
+    /**
+     * Phân loại ý định (intent) của câu hỏi từ người dùng.
+     * Đồng thời xác định xem câu hỏi có nằm trong phạm vi hỗ trợ (in-scope) hay không.
+     *
+     * @param string $message Câu hỏi/thông điệp từ người dùng
+     * @return array{intent:string,is_in_scope:bool,reason:string|null}
+     */
     public function classify(string $message): array
     {
         $text = $this->normalize($message);
@@ -37,8 +43,9 @@ final class ChatIntentGuardService
                 // Không dấu (người dùng hay gõ tắt)
                 'xin chao', 'chao ban', 'chao buoi', 'ban la ai',
                 'ban co the', 'ban giup', 'toi can giup',
-                // English
-                'hello', 'hi ', 'hi!', 'hey', 'alo', 'howdy',
+                // English — chú ý: 'hi ' có dấu cách để tránh match 'khi', 'thi', 'chi'
+                // Nhưng 'hi ' vẫn match 'khi ' → dùng prefix ^ hoặc điểu kiện bổ sung
+                'hello', 'hey ', 'howdy',
                 'good morning', 'good afternoon', 'good evening', 'good day',
                 'what are you', 'who are you', 'help me', 'i need help',
             ],
@@ -70,6 +77,8 @@ final class ChatIntentGuardService
             'refund' => [
                 'hoàn tiền', 'hủy tour', 'huỷ tour',
                 'chính sách hủy', 'chính sách huỷ', 'đổi lịch', 'refund', 'cancel',
+                'chính sách hoàn', 'hoàn trả', 'phí hủy', 'phí huỷ',
+                'có được hoàn', 'muốn hủy', 'cần hủy',
             ],
             'booking' => [
                 'đặt tour', 'booking', 'đơn hàng', 'đặt chỗ',
@@ -142,6 +151,15 @@ final class ChatIntentGuardService
             ],
         ];
 
+        // ── Greeting: word-boundary check cho các từ ngắn dễ false positive ──
+        // Chỉ check 'hi' và 'alo' nếu xuất hiện tại đầu câu hoặc là toàn bộ câu
+        // để tránh match 'khi', 'chi', 'thi', 'nhà hàng', 'alo ngon'...
+        $startsWithHi  = (bool) preg_match('/^hi[!?.\s]?$/u', $text) || str_starts_with($text, 'hi ') && mb_strlen($text) <= 10;
+        $startsWithAlo = (bool) preg_match('/^alo[!?.\s]?$/u', $text) || $text === 'alo';
+        if ($startsWithHi || $startsWithAlo) {
+            return ['intent' => 'greeting', 'is_in_scope' => true, 'reason' => 'hi_alo_greeting'];
+        }
+
         foreach ($intents as $intent => $keywords) {
             foreach ($keywords as $keyword) {
                 if (str_contains($text, $keyword)) {
@@ -155,6 +173,12 @@ final class ChatIntentGuardService
         return ['intent' => 'location', 'is_in_scope' => true, 'reason' => 'default_travel'];
     }
 
+    /**
+     * Chuẩn hóa văn bản: loại bỏ khoảng trắng dư thừa và chuyển về chữ thường.
+     *
+     * @param string $message Chuỗi tin nhắn gốc
+     * @return string Tin nhắn đã được chuẩn hóa
+     */
     private function normalize(string $message): string
     {
         $normalized = preg_replace('/\s+/u', ' ', trim($message));
@@ -162,6 +186,13 @@ final class ChatIntentGuardService
         return mb_strtolower(is_string($normalized) ? $normalized : trim($message));
     }
 
+    /**
+     * Áp dụng từ đồng nghĩa hoặc viết tắt (aliases) cho chuỗi văn bản đã chuẩn hóa.
+     * Giúp cải thiện tỷ lệ khớp từ khóa.
+     *
+     * @param string $text Tin nhắn đã được chuẩn hóa
+     * @return string Tin nhắn sau khi áp dụng từ đồng nghĩa
+     */
     private function applyAliases(string $text): string
     {
         $aliases = [

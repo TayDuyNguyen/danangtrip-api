@@ -55,7 +55,7 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
     public function getStatusCounts(array $filters = []): array
     {
         $base = $this->model->newQuery();
-        $this->applyScheduleListFilters($base, $filters, true);
+        $this->applyScheduleListFilters($base, $filters, false);
 
         return [
             'total_schedules' => (clone $base)->count(),

@@ -30,14 +30,22 @@ final class ChatKnowledgeSearchService
 
     private const VECTOR_LIMIT = 20;
 
+    /**
+     * Khởi tạo dịch vụ tìm kiếm tri thức.
+     *
+     * @param ChatVectorSearchService $vectorSearch Dịch vụ tìm kiếm vector tri thức
+     */
     public function __construct(
         private readonly ChatVectorSearchService $vectorSearch
     ) {}
 
     /**
-     * Search tất cả nguồn dữ liệu.
+     * Tìm kiếm thông tin du lịch từ nhiều nguồn dữ liệu (SQL, Vector) dựa trên từ khóa và tham số ý định.
      *
-     * @param  array<string,mixed>  $understanding
+     * @param string $question Câu hỏi gốc của người dùng
+     * @param string $intent Ý định nghiệp vụ đã phân tích
+     * @param int $limit Giới hạn kết quả tối đa cần lấy ra
+     * @param array<string,mixed> $understanding Kết quả phân tích chi tiết của câu hỏi
      * @return array{
      *     sql_results: array{tours: Collection, locations: Collection, blogs: Collection},
      *     vector_results: Collection,
@@ -119,9 +127,11 @@ final class ChatKnowledgeSearchService
     }
 
     /**
-     * Xác định content_types cần search dựa trên intent và understanding.
+     * Xác định danh sách loại nội dung (content_types) cần tìm kiếm dựa trên ý định nghiệp vụ và gợi ý.
      *
-     * @return array<int,string>
+     * @param string $intent Ý định nghiệp vụ
+     * @param array<string,mixed> $understanding Kết quả phân tích chi tiết
+     * @return array<int,string> Mảng chứa các loại nội dung phù hợp (tour, location, blog, policy...)
      */
     private function resolveContentTypes(string $intent, array $understanding): array
     {
@@ -154,6 +164,16 @@ final class ChatKnowledgeSearchService
         };
     }
 
+    /**
+     * Thực hiện tìm kiếm các địa điểm du lịch bằng truy vấn SQL dựa trên từ khóa, khu vực, chủ đề.
+     *
+     * @param string $query Truy vấn đã chuẩn hóa
+     * @param string $intent Ý định nghiệp vụ
+     * @param int $limit Giới hạn số lượng bản ghi
+     * @param array<string,mixed> $understanding Thực thể đã trích xuất
+     * @param array<int,string> $topics Danh sách chủ đề cần lọc
+     * @return Collection
+     */
     private function searchLocations(
         string $query,
         string $intent,
@@ -190,6 +210,18 @@ final class ChatKnowledgeSearchService
         return $locations;
     }
 
+    /**
+     * Thực hiện tìm kiếm các tour du lịch bằng truy vấn SQL dựa trên các ràng buộc về giá, số người, ngày khởi hành, địa danh.
+     *
+     * @param string $query Truy vấn đã chuẩn hóa
+     * @param string $intent Ý định nghiệp vụ
+     * @param int $limit Giới hạn kết quả
+     * @param int|null $priceMax Giá lớn nhất
+     * @param int|null $priceMin Giá nhỏ nhất
+     * @param bool $cheapestFirst Ưu tiên giá rẻ nhất
+     * @param array<string,mixed> $understanding Các thực thể trích xuất
+     * @return Collection
+     */
     private function searchTours(
         string $query,
         string $intent,
@@ -279,6 +311,16 @@ final class ChatKnowledgeSearchService
         return $builder->limit($limit)->get();
     }
 
+    /**
+     * Tìm kiếm bài viết (blog) liên quan đến chủ đề du lịch, địa điểm hoặc từ khóa.
+     *
+     * @param string $query Truy vấn đã chuẩn hóa
+     * @param string $intent Ý định nghiệp vụ
+     * @param int $limit Giới hạn kết quả
+     * @param array<string,mixed> $understanding Các thực thể trích xuất
+     * @param array<int,string> $keywords Danh sách từ khóa
+     * @return Collection
+     */
     private function searchBlogs(
         string $query,
         string $intent,
@@ -314,6 +356,12 @@ final class ChatKnowledgeSearchService
             ->get();
     }
 
+    /**
+     * Trả về danh sách bài viết mặc định khi không tìm thấy kết quả tìm kiếm theo từ khóa.
+     *
+     * @param int $limit Giới hạn kết quả
+     * @return Collection
+     */
     private function fallbackBlogs(int $limit): Collection
     {
         return BlogPost::query()
@@ -324,6 +372,15 @@ final class ChatKnowledgeSearchService
             ->get();
     }
 
+    /**
+     * Trả về danh sách địa điểm mặc định khi tìm kiếm chính xác không có kết quả.
+     *
+     * @param string $intent Ý định nghiệp vụ
+     * @param int $limit Giới hạn kết quả
+     * @param array<int,string> $topics Danh sách chủ đề
+     * @param array<string,mixed> $understanding Các thực thể trích xuất
+     * @return Collection
+     */
     private function fallbackLocations(string $intent, int $limit, array $topics = [], array $understanding = []): Collection
     {
         $region = (string) ($understanding['region'] ?? '');
@@ -350,6 +407,12 @@ final class ChatKnowledgeSearchService
             ->get();
     }
 
+    /**
+     * Trả về danh sách các tour nổi bật/mặc định khi không có kết quả tìm kiếm chính xác.
+     *
+     * @param int $limit Giới hạn kết quả
+     * @return Collection
+     */
     private function fallbackTours(int $limit): Collection
     {
         return Tour::query()
@@ -362,9 +425,15 @@ final class ChatKnowledgeSearchService
     }
 
     /**
-     * Build RAG Context cho Response Generator (AI viết lại câu trả lời).
+     * Xây dựng ngữ cảnh RAG (Retrieval-Augmented Generation) từ tất cả các nguồn dữ liệu để gửi cho AI Response Generator.
      *
-     * @return array<int,array<string,mixed>>
+     * @param Collection $tours Tập hợp các tour tìm được
+     * @param Collection $locations Tập hợp các địa điểm tìm được
+     * @param Collection $blogs Tập hợp các bài viết tìm được
+     * @param Collection $vectorKnowledge Kết quả từ Vector search
+     * @param Collection $policies Nội dung chính sách phù hợp
+     * @param int $limit Giới hạn số lượng ngữ cảnh tối đa
+     * @return array<int,array<string,mixed>> Mảng chứa các ngữ cảnh thông tin phẳng
      */
     private function buildRagContext(
         Collection $tours,
@@ -386,7 +455,13 @@ final class ChatKnowledgeSearchService
             ->all();
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /**
+     * Chuyển đổi dữ liệu Eloquent model Tour thành dạng ngữ cảnh phẳng thích hợp cho RAG.
+     * Đồng thời nạp trước (eager load) lịch khởi hành khả dụng của tour.
+     *
+     * @param Collection $tours Tập hợp các tour
+     * @return Collection Mảng ngữ cảnh tour
+     */
     private function tourContext(Collection $tours): Collection
     {
         \Illuminate\Database\Eloquent\Collection::make($tours)->load(['schedules' => function ($query): void {
@@ -423,7 +498,12 @@ final class ChatKnowledgeSearchService
         });
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /**
+     * Chuyển đổi thông tin địa điểm thành ngữ cảnh phẳng thích hợp cho RAG.
+     *
+     * @param Collection $locations Tập hợp các địa điểm
+     * @return Collection Mảng ngữ cảnh địa điểm
+     */
     private function locationContext(Collection $locations): Collection
     {
         return $locations->map(fn (Location $location) => [
@@ -441,7 +521,12 @@ final class ChatKnowledgeSearchService
         ]);
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /**
+     * Chuyển đổi thông tin bài viết thành ngữ cảnh phẳng thích hợp cho RAG.
+     *
+     * @param Collection $blogs Tập hợp các bài viết
+     * @return Collection Mảng ngữ cảnh bài viết
+     */
     private function blogContext(Collection $blogs): Collection
     {
         return $blogs->map(fn (BlogPost $blog) => [
@@ -453,7 +538,12 @@ final class ChatKnowledgeSearchService
         ]);
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /**
+     * Định dạng kết quả từ Vector Search tri thức thành ngữ cảnh phẳng thích hợp cho RAG.
+     *
+     * @param Collection $knowledgeItems Tập hợp kết quả vector tri thức
+     * @return Collection Mảng ngữ cảnh phẳng
+     */
     private function vectorContext(Collection $knowledgeItems): Collection
     {
         return $knowledgeItems->map(fn (ChatKnowledgeBase $item) => [
@@ -466,7 +556,12 @@ final class ChatKnowledgeSearchService
         ]);
     }
 
-    /** @return Collection<int,array<string,mixed>> */
+    /**
+     * Trả về ngữ cảnh chính sách (payment, refund, loyalty, account, contact...) thích hợp với ý định hiện tại.
+     *
+     * @param string $intent Ý định nghiệp vụ hiện tại
+     * @return Collection Mảng chứa ngữ cảnh chính sách hoặc rỗng
+     */
     private function policyContext(string $intent): Collection
     {
         $items = [
@@ -498,6 +593,15 @@ final class ChatKnowledgeSearchService
         ]]);
     }
 
+    /**
+     * Tự động lọc các từ nhiễu (stop words) và áp dụng tìm kiếm chứa chuỗi (LIKE) trên các cột chỉ định.
+     *
+     * @param Builder $builder Eloquent Builder
+     * @param string $query Truy vấn tìm kiếm thô
+     * @param array<int,string> $columns Các cột cơ sở dữ liệu cần tìm kiếm
+     * @param string $boolean Phép toán logic khi gộp các từ khóa ('and' hoặc 'or')
+     * @return Builder Eloquent Builder đã được áp dụng điều kiện tìm kiếm LIKE
+     */
     private function applyLike(Builder $builder, string $query, array $columns, string $boolean = 'and'): Builder
     {
         $stopWords = [
@@ -571,7 +675,11 @@ final class ChatKnowledgeSearchService
     }
 
     /**
-     * Apply filter dựa trên AI NLU topics array.
+     * Lọc địa điểm trong database theo danh sách chủ đề được NLU phân tích.
+     *
+     * @param Builder $builder Eloquent Builder của bảng địa điểm
+     * @param array<int,string> $topics Mảng chứa tên chủ đề
+     * @return Builder Eloquent Builder đã được áp dụng bộ lọc chủ đề
      */
     private function applyTopicFilter(Builder $builder, array $topics): Builder
     {
@@ -612,6 +720,12 @@ final class ChatKnowledgeSearchService
         });
     }
 
+    /**
+     * Phân tích và trích xuất mức giá tối đa từ chuỗi truy vấn thô (fallback cho rule-based).
+     *
+     * @param string $query Truy vấn cần phân tích
+     * @return int|null Giá tối đa dạng integer VNĐ, hoặc null
+     */
     private function extractMaxPrice(string $query): ?int
     {
         if (! preg_match('/(?:dưới|duoi|nhỏ hơn|nho hon|<|không quá)\s*([\d\.,]+)\s*(triệu|trieu|nghìn|nghin|k)?/u', $query, $matches)) {
@@ -628,6 +742,13 @@ final class ChatKnowledgeSearchService
         };
     }
 
+    /**
+     * Lọc địa điểm trong database theo chủ đề địa điểm (location topic) đơn lẻ được phát hiện.
+     *
+     * @param Builder $builder Eloquent Builder địa điểm
+     * @param string $topic Tên chủ đề
+     * @return Builder
+     */
     private function applyLocationTopic(Builder $builder, string $topic): Builder
     {
         if ($topic === 'beach') {
@@ -698,7 +819,13 @@ final class ChatKnowledgeSearchService
         });
     }
 
-    /** @param array<int,string> $terms */
+    /**
+     * Tìm kiếm từ khóa chứa chuỗi (LIKE) trên tên của mối quan hệ liên kết (như tags, category).
+     *
+     * @param Builder $builder Builder của quan hệ
+     * @param array<int,string> $terms Các từ khóa tìm kiếm
+     * @return Builder
+     */
     private function applyRelationNameTerms(Builder $builder, array $terms): Builder
     {
         foreach ($terms as $term) {
@@ -708,6 +835,13 @@ final class ChatKnowledgeSearchService
         return $builder;
     }
 
+    /**
+     * Lọc địa điểm du lịch theo khu vực địa lý (như đà nẵng, hội an, huế...).
+     *
+     * @param Builder $builder Eloquent Builder địa điểm
+     * @param string $region Khu vực địa lý cần lọc
+     * @return Builder
+     */
     private function applyLocationRegion(Builder $builder, string $region): Builder
     {
         $terms = match ($region) {
@@ -729,6 +863,14 @@ final class ChatKnowledgeSearchService
         });
     }
 
+    /**
+     * Kiểm tra xem câu hỏi có chứa bất kỳ ràng buộc cứng nào về tour (giá, người, ngày, địa danh) hay không.
+     *
+     * @param array<string,mixed> $understanding Kết quả phân tích
+     * @param int|null $priceMax Giá tối đa
+     * @param int|null $priceMin Giá tối thiểu
+     * @return bool Trả về true nếu không có ràng buộc cứng nào
+     */
     private function hasNoHardTourConstraints(array $understanding, ?int $priceMax, ?int $priceMin): bool
     {
         return $priceMax === null
@@ -738,12 +880,24 @@ final class ChatKnowledgeSearchService
             && empty($understanding['date']);
     }
 
+    /**
+     * Kiểm tra xem câu hỏi có chứa các ràng buộc cứng về địa điểm hay không.
+     *
+     * @param array<string,mixed> $understanding Kết quả phân tích
+     * @return bool Trả về true nếu không có ràng buộc
+     */
     private function hasNoHardLocationConstraints(array $understanding): bool
     {
         return empty($understanding['location_topic'])
             && empty($understanding['topics']);
     }
 
+    /**
+     * Chuẩn hóa văn bản: loại bỏ khoảng trắng dư thừa và chuyển về chữ thường.
+     *
+     * @param string $value Chuỗi văn bản gốc
+     * @return string Văn bản chuẩn hóa
+     */
     private function normalize(string $value): string
     {
         $normalized = preg_replace('/\s+/u', ' ', trim($value));
@@ -751,6 +905,12 @@ final class ChatKnowledgeSearchService
         return mb_strtolower(is_string($normalized) ? $normalized : trim($value));
     }
 
+    /**
+     * Kiểm tra xem câu hỏi có chứa các từ khóa liên quan đến việc tìm đồ rẻ nhất hay không.
+     *
+     * @param string $query Truy vấn cần kiểm tra
+     * @return bool Trả về true nếu chứa từ khóa giá rẻ
+     */
     private function isCheapestQuery(string $query): bool
     {
         foreach (['rẻ nhất', 'giá rẻ', 'thấp nhất', 'ít tiền', 'tiết kiệm', 'cheap', 'cheapest', 'low price', 'affordable'] as $keyword) {
@@ -762,18 +922,27 @@ final class ChatKnowledgeSearchService
         return false;
     }
 
+    /**
+     * Escape các ký tự đặc biệt trong câu lệnh LIKE SQL để tránh lỗi cú pháp hoặc SQL injection qua LIKE.
+     *
+     * @param string $value Giá trị cần escape
+     * @return string Giá trị an toàn
+     */
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**
-     * Build RAG context based on recommended items first, then fill with other items.
+     * Xây dựng ngữ cảnh RAG được căn chỉnh, trong đó ưu tiên hiển thị các gợi ý (recommendations)
+     * đã được gợi ý lên trước, sau đó điền thêm các thông tin phụ từ SQL & Vector cho đủ giới hạn.
      *
-     * @param  array<int,array{type:string,data:array<string,mixed>}>  $recommendations
-     * @param  array{tours:Collection,locations:Collection,blogs:Collection}  $sqlResults
-     * @param  Collection<int,ChatKnowledgeBase>  $vectorResults
-     * @return array<int,array<string,mixed>>
+     * @param array<int,array{type:string,data:array<string,mixed>}> $recommendations Danh sách gợi ý từ builder
+     * @param array{tours:Collection,locations:Collection,blogs:Collection} $sqlResults Kết quả tìm kiếm SQL
+     * @param Collection<int,ChatKnowledgeBase> $vectorResults Kết quả từ Vector search
+     * @param string $intent Ý định nghiệp vụ hiện tại
+     * @param int $limit Giới hạn số lượng ngữ cảnh tối đa
+     * @return array<int,array<string,mixed>> Ngữ cảnh RAG đã được căn chỉnh và sắp xếp
      */
     public function buildAlignedContext(
         array $recommendations,

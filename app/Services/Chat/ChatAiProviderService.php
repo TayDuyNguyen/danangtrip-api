@@ -11,33 +11,63 @@ use RuntimeException;
 
 final class ChatAiProviderService
 {
+    /**
+     * @var array<int,string>
+     * Lịch trình xoay vòng và dấu vết thực thi của AI.
+     */
     private array $logs = [];
 
+    /**
+     * Xóa sạch lịch sử logs của các lần gọi API trước đó.
+     *
+     * @return void
+     */
     public function clearLogs(): void
     {
         $this->logs = [];
     }
 
+    /**
+     * Lấy danh sách logs chi tiết của chu kỳ gọi API hiện tại.
+     *
+     * @return array<int,string>
+     */
     public function getLogs(): array
     {
         return $this->logs;
     }
 
+    /**
+     * Thêm một thông tin hoặc sự kiện vào lịch sử logs.
+     *
+     * @param string $message Thông báo cần ghi log
+     * @return void
+     */
     private function addLog(string $message): void
     {
         $this->logs[] = $message;
     }
 
-    /** @param array<int,array{role:string,content:string}> $messages */
+    /**
+     * Gửi yêu cầu hoàn thiện hội thoại (chat completion) tới nhà cung cấp AI.
+     * Tự động duyệt qua danh sách các provider trong `provider_order` và xoay vòng key
+     * nếu một khóa bị lỗi hoặc rate-limit (failover).
+     *
+     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
+     * @param array<string,mixed> $options Cấu hình thêm (temperature, max_tokens...)
+     * @return array{ok:bool,text:string|null,provider:string|null,model:string|null,tokens_used:int,attempts:int}
+     */
     public function complete(array $messages, array $options = []): array
     {
         $attempts = 0;
         $maxAttempts = max(1, (int) config('chatbot.max_retries', 3));
 
+        // Lặp qua thứ tự các nhà cung cấp cấu hình (Gemini, OpenAI, Groq, OpenRouter...)
         foreach ((array) config('chatbot.provider_order', []) as $provider) {
             $providerConfig = (array) config("chatbot.providers.{$provider}", []);
             $keys = (array) ($providerConfig['keys'] ?? []);
 
+            // Thử từng API key của nhà cung cấp hiện tại
             foreach ($keys as $index => $key) {
                 if ($attempts >= $maxAttempts) {
                     break 2;
@@ -92,33 +122,18 @@ final class ChatAiProviderService
     }
 
     /**
-     * Trích xuất entities từ câu hỏi bằng AI NLU — Schema mở rộng.
+     * Trích xuất các thực thể du lịch từ câu hỏi bằng mô hình AI NLU.
+     * Tự động chuyển đổi dự phòng nếu lỗi.
      *
-     * Schema trả về:
-     * {
-     *   "intent": string,
-     *   "topics": string[],
-     *   "content_types": string[],
-     *   "keywords": string[],
-     *   "destination": string|null,
-     *   "region": string|null,
-     *   "max_price": int|null,
-     *   "min_price": int|null,
-     *   "people": int|null,
-     *   "date": string|null,
-     *   "duration_days": int|null,
-     *   "cheapest_first": boolean,
-     *   "best_first": boolean
-     * }
-     *
-     * @return array<string,mixed>
+     * @param string $question Câu hỏi đầu vào của người dùng
+     * @param string $locale Ngôn ngữ hiện tại (vi/en)
+     * @param array<string,mixed> $currentEntities Các thực thể đã trích xuất từ rule-based
+     * @param string $detectedIntent Ý định đã được nhận diện trước đó
+     * @param string $reason Lý do cần gọi AI (nếu có)
+     * @return array<string,mixed>|null
      */
     public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities, string $detectedIntent = '', string $reason = ''): ?array
     {
-        $provider = 'gemini';
-        $providerConfig = (array) config("chatbot.providers.{$provider}", []);
-        $keys = (array) ($providerConfig['keys'] ?? []);
-
         $currentDate = CarbonImmutable::now('Asia/Ho_Chi_Minh')->locale($locale);
         $dateInfo = 'Hôm nay là: '.$currentDate->isoFormat('dddd, DD/MM/YYYY').' (múi giờ Asia/Ho_Chi_Minh).';
         if ($locale === 'en') {
@@ -186,7 +201,7 @@ final class ChatAiProviderService
             '}',
             '',
             'LƯU Ý QUAN TRỌNG VỀ Ý ĐỊNH (INTENT) VÀ LOẠI NỘI DUNG (CONTENT TYPES):',
-            '- "tour": Người dùng muốn đặt tour, đi tour ghép/riêng, tìm lịch trình trọn gói. ĐẶC BIỆT: Khi câu hỏi hỏi về địa điểm tham quan/du lịch (ví dụ: "Cầu Rồng", "Bà Nà Hills") nhưng lại đi kèm thông tin về số lượng người ("4 người"), ngân sách ("1.5 triệu"), hoặc thời lượng ("3 ngày"), thì ý định thực sự là tìm tour du lịch ("tour"), không phải là tự đi tự túc ("location"). Khi đó, "intent" phải là "tour" và "content_types" phải là ["tour"].',
+            '- "tour": Người dùng muốn đặt tour, đi tour ghép/riêng, tìm lịch trình trọn gói. ĐẶC BIỆT: Khi câu hỏi hỏi về địa điểm tham quan/du lịch (ví dụ: "Cầu Rồng", "Bà Nà Hills") nhưng lại đi kèm thông tin về số lượng người ("4 người"), ngân sách ("1.5 triệu"), hoặc thời lượng ("3 ngày"), thì ý định thực sự là tìm tour du lịch ("tour"), không phải là tự đi tự túc ("location"). Khi đó, "intent" ...',
             '- "location": Người dùng chỉ muốn tìm thông tin giới thiệu, địa chỉ, giờ mở cửa của các địa điểm vui chơi, thắng cảnh tự túc, nhà hàng, khách sạn mà KHÔNG có các thông tin ràng buộc về số lượng người hay ngân sách đặt tour đi kèm.',
             '- Đầu vào có "reason": "consistency_failed" báo hiệu hệ thống rule-based phân loại nhầm thành "location" hoặc "blog" nhưng thực tế có thông tin ràng buộc (ngân sách, số người, thời gian đi). Khi đó hãy chuyển đổi "intent" sang "tour" và "content_types" sang ["tour"].',
             '',
@@ -196,61 +211,38 @@ final class ChatAiProviderService
             '3. Hãy kế thừa, xác nhận hoặc sửa lại intent và thực thể cho phù hợp dựa trên ngữ nghĩa của toàn bộ câu hỏi.',
         ]);
 
-        foreach ($keys as $index => $key) {
-            if ($this->isCoolingDown($provider, $index)) {
-                $this->addLog("Skipped NLU key {$index} for provider '{$provider}' (cooling down)");
+        foreach ((array) config('chatbot.provider_order', ['gemini']) as $provider) {
+            $providerConfig = (array) config("chatbot.providers.{$provider}", []);
+            $keys = (array) ($providerConfig['keys'] ?? []);
 
-                continue;
-            }
+            foreach ($keys as $index => $key) {
+                if ($this->isCoolingDown($provider, $index)) {
+                    $this->addLog("Skipped NLU key {$index} for provider '{$provider}' (cooling down)");
 
-            try {
-                $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
-                $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? 'https://generativelanguage.googleapis.com/v1beta'), '/');
-
-                $response = Http::timeout((int) config('chatbot.timeout_seconds', 25))
-                    ->post("{$baseUrl}/models/{$model}:generateContent?key={$key}", [
-                        'contents' => [
-                            [
-                                'role' => 'user',
-                                'parts' => [
-                                    ['text' => implode("\n\n", [
-                                        'SYSTEM: '.$systemPrompt,
-                                        'STRUCTURED CONTEXT (INPUT): '.json_encode([
-                                            'question' => $question,
-                                            'rule_intent' => $detectedIntent,
-                                            'entities' => $currentEntities,
-                                            'reason' => $reason,
-                                        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                                    ])],
-                                ],
-                            ],
-                        ],
-                        'generationConfig' => [
-                            'temperature' => 0.1,
-                            'responseMimeType' => 'application/json',
-                            'thinkingConfig' => [
-                                'thinkingBudget' => 0,
-                            ],
-                        ],
-                    ]);
-
-                $this->ensureSuccessfulResponse($response, $provider, $index);
-
-                $text = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
-                $extracted = json_decode(trim($text), true);
-
-                if (is_array($extracted)) {
-                    $this->addLog("AI NLU SUCCESS with provider '{$provider}', model '{$model}', key_index={$index}");
-
-                    return $this->mergeEntities($currentEntities, $extracted);
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                $this->addLog("AI NLU FAILED for provider '{$provider}', key_index={$index}, error: ".$e->getMessage());
-                Log::warning('CHATBOT_AI_NLU_FAILED', [
-                    'provider' => $provider,
-                    'key_index' => $index,
-                    'message' => $e->getMessage(),
-                ]);
+
+                try {
+                    $extracted = match ($provider) {
+                        'gemini' => $this->extractEntitiesGemini($question, $systemPrompt, $providerConfig, (string) $key, $index, $currentEntities, $detectedIntent, $reason),
+                        'groq', 'openrouter', 'openai' => $this->extractEntitiesOpenAiCompatible($question, $systemPrompt, $provider, $providerConfig, (string) $key, $index, $currentEntities, $detectedIntent, $reason),
+                        default => throw new RuntimeException("Unsupported NLU provider: {$provider}"),
+                    };
+
+                    if (is_array($extracted)) {
+                        $this->addLog("AI NLU SUCCESS with provider '{$provider}', model '".($providerConfig['model'] ?? 'N/A')."', key_index={$index}");
+
+                        return $this->mergeEntities($currentEntities, $extracted);
+                    }
+                } catch (\Throwable $e) {
+                    $this->addLog("AI NLU FAILED for provider '{$provider}', key_index={$index}, error: ".$e->getMessage());
+                    Log::warning('CHATBOT_AI_NLU_FAILED', [
+                        'provider' => $provider,
+                        'model' => $providerConfig['model'] ?? null,
+                        'key_index' => $index,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
             }
         }
 
@@ -258,9 +250,150 @@ final class ChatAiProviderService
     }
 
     /**
+     * Gọi mô hình Google Gemini để trích xuất thực thể du lịch dưới dạng JSON.
+     *
+     * @param string $question Câu hỏi đầu vào của người dùng
+     * @param string $systemPrompt Chỉ dẫn hệ thống cho mô hình NLU
+     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp Gemini
+     * @param string $key API key đang sử dụng
+     * @param int $keyIndex Chỉ mục của API key trong cấu hình
+     * @param array<string,mixed> $currentEntities Các thực thể hiện tại từ rule-based
+     * @param string $detectedIntent Ý định đã được nhận diện
+     * @param string $reason Lý do cần gọi AI
+     * @return array<string,mixed>|null
+     */
+    private function extractEntitiesGemini(
+        string $question,
+        string $systemPrompt,
+        array $providerConfig,
+        string $key,
+        int $keyIndex,
+        array $currentEntities,
+        string $detectedIntent,
+        string $reason
+    ): ?array {
+        $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
+        $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? 'https://generativelanguage.googleapis.com/v1beta'), '/');
+
+        $response = Http::timeout((int) config('chatbot.timeout_seconds', 25))
+            ->post("{$baseUrl}/models/{$model}:generateContent?key={$key}", [
+                'contents' => [
+                    [
+                        'role' => 'user',
+                        'parts' => [
+                            ['text' => implode("\n\n", [
+                                'SYSTEM: '.$systemPrompt,
+                                'STRUCTURED CONTEXT (INPUT): '.json_encode([
+                                    'question' => $question,
+                                    'rule_intent' => $detectedIntent,
+                                    'entities' => $currentEntities,
+                                    'reason' => $reason,
+                                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                            ])],
+                        ],
+                    ],
+                ],
+                'generationConfig' => [
+                    'temperature' => 0.1,
+                    'responseMimeType' => 'application/json',
+                    'thinkingConfig' => [
+                        'thinkingBudget' => 0,
+                    ],
+                ],
+            ]);
+
+        $this->ensureSuccessfulResponse($response, 'gemini', $keyIndex);
+
+        $text = (string) data_get($response->json(), 'candidates.0.content.parts.0.text', '');
+        if (trim($text) === '') {
+            throw new RuntimeException('Gemini NLU returned an empty response.');
+        }
+
+        return json_decode(trim($text), true);
+    }
+
+    /**
+     * Gọi mô hình OpenAI hoặc tương thích (Groq, OpenRouter) để trích xuất thực thể.
+     *
+     * @param string $question Câu hỏi đầu vào của người dùng
+     * @param string $systemPrompt Chỉ dẫn hệ thống cho mô hình NLU
+     * @param string $provider Tên nhà cung cấp AI
+     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp
+     * @param string $key API key đang sử dụng
+     * @param int $keyIndex Chỉ mục của API key trong cấu hình
+     * @param array<string,mixed> $currentEntities Các thực thể hiện tại từ rule-based
+     * @param string $detectedIntent Ý định đã được nhận diện
+     * @param string $reason Lý do cần gọi AI
+     * @return array<string,mixed>|null
+     */
+    private function extractEntitiesOpenAiCompatible(
+        string $question,
+        string $systemPrompt,
+        string $provider,
+        array $providerConfig,
+        string $key,
+        int $keyIndex,
+        array $currentEntities,
+        string $detectedIntent,
+        string $reason
+    ): ?array {
+        $model = (string) ($providerConfig['model'] ?? '');
+        $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? ''), '/');
+        $headers = [
+            'Authorization' => "Bearer {$key}",
+            'Content-Type' => 'application/json',
+        ];
+
+        if ($provider === 'openrouter') {
+            if (! empty($providerConfig['site_url'])) {
+                $headers['HTTP-Referer'] = (string) $providerConfig['site_url'];
+            }
+            if (! empty($providerConfig['app_name'])) {
+                $headers['X-Title'] = (string) $providerConfig['app_name'];
+            }
+        }
+
+        $inputContext = json_encode([
+            'question' => $question,
+            'rule_intent' => $detectedIntent,
+            'entities' => $currentEntities,
+            'reason' => $reason,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        $response = Http::withHeaders($headers)
+            ->timeout((int) config('chatbot.timeout_seconds', 25))
+            ->post("{$baseUrl}/chat/completions", [
+                'model' => $model,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => $systemPrompt,
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'STRUCTURED CONTEXT (INPUT): '.$inputContext,
+                    ],
+                ],
+                'temperature' => 0.1,
+                'response_format' => ['type' => 'json_object'],
+            ]);
+
+        $this->ensureSuccessfulResponse($response, $provider, $keyIndex);
+
+        $text = (string) data_get($response->json(), 'choices.0.message.content', '');
+        if (trim($text) === '') {
+            throw new RuntimeException("{$provider} NLU returned an empty response.");
+        }
+
+        return json_decode(trim($text), true);
+    }
+
+    /**
      * Merge rule-based entities với AI NLU entities.
      * AI NLU override rule-based nếu có giá trị mới.
      *
+     * @param array<string,mixed> $current Thực thể hiện có từ rule-based
+     * @param array<string,mixed> $aiExtracted Thực thể mới trích xuất từ AI
      * @return array<string,mixed>
      */
     private function mergeEntities(array $current, array $aiExtracted): array
@@ -300,7 +433,16 @@ final class ChatAiProviderService
         return $merged;
     }
 
-    /** @param array<int,array{role:string,content:string}> $messages */
+    /**
+     * Gọi API của Google Gemini để hoàn thiện văn bản hoặc hội thoại (Chat Completion).
+     *
+     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
+     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp Gemini
+     * @param string $key API key đang sử dụng
+     * @param int $keyIndex Chỉ số của API key trong cấu hình
+     * @param array<string,mixed> $options Các tùy chọn cấu hình bổ sung
+     * @return array{text:string,tokens_used:int}
+     */
     private function completeGemini(array $messages, array $providerConfig, string $key, int $keyIndex, array $options = []): array
     {
         $model = (string) ($providerConfig['model'] ?? 'gemini-2.5-flash');
@@ -340,7 +482,17 @@ final class ChatAiProviderService
         ];
     }
 
-    /** @param array<int,array{role:string,content:string}> $messages */
+    /**
+     * Gọi API của các dòng mô hình tương thích OpenAI để hoàn thiện hội thoại.
+     *
+     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
+     * @param string $provider Tên nhà cung cấp AI (openai, groq, openrouter...)
+     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp
+     * @param string $key API key đang sử dụng
+     * @param int $keyIndex Chỉ số của API key trong cấu hình
+     * @param array<string,mixed> $options Các tùy chọn cấu hình bổ sung
+     * @return array{text:string,tokens_used:int}
+     */
     private function completeOpenAiCompatible(array $messages, string $provider, array $providerConfig, string $key, int $keyIndex, array $options = []): array
     {
         $baseUrl = rtrim((string) ($providerConfig['base_url'] ?? ''), '/');
@@ -380,6 +532,15 @@ final class ChatAiProviderService
         ];
     }
 
+    /**
+     * Kiểm tra trạng thái phản hồi HTTP. Nếu lỗi, áp dụng thời gian tạm ngưng (cooldown) phù hợp cho khóa API.
+     *
+     * @param Response $response Đối tượng phản hồi HTTP
+     * @param string $provider Tên nhà cung cấp dịch vụ AI
+     * @param int $keyIndex Chỉ số khóa API trong cấu hình
+     * @return void
+     * @throws RuntimeException khi phản hồi không thành công
+     */
     private function ensureSuccessfulResponse(Response $response, string $provider, int $keyIndex): void
     {
         if ($response->successful()) {
@@ -394,11 +555,11 @@ final class ChatAiProviderService
         );
 
         if (in_array($status, (array) config('chatbot.failover_status_codes', []), true) || in_array($status, [401, 403], true)) {
-            $cooldownTime = 3600; // default 1 hour
+            $cooldownTime = 3600; // Mặc định 1 giờ
             if (in_array($status, [401, 403], true)) {
-                $cooldownTime = 86400; // 1 day for invalid keys
+                $cooldownTime = 86400; // 1 ngày nếu khóa API sai/bị chặn
             } elseif (in_array($status, [429, 503], true)) {
-                $cooldownTime = 60; // 60 seconds for rate limit or temp overload
+                $cooldownTime = 60; // 60 giây nếu bị quá tải hoặc đạt giới hạn tần suất tạm thời
             } else {
                 $cooldownTime = (int) config('chatbot.key_cooldown_seconds', 3600);
             }
@@ -408,7 +569,12 @@ final class ChatAiProviderService
         throw new RuntimeException("{$provider} HTTP {$status}: ".mb_substr($message, 0, 300));
     }
 
-    /** @param array<int,array{role:string,content:string}> $messages */
+    /**
+     * Trích xuất thông tin chỉ dẫn hệ thống (System Prompt) từ danh sách tin nhắn để ghép chuỗi cho Gemini.
+     *
+     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn
+     * @return string Văn bản chỉ dẫn hệ thống
+     */
     private function extractSystemMessage(array $messages): string
     {
         foreach ($messages as $message) {
@@ -420,7 +586,12 @@ final class ChatAiProviderService
         return '';
     }
 
-    /** @param array<int,array{role:string,content:string}> $messages */
+    /**
+     * Chuyển đổi danh sách tin nhắn hội thoại thành chuỗi prompt phẳng phục vụ định dạng Gemini.
+     *
+     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn
+     * @return string Chuỗi prompt đã gộp
+     */
     private function messagesToPrompt(array $messages): string
     {
         return collect($messages)
@@ -429,11 +600,26 @@ final class ChatAiProviderService
             ->implode("\n\n");
     }
 
+    /**
+     * Kiểm tra xem một khóa API cụ thể có đang bị tạm ngưng (cooldown) hay không.
+     *
+     * @param string $provider Tên nhà cung cấp AI
+     * @param int $keyIndex Chỉ số khóa trong cấu hình
+     * @return bool
+     */
     private function isCoolingDown(string $provider, int $keyIndex): bool
     {
         return Cache::has($this->cooldownKey($provider, $keyIndex));
     }
 
+    /**
+     * Thiết lập trạng thái tạm ngưng (cooldown) cho một khóa API cụ thể trong khoảng thời gian xác định.
+     *
+     * @param string $provider Tên nhà cung cấp AI
+     * @param int $keyIndex Chỉ số khóa trong cấu hình
+     * @param int|null $seconds Số giây tạm ngưng
+     * @return void
+     */
     private function coolDown(string $provider, int $keyIndex, ?int $seconds = null): void
     {
         Cache::put(
@@ -443,6 +629,13 @@ final class ChatAiProviderService
         );
     }
 
+    /**
+     * Tạo khóa cache phục vụ lưu trữ trạng thái tạm ngưng (cooldown key) của API key.
+     *
+     * @param string $provider Tên nhà cung cấp AI
+     * @param int $keyIndex Chỉ số khóa
+     * @return string Tên khóa cache
+     */
     private function cooldownKey(string $provider, int $keyIndex): string
     {
         return "chatbot:provider_cooldown:{$provider}:{$keyIndex}";

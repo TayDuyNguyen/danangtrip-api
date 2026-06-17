@@ -161,6 +161,16 @@ final class TourScheduleService
                 ];
             }
 
+            if (
+                array_key_exists('max_people', $data)
+                && (int) $data['max_people'] < (int) $schedule->booked_people
+            ) {
+                return [
+                    'status' => HttpStatusCode::BAD_REQUEST->value,
+                    'message' => 'Max people cannot be less than the number of booked seats ('.$schedule->booked_people.').',
+                ];
+            }
+
             $updated = $this->tourScheduleRepository->update($id, $data);
             if (! $updated) {
                 return [
