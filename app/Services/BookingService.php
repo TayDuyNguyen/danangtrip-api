@@ -15,6 +15,8 @@ use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\PromotionRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -38,7 +40,8 @@ class BookingService
         protected PaymentRepositoryInterface $paymentRepository,
         protected BookingPaymentNotificationService $paymentNotificationService,
         protected PromotionRepositoryInterface $promotionRepository,
-        protected PointService $pointService
+        protected PointService $pointService,
+        protected RefundService $refundService
     ) {}
 
     /**
@@ -554,6 +557,25 @@ class BookingService
                     ];
                 }
 
+                $preview = $this->refundService->preview($booking);
+                if (now()->greaterThanOrEqualTo(Carbon::parse($preview['departure_at']))) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'The tour has already departed. Please contact support.',
+                    ];
+                }
+
+                if ($preview['requires_bank_details']) {
+                    foreach (['refund_bank_code', 'refund_account_no', 'refund_account_name'] as $field) {
+                        if (empty($data[$field])) {
+                            return [
+                                'status' => HttpStatusCode::VALIDATION_ERROR->value,
+                                'message' => 'Refund bank information is required.',
+                            ];
+                        }
+                    }
+                }
+
                 $this->bookingRepository->updateBooking((int) $booking->id, [
                     'booking_status' => BookingStatus::CANCELLED->value,
                     'cancelled_at' => now(),
@@ -585,9 +607,22 @@ class BookingService
                     "Đơn {$booking->booking_code} đã được ghi nhận hủy theo yêu cầu của bạn."
                 );
 
+                $refundRequest = $this->refundService->createCancellationRequest(
+                    $booking->fresh()->load(['items.tour', 'payments', 'paymentReceipts']),
+                    $data,
+                    $userId
+                );
+                if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
+                    $this->pointService->reverseBookingPaymentPoints($userId, (int) $booking->id);
+                }
+
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
-                    'data' => $booking->fresh(),
+                    'data' => [
+                        'booking' => $booking->fresh(),
+                        'refund_preview' => $preview,
+                        'refund_request' => $refundRequest,
+                    ],
                     'message' => 'Booking cancelled successfully.',
                 ];
             });
@@ -598,6 +633,55 @@ class BookingService
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Booking cancellation failed',
             ];
+        }
+    }
+
+    public function previewRefund(int $id, int $userId): array
+    {
+        try {
+            $booking = $this->bookingRepository->findWithDetails($id);
+            if (! $booking) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Booking not found.'];
+            }
+            if ((int) $booking->user_id !== $userId) {
+                return ['status' => HttpStatusCode::FORBIDDEN->value, 'message' => 'You are not authorized to view this booking.'];
+            }
+            if (in_array($booking->booking_status, [BookingStatus::CANCELLED->value, BookingStatus::COMPLETED->value], true)) {
+                return ['status' => HttpStatusCode::BAD_REQUEST->value, 'message' => 'Booking cannot be cancelled.'];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->refundService->preview($booking),
+                'message' => 'Refund preview retrieved successfully.',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Refund preview failed', ['booking_id' => $id, 'exception' => $e]);
+
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to calculate refund preview.'];
+        }
+    }
+
+    public function previewRefundAdmin(int $id): array
+    {
+        try {
+            $booking = $this->bookingRepository->findWithDetails($id);
+            if (! $booking) {
+                return ['status' => HttpStatusCode::NOT_FOUND->value, 'message' => 'Booking not found.'];
+            }
+            if (in_array($booking->booking_status, [BookingStatus::CANCELLED->value, BookingStatus::COMPLETED->value], true)) {
+                return ['status' => HttpStatusCode::BAD_REQUEST->value, 'message' => 'Booking cannot be cancelled.'];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $this->refundService->preview($booking),
+                'message' => 'Refund preview retrieved successfully.',
+            ];
+        } catch (\Throwable $e) {
+            Log::error('Admin refund preview failed', ['booking_id' => $id, 'exception' => $e]);
+
+            return ['status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value, 'message' => 'Failed to calculate refund preview.'];
         }
     }
 
@@ -795,6 +879,22 @@ class BookingService
                     'Đơn đặt tour đã bị hủy',
                     "Đơn {$booking->booking_code} đã được quản trị viên cập nhật hủy. Lý do: ".($data['cancellation_reason'] ?? 'Không có ghi chú thêm').'.'
                 );
+
+                if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
+                    $this->refundService->createCancellationRequest(
+                        $booking->fresh()->load(['items.tour', 'payments', 'paymentReceipts']),
+                        [
+                            'cancellation_reason' => $data['cancellation_reason'] ?? 'Hủy bởi quản trị viên',
+                        ],
+                        (int) Auth::id()
+                    );
+                    if ($booking->user_id) {
+                        $this->pointService->reverseBookingPaymentPoints(
+                            (int) $booking->user_id,
+                            (int) $booking->id
+                        );
+                    }
+                }
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,

@@ -11,6 +11,7 @@ class TagSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('02_tags_amenities.sql');
+        $this->importSeederSql('seeders_v2/base/03_tags.sql');
+        $this->importSeederSql('seeders_v2/base/04_amenities.sql');
     }
 }

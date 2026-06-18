@@ -11,6 +11,6 @@ class BlogSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('07_blog_posts.sql');
+        $this->importSeederSql('seeders_v2/demo/05_blog_posts.sql');
     }
 }

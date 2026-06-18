@@ -11,6 +11,7 @@ class TourCategorySeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('03_tour_blog_categories.sql');
+        $this->importSeederSql('seeders_v2/base/05_tour_categories.sql');
+        $this->importSeederSql('seeders_v2/base/06_blog_categories.sql');
     }
 }

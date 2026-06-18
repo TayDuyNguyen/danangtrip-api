@@ -30,6 +30,14 @@ class IndexBookingRequest extends FormRequest
             $merge['sort_order'] = $this->input('order');
         }
 
+        if ($this->filled('payment_status') && $this->input('payment_status') === 'paid') {
+            $merge['payment_status'] = PaymentStatus::SUCCESS->value;
+        }
+
+        if ($this->filled('sort_by') && $this->input('sort_by') === 'amount') {
+            $merge['sort_by'] = 'total_amount';
+        }
+
         if ($merge !== []) {
             $this->merge($merge);
         }
@@ -40,6 +48,7 @@ class IndexBookingRequest extends FormRequest
         return [
             'search' => 'nullable|string|max:255',
             'user_id' => 'nullable|integer|exists:users,id',
+            'tour_schedule_id' => 'nullable|integer|exists:tour_schedules,id',
             'booking_status' => ['nullable', 'string', Rule::in(array_merge(BookingStatus::values(), ['all']))],
             'payment_status' => ['nullable', 'string', Rule::in(array_merge(PaymentStatus::values(), ['all']))],
             'from_date' => 'nullable|date_format:Y-m-d',

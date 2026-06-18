@@ -8,16 +8,17 @@ final class ChatIntentGuardService
      * Phân loại ý định (intent) của câu hỏi từ người dùng.
      * Đồng thời xác định xem câu hỏi có nằm trong phạm vi hỗ trợ (in-scope) hay không.
      *
-     * @param string $message Câu hỏi/thông điệp từ người dùng
-     * @return array{intent:string,is_in_scope:bool,reason:string|null}
+     * @param  string  $message  Câu hỏi/thông điệp từ người dùng
+     * @param  array<string,mixed>  $context  Ngữ cảnh trang hiện tại từ frontend
+     * @return array{intent:string,is_in_scope:bool,reason:string|null,confidence:float,scores:array<string,float>,explicit_match:bool}
      */
-    public function classify(string $message): array
+    public function classify(string $message, array $context = []): array
     {
         $text = $this->normalize($message);
         $text = $this->applyAliases($text);
 
         if ($text === '') {
-            return ['intent' => 'empty', 'is_in_scope' => false, 'reason' => 'empty'];
+            return $this->result('empty', false, 'empty');
         }
 
         $blocked = [
@@ -30,7 +31,7 @@ final class ChatIntentGuardService
 
         foreach ($blocked as $keyword) {
             if (str_contains($text, $keyword)) {
-                return ['intent' => 'out_of_scope', 'is_in_scope' => false, 'reason' => 'blocked_keyword'];
+                return $this->result('out_of_scope', false, 'blocked_keyword');
             }
         }
 
@@ -64,9 +65,13 @@ final class ChatIntentGuardService
                 'hoá đơn đỏ', 'hóa đơn đỏ', 'vat', 'xuất vat', 'xuất hóa đơn',
                 'khiếu nại', 'phàn nàn', 'than phiền', 'complaint', 'complaints',
                 'gặp nhân viên', 'nhân viên hỗ trợ', 'gặp tư vấn viên', 'gặp người thật',
+                'nhân viên tư vấn', 'gặp nhân viên tư vấn', 'cho gặp nhân viên',
+                'cần gặp nhân viên', 'muốn gặp nhân viên', 'tư vấn viên',
                 'hotline', 'tổng đài', 'số điện thoại hỗ trợ', 'zalo chat', 'chat zalo',
                 'chuyển giao', 'nhân viên trực', 'gap nguoi that', 'gap tu van vien',
-                'gap nhan vien', 'khieu nai', 'phan nan',
+                'nhan vien tu van', 'gap nhan vien tu van', 'cho gap nhan vien',
+                'can gap nhan vien', 'muon gap nhan vien', 'gap nhan vien',
+                'tu van vien', 'khieu nai', 'phan nan',
             ],
 
             // === Payment & Booking ===
@@ -101,15 +106,6 @@ final class ChatIntentGuardService
                 '3 days', '2 days', '4 days', '5 days', '3 nights', '2 nights',
             ],
 
-            // === Tours ===
-            'tour' => [
-                'tour', 'tua', 'du lịch', 'du lich', 'rẻ nhất', 're nhat',
-                'giá rẻ', 'gia re', 'bà nà', 'ba na', 'hội an', 'hoi an',
-                'huế', 'hue', 'cù lao chàm', 'mỹ sơn', 'ngũ hành sơn',
-                'excursion', 'trip', 'day trip', 'package',
-                'cần mua tour', 'muốn đặt tour', 'tìm tour',
-            ],
-
             // === Food & Dining ===
             'food' => [
                 'ăn', 'uống', 'ẩm thực', 'đặc sản', 'nhà hàng', 'quán',
@@ -118,12 +114,15 @@ final class ChatIntentGuardService
                 'quán ăn', 'seafood', 'cafe', 'cà phê', 'coffee', 'cà phê',
                 'món ngon', 'bánh', 'quán ngon', 'quán cà phê', 'view biển',
                 'ngàn ăn', 'nơi ăn', 'chỗ ăn', 'bữa ăn',
+                // Thêm: dạng câu hỏi "nên ăn", "ăn ở đâu" phổ biến
+                'nên ăn', 'ăn ở đâu', 'ăn món gì', 'món gì ngon',
             ],
 
             // === Hotels & Accommodation ===
+            // LƯU Ý: Không dùng 'ở đâu' vì quá chung chung, gây nhầm với food/location
             'hotel' => [
                 'khách sạn', 'resort', 'homestay', 'lưu trú', 'chỗ ở', 'hotel',
-                'accommodation', 'stay', 'sleep', 'ở đâu', 'nên ở đâu',
+                'accommodation', 'stay', 'sleep', 'nên ở đâu', 'ở khách sạn',
                 'phòng', 'villa', 'hostel', 'motel', 'airbnb',
             ],
 
@@ -137,6 +136,13 @@ final class ChatIntentGuardService
                 'chùa', 'temple', 'market', 'chợ', 'vui chơi', 'giải trí',
             ],
 
+            // === Tours ===
+            'tour' => [
+                'tour', 'tua', 'du lịch', 'du lich', 'rẻ nhất', 're nhat',
+                'giá rẻ', 'gia re', 'excursion', 'trip', 'day trip', 'package',
+                'tìm tour', 'tour nào', 'có tour', 'tour nào không',
+            ],
+
             // === Account & Profile ===
             'account' => [
                 'tài khoản', 'đăng nhập', 'đăng ký', 'mật khẩu',
@@ -147,36 +153,145 @@ final class ChatIntentGuardService
             // === Contact & Support ===
             'contact' => [
                 'liên hệ', 'hotline', 'email', 'hỗ trợ', 'tư vấn',
-                'contact', 'support', 'help', 'chat với người', 'gặp nhân viên',
+                'contact', 'support', 'help',
             ],
         ];
 
         // ── Greeting: word-boundary check cho các từ ngắn dễ false positive ──
         // Chỉ check 'hi' và 'alo' nếu xuất hiện tại đầu câu hoặc là toàn bộ câu
         // để tránh match 'khi', 'chi', 'thi', 'nhà hàng', 'alo ngon'...
-        $startsWithHi  = (bool) preg_match('/^hi[!?.\s]?$/u', $text) || str_starts_with($text, 'hi ') && mb_strlen($text) <= 10;
+        $startsWithHi = (bool) preg_match('/^hi[!?.\s]?$/u', $text) || str_starts_with($text, 'hi ') && mb_strlen($text) <= 10;
         $startsWithAlo = (bool) preg_match('/^alo[!?.\s]?$/u', $text) || $text === 'alo';
         if ($startsWithHi || $startsWithAlo) {
-            return ['intent' => 'greeting', 'is_in_scope' => true, 'reason' => 'hi_alo_greeting'];
+            return $this->result('greeting', true, 'hi_alo_greeting', 1.0, ['greeting' => 4.0], true);
         }
 
+        $strongKeywords = [
+            'loyalty' => ['điểm thưởng', 'tích điểm', 'ví điểm', 'voucher', 'mã giảm giá', 'loyalty'],
+            'handoff' => [
+                'gặp nhân viên', 'gặp tư vấn viên', 'gặp người thật',
+                'nhân viên tư vấn', 'gặp nhân viên tư vấn', 'cho gặp nhân viên',
+                'cần gặp nhân viên', 'muốn gặp nhân viên', 'tư vấn viên',
+                'khiếu nại', 'phàn nàn',
+            ],
+            'payment' => ['thanh toán', 'đã trả tiền', 'payment'],
+            'refund' => ['hoàn tiền', 'chính sách hủy', 'chính sách huỷ', 'muốn hủy', 'cần hủy', 'refund'],
+            'booking' => ['đặt tour', 'đặt chỗ', 'booking', 'giữ chỗ', 'đặt vé', 'reserve'],
+            'blog' => ['bài viết', 'cẩm nang', 'đọc bài', 'xem bài', 'bài về', 'article', 'blog'],
+            'schedule' => ['lịch trình', 'lên kế hoạch', 'itinerary', 'schedule'],
+            // Thêm 'nên ăn', 'ăn ở đâu', 'ăn món gì' vào strong keywords để tăng điểm food
+            'food' => ['quán ăn', 'nhà hàng', 'ẩm thực', 'ăn gì', 'món ngon', 'restaurant', 'nên ăn', 'ăn ở đâu', 'ăn món gì', 'món gì ngon'],
+            'hotel' => ['khách sạn', 'resort', 'homestay', 'lưu trú', 'chỗ ở', 'hotel', 'ở khách sạn'],
+            'location' => ['địa điểm', 'đi đâu', 'tham quan', 'check-in', 'điểm đến', 'thắng cảnh', 'attraction'],
+            // Thêm 'có tour', 'tour nào' vào strong keywords để tăng điểm tour cho câu hỏi ngân sách
+            'tour' => ['tour', 'tua', 'tìm tour', 'excursion', 'day trip', 'package', 'có tour', 'tour nào'],
+            'account' => ['tài khoản', 'đăng nhập', 'đăng ký', 'mật khẩu', 'account'],
+            'contact' => ['liên hệ', 'hotline', 'contact', 'support'],
+        ];
+
+        $scores = [];
+        $explicitMatch = false;
         foreach ($intents as $intent => $keywords) {
             foreach ($keywords as $keyword) {
-                if (str_contains($text, $keyword)) {
-                    return ['intent' => $intent, 'is_in_scope' => true, 'reason' => null];
+                if ($this->containsKeyword($text, $keyword)) {
+                    $weight = in_array($keyword, $strongKeywords[$intent] ?? [], true) ? 4.0 : 2.0;
+                    if ($intent === 'tour' && in_array($keyword, ['tour', 'tua'], true)) {
+                        $weight = 3.0;
+                    }
+                    $scores[$intent] = ($scores[$intent] ?? 0.0) + $weight;
+                    $explicitMatch = true;
                 }
             }
         }
 
-        // Default: assume travel-related if no blocked keywords found
-        // Many short/vague travel queries won't match exact keywords
-        return ['intent' => 'location', 'is_in_scope' => true, 'reason' => 'default_travel'];
+        $contextIntent = $this->contextIntent($context);
+        if ($contextIntent !== null) {
+            $scores[$contextIntent] = ($scores[$contextIntent] ?? 0.0) + 1.25;
+        }
+
+        if ($scores === []) {
+            return $this->result('unknown', true, 'no_intent_signal');
+        }
+
+        arsort($scores);
+        $intentsByScore = array_keys($scores);
+        $bestIntent = $intentsByScore[0];
+        $bestScore = (float) $scores[$bestIntent];
+        $secondScore = isset($intentsByScore[1]) ? (float) $scores[$intentsByScore[1]] : 0.0;
+        $margin = $bestScore - $secondScore;
+
+        // Chỉ có context nhưng không có tín hiệu câu chữ: chấp nhận với confidence vừa phải.
+        if (! $explicitMatch && $contextIntent !== null) {
+            return $this->result($contextIntent, true, 'page_context_only', 0.6, $scores, false);
+        }
+
+        // Hai nhóm ý định gần như ngang nhau thì hỏi lại thay vì đoán bừa.
+        if ($secondScore > 0.0 && $margin < 0.5) {
+            return $this->result('unknown', true, 'ambiguous_intent', 0.35, $scores, true);
+        }
+
+        $confidence = min(1.0, 0.55 + ($bestScore / 12.0) + min(0.25, $margin / 12.0));
+
+        return $this->result($bestIntent, true, null, $confidence, $scores, $explicitMatch);
+    }
+
+    /**
+     * @param  array<string,mixed>  $context
+     */
+    private function contextIntent(array $context): ?string
+    {
+        $pageType = (string) ($context['page_type'] ?? '');
+        $entityType = (string) ($context['entity_type'] ?? '');
+        $value = $entityType !== '' ? $entityType : $pageType;
+
+        return match (true) {
+            str_starts_with($value, 'tour') => 'tour',
+            str_starts_with($value, 'location') => 'location',
+            str_starts_with($value, 'blog') => 'blog',
+            str_starts_with($value, 'food') => 'food',
+            str_starts_with($value, 'hotel') => 'hotel',
+            default => null,
+        };
+    }
+
+    private function containsKeyword(string $text, string $keyword): bool
+    {
+        if (mb_strlen($keyword) <= 3) {
+            return (bool) preg_match(
+                '/(?<![\p{L}\p{N}])'.preg_quote($keyword, '/').'(?![\p{L}\p{N}])/u',
+                $text
+            );
+        }
+
+        return str_contains($text, $keyword);
+    }
+
+    /**
+     * @param  array<string,float>  $scores
+     * @return array{intent:string,is_in_scope:bool,reason:string|null,confidence:float,scores:array<string,float>,explicit_match:bool}
+     */
+    private function result(
+        string $intent,
+        bool $isInScope,
+        ?string $reason,
+        float $confidence = 0.0,
+        array $scores = [],
+        bool $explicitMatch = false
+    ): array {
+        return [
+            'intent' => $intent,
+            'is_in_scope' => $isInScope,
+            'reason' => $reason,
+            'confidence' => $confidence,
+            'scores' => $scores,
+            'explicit_match' => $explicitMatch,
+        ];
     }
 
     /**
      * Chuẩn hóa văn bản: loại bỏ khoảng trắng dư thừa và chuyển về chữ thường.
      *
-     * @param string $message Chuỗi tin nhắn gốc
+     * @param  string  $message  Chuỗi tin nhắn gốc
      * @return string Tin nhắn đã được chuẩn hóa
      */
     private function normalize(string $message): string
@@ -190,7 +305,7 @@ final class ChatIntentGuardService
      * Áp dụng từ đồng nghĩa hoặc viết tắt (aliases) cho chuỗi văn bản đã chuẩn hóa.
      * Giúp cải thiện tỷ lệ khớp từ khóa.
      *
-     * @param string $text Tin nhắn đã được chuẩn hóa
+     * @param  string  $text  Tin nhắn đã được chuẩn hóa
      * @return string Tin nhắn sau khi áp dụng từ đồng nghĩa
      */
     private function applyAliases(string $text): string
@@ -233,6 +348,14 @@ final class ChatIntentGuardService
             'ngay' => 'ngày',
             'đêm' => 'nights',
             'dem' => 'nights',
+            'gap nguoi that' => 'gặp người thật',
+            'gap tu van vien' => 'gặp tư vấn viên',
+            'gap nhan vien' => 'gặp nhân viên',
+            'nhan vien tu van' => 'nhân viên tư vấn',
+            'tu van vien' => 'tư vấn viên',
+            'cho gap nhan vien' => 'cho gặp nhân viên',
+            'can gap nhan vien' => 'cần gặp nhân viên',
+            'muon gap nhan vien' => 'muốn gặp nhân viên',
         ];
 
         return strtr($text, $aliases);

@@ -19,7 +19,7 @@ final class ChatQueryNormalizerService
     /**
      * Chuẩn hóa toàn bộ mảng kết quả phân tích sau khi qua bộ NLU.
      *
-     * @param array<string,mixed> $understanding Kết quả phân tích ban đầu
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích ban đầu
      * @return array<string,mixed> Kết quả phân tích đã chuẩn hóa
      */
     public function normalize(array $understanding): array
@@ -45,7 +45,7 @@ final class ChatQueryNormalizerService
      * Tìm kiếm và giải quyết destination_id từ tên điểm đến trong cơ sở dữ liệu.
      * Cơ chế tìm kiếm ưu tiên khớp chính xác trước, sau đó khớp một phần.
      *
-     * @param array<string,mixed> $understanding Kết quả phân tích hiện tại
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích hiện tại
      * @return array<string,mixed> Kết quả phân tích sau khi đã giải quyết ID địa điểm
      */
     private function resolveDestinationId(array $understanding): array
@@ -95,7 +95,7 @@ final class ChatQueryNormalizerService
     /**
      * Bổ sung loại nội dung (content_types) từ các gợi ý nếu AI NLU chưa điền.
      *
-     * @param array<string,mixed> $understanding Kết quả phân tích hiện tại
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích hiện tại
      * @return array<string,mixed> Kết quả phân tích sau khi giải quyết loại nội dung
      */
     private function resolveContentTypes(array $understanding): array
@@ -118,7 +118,7 @@ final class ChatQueryNormalizerService
     /**
      * Bổ sung chủ đề (topics) từ gợi ý của bộ lọc rule-based nếu AI NLU chưa điền.
      *
-     * @param array<string,mixed> $understanding Kết quả phân tích hiện tại
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích hiện tại
      * @return array<string,mixed> Kết quả phân tích sau khi giải quyết chủ đề
      */
     private function resolveTopics(array $understanding): array

@@ -238,6 +238,52 @@ final class PointService
         });
     }
 
+    public function reverseBookingPaymentPoints(int $userId, int $bookingId): void
+    {
+        DB::transaction(function () use ($userId, $bookingId) {
+            $earned = PointTransaction::query()
+                ->where('user_id', $userId)
+                ->where('type', 'earn')
+                ->where('action_key', 'booking_paid')
+                ->where('source_type', 'booking')
+                ->where('source_id', $bookingId)
+                ->where('status', 'approved')
+                ->first();
+
+            if (! $earned) {
+                return;
+            }
+
+            $exists = PointTransaction::query()
+                ->where('user_id', $userId)
+                ->where('type', 'reversal')
+                ->where('action_key', 'booking_paid_reversal')
+                ->where('source_type', 'booking')
+                ->where('source_id', $bookingId)
+                ->exists();
+            if ($exists) {
+                return;
+            }
+
+            $balance = $this->getOrCreateBalance($userId);
+            $balance = UserPointBalance::query()->whereKey($balance->id)->lockForUpdate()->firstOrFail();
+            $balance->available_points -= (int) $earned->points;
+            $balance->save();
+
+            PointTransaction::query()->create([
+                'user_id' => $userId,
+                'type' => 'reversal',
+                'action_key' => 'booking_paid_reversal',
+                'points' => -abs((int) $earned->points),
+                'balance_after' => $balance->available_points,
+                'source_type' => 'booking',
+                'source_id' => $bookingId,
+                'description' => 'Thu hồi điểm do đơn đã được hoàn tiền',
+                'status' => 'approved',
+            ]);
+        });
+    }
+
     public function getOrCreateBalance(int $userId): UserPointBalance
     {
         return UserPointBalance::query()->firstOrCreate(

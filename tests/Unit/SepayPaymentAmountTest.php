@@ -8,6 +8,7 @@ use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Services\BookingPaymentNotificationService;
 use App\Services\PointService;
+use App\Services\RefundService;
 use App\Services\SepayPaymentService;
 use InvalidArgumentException;
 use Mockery;
@@ -67,6 +68,7 @@ class SepayPaymentAmountTest extends TestCase
             Mockery::mock(BookingRepositoryInterface::class),
             Mockery::mock(BookingPaymentNotificationService::class),
             new PointService,
+            new RefundService(new PointService),
         );
     }
 }

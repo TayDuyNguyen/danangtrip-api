@@ -76,6 +76,16 @@ final class Booking extends Model
         return $this->hasMany(Payment::class);
     }
 
+    public function paymentReceipts(): HasMany
+    {
+        return $this->hasMany(PaymentReceipt::class);
+    }
+
+    public function refundRequests(): HasMany
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+
     public function ratings(): HasMany
     {
         return $this->hasMany(Rating::class);

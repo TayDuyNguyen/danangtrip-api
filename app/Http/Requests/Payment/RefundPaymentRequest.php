@@ -19,6 +19,12 @@ class RefundPaymentRequest extends FormRequest
                 'string',
                 'max:1000',
             ],
+            'refund_bank_code' => ['required', 'string', 'max:20', 'regex:/^[A-Za-z0-9_-]+$/'],
+            'refund_account_no' => ['required', 'string', 'min:6', 'max:30', 'regex:/^[0-9]+$/'],
+            'refund_account_name' => ['required', 'string', 'min:2', 'max:120'],
+            'transfer_reference' => ['required', 'string', 'min:4', 'max:150'],
+            'approved_amount' => ['nullable', 'numeric', 'gt:0'],
+            'evidence_url' => ['nullable', 'url', 'max:500'],
         ];
     }
 

@@ -11,6 +11,6 @@ class TestCheckoutSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('60_test_checkout_seed.sql');
+        $this->importSeederSql('seeders_v2/test/03_test_checkout.sql');
     }
 }

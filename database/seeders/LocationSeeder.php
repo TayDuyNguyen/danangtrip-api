@@ -11,6 +11,6 @@ class LocationSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('05_locations.sql');
+        $this->importSeederSql('seeders_v2/demo/03_locations.sql');
     }
 }

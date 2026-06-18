@@ -12,7 +12,7 @@ final class ChatToolGuardrailService
      * trước khi chuyển cho các bộ tìm kiếm hoặc truy vấn database.
      * Trả về mảng chứa cấu trúc đã làm sạch và danh sách các cảnh báo (warnings) nếu có tham số không hợp lệ.
      *
-     * @param array<string,mixed> $understanding Mảng chứa kết quả phân tích ý định hiện tại
+     * @param  array<string,mixed>  $understanding  Mảng chứa kết quả phân tích ý định hiện tại
      * @return array{understanding: array<string,mixed>, warnings: array<int,string>}
      */
     public function validate(array $understanding): array

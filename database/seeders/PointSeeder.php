@@ -11,8 +11,7 @@ final class PointSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('63_point_rules_seed.sql');
-        $this->importSeederSql('64_point_rewards_seed.sql');
-        $this->importSeederSql('65_user_points_demo_seed.sql');
+        $this->importSeederSql('seeders_v2/base/09_point_rules.sql');
+        $this->importSeederSql('seeders_v2/demo/08_notifications_activity.sql');
     }
 }

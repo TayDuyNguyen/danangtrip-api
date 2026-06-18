@@ -12,8 +12,8 @@ final class ChatEmbeddingService
 {
     /**
      * @var array<string, array>
-     * Bộ nhớ đệm tĩnh (runtime cache) ở mức độ request để tránh việc gọi lại API embedding
-     * nhiều lần cho cùng một văn bản trong cùng một chu kỳ xử lý HTTP request.
+     *                           Bộ nhớ đệm tĩnh (runtime cache) ở mức độ request để tránh việc gọi lại API embedding
+     *                           nhiều lần cho cùng một văn bản trong cùng một chu kỳ xử lý HTTP request.
      */
     private static array $runtimeCache = [];
 
@@ -22,8 +22,8 @@ final class ChatEmbeddingService
      * Tự động duyệt qua danh sách các nhà cung cấp được cấu hình để chuyển đổi dự phòng (failover)
      * và quản lý xoay vòng khóa API (API key rotation) nếu một khóa bị rate-limited hoặc lỗi.
      *
-     * @param string $text Văn bản cần tạo embedding
-     * @param string $taskType Loại tác vụ nhúng (phục vụ cho Gemini, mặc định là RETRIEVAL_DOCUMENT)
+     * @param  string  $text  Văn bản cần tạo embedding
+     * @param  string  $taskType  Loại tác vụ nhúng (phục vụ cho Gemini, mặc định là RETRIEVAL_DOCUMENT)
      * @return array{values:array<int,float>,provider:string,model:string}|null
      */
     public function embed(string $text, string $taskType = 'RETRIEVAL_DOCUMENT'): ?array
@@ -34,7 +34,7 @@ final class ChatEmbeddingService
         }
 
         // Tạo khóa cache dựa trên văn bản và loại tác vụ
-        $cacheKey = md5($text . '|' . $taskType);
+        $cacheKey = md5($text.'|'.$taskType);
         if (isset(self::$runtimeCache[$cacheKey])) {
             return self::$runtimeCache[$cacheKey];
         }
@@ -80,11 +80,11 @@ final class ChatEmbeddingService
     /**
      * Gọi API của Google Gemini để tạo vector nhúng (embedding).
      *
-     * @param string $text Văn bản cần tạo embedding
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp Gemini
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ số của API key trong cấu hình
-     * @param string $taskType Loại tác vụ nhúng
+     * @param  string  $text  Văn bản cần tạo embedding
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp Gemini
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ số của API key trong cấu hình
+     * @param  string  $taskType  Loại tác vụ nhúng
      * @return array{values:array<int,float>,provider:string,model:string}
      */
     private function embedGemini(string $text, array $providerConfig, string $key, int $keyIndex, string $taskType): array
@@ -121,10 +121,10 @@ final class ChatEmbeddingService
     /**
      * Gọi API của OpenAI để tạo vector nhúng (embedding).
      *
-     * @param string $text Văn bản cần tạo embedding
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp OpenAI
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ số của API key trong cấu hình
+     * @param  string  $text  Văn bản cần tạo embedding
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp OpenAI
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ số của API key trong cấu hình
      * @return array{values:array<int,float>,provider:string,model:string}
      */
     private function embedOpenAi(string $text, array $providerConfig, string $key, int $keyIndex): array
@@ -161,10 +161,10 @@ final class ChatEmbeddingService
      * Các mã trạng thái xác thực sai (401, 403) sẽ bị cooldown 24 giờ.
      * Các mã lỗi hệ thống hoặc rate-limit khác (429, 500...) sẽ bị cooldown tạm thời theo cấu hình.
      *
-     * @param Response $response Đối tượng phản hồi HTTP
-     * @param string $provider Tên nhà cung cấp dịch vụ AI
-     * @param int $keyIndex Chỉ số khóa API trong cấu hình
-     * @return void
+     * @param  Response  $response  Đối tượng phản hồi HTTP
+     * @param  string  $provider  Tên nhà cung cấp dịch vụ AI
+     * @param  int  $keyIndex  Chỉ số khóa API trong cấu hình
+     *
      * @throws RuntimeException khi phản hồi không thành công
      */
     private function ensureSuccessfulResponse(Response $response, string $provider, int $keyIndex): void
@@ -195,7 +195,7 @@ final class ChatEmbeddingService
      * Làm sạch văn bản đầu vào: loại bỏ khoảng trắng dư thừa, giới hạn độ dài ký tự tối đa
      * để tránh lỗi quá tải token của nhà cung cấp API.
      *
-     * @param string $text Văn bản đầu vào
+     * @param  string  $text  Văn bản đầu vào
      * @return string Văn bản đã được làm sạch
      */
     private function prepareText(string $text): string
@@ -209,7 +209,7 @@ final class ChatEmbeddingService
     /**
      * Chuẩn hóa mảng giá trị số thực của vector về đúng định dạng float trong PHP.
      *
-     * @param array<int,mixed> $values Mảng giá trị của vector nhúng
+     * @param  array<int,mixed>  $values  Mảng giá trị của vector nhúng
      * @return array<int,float> Mảng giá trị float đã chuẩn hóa
      */
     private function normalizeValues(array $values): array
@@ -220,9 +220,8 @@ final class ChatEmbeddingService
     /**
      * Kiểm tra xem một API key cụ thể của nhà cung cấp có đang bị tạm ngưng (cooldown) hay không.
      *
-     * @param string $provider Tên nhà cung cấp dịch vụ AI
-     * @param int $keyIndex Chỉ số khóa API trong cấu hình
-     * @return bool
+     * @param  string  $provider  Tên nhà cung cấp dịch vụ AI
+     * @param  int  $keyIndex  Chỉ số khóa API trong cấu hình
      */
     private function isCoolingDown(string $provider, int $keyIndex): bool
     {

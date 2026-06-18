@@ -32,7 +32,7 @@ final class ChatKnowledgeSyncService
     /**
      * Đồng bộ hóa một Eloquent Model cụ thể vào cơ sở tri thức chatbot.
      *
-     * @param Model $model Đối tượng Eloquent model cần đồng bộ (Tour, Location, BlogPost)
+     * @param  Model  $model  Đối tượng Eloquent model cần đồng bộ (Tour, Location, BlogPost)
      * @return ChatKnowledgeBase|null Bản ghi cơ sở tri thức sau khi đồng bộ, hoặc null nếu không hỗ trợ
      */
     public function syncModel(Model $model): ?ChatKnowledgeBase
@@ -114,7 +114,7 @@ final class ChatKnowledgeSyncService
     /**
      * Đồng bộ hóa một tour cụ thể vào cơ sở tri thức.
      *
-     * @param Tour $tour Đối tượng tour cần đồng bộ
+     * @param  Tour  $tour  Đối tượng tour cần đồng bộ
      * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của tour
      */
     private function syncTour(Tour $tour): ChatKnowledgeBase
@@ -154,7 +154,7 @@ final class ChatKnowledgeSyncService
     /**
      * Đồng bộ hóa một địa điểm cụ thể vào cơ sở tri thức.
      *
-     * @param Location $location Đối tượng địa điểm cần đồng bộ
+     * @param  Location  $location  Đối tượng địa điểm cần đồng bộ
      * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của địa điểm
      */
     private function syncLocation(Location $location): ChatKnowledgeBase
@@ -191,7 +191,7 @@ final class ChatKnowledgeSyncService
     /**
      * Đồng bộ hóa một bài viết cụ thể vào cơ sở tri thức.
      *
-     * @param BlogPost $post Đối tượng bài viết cần đồng bộ
+     * @param  BlogPost  $post  Đối tượng bài viết cần đồng bộ
      * @return ChatKnowledgeBase Bản ghi cơ sở tri thức của bài viết
      */
     private function syncBlogPost(BlogPost $post): ChatKnowledgeBase
@@ -242,7 +242,8 @@ final class ChatKnowledgeSyncService
                     'Thời hạn và chính sách hoàn tiền khi hủy tour tại DanangTrip như sau:',
                     '- Hủy trước ngày khởi hành từ 7 ngày trở lên: Hoàn trả 100% số tiền đã thanh toán.',
                     '- Hủy trước ngày khởi hành từ 3 đến 6 ngày: Phí hủy là 50% tổng giá trị đơn hàng, hoàn trả 50% số tiền còn lại.',
-                    '- Hủy trong vòng 48 giờ trước ngày khởi hành hoặc vắng mặt vào ngày khởi hành: Phí hủy là 100% tổng giá trị đơn hàng, không áp dụng hoàn tiền.',
+                    '- Hủy dưới 3 ngày trước giờ khởi hành hoặc vắng mặt vào ngày khởi hành: Phí hủy là 100% tổng giá trị đơn hàng, không áp dụng hoàn tiền.',
+                    '- Trường hợp đặt nhầm: hoàn 100% nếu yêu cầu hủy trong vòng 30 phút sau khi thanh toán và tour còn ít nhất 12 giờ mới khởi hành; không áp dụng cho tour Lễ, Tết hoặc mùa cao điểm.',
                     'Đối với các tour vào ngày Lễ, Tết hoặc mùa cao điểm, quy định hoàn tiền chi tiết sẽ hiển thị cụ thể trên giao diện đặt tour.',
                     'Khách hàng thực hiện hủy đơn tại mục Lịch sử đặt tour hoặc liên hệ bộ phận hỗ trợ chăm sóc khách hàng để được xử lý hoàn tiền chuyển khoản.',
                 ]),
@@ -300,9 +301,8 @@ final class ChatKnowledgeSyncService
      * Thực hiện thêm mới hoặc cập nhật thông tin tri thức vào cơ sở dữ liệu.
      * Tự động xóa embedding nếu nội dung thay đổi.
      *
-     * @param array<string,mixed> $identity Khóa định danh của bản ghi (type, reference_id...)
-     * @param array<string,mixed> $payload Dữ liệu cập nhật
-     * @return ChatKnowledgeBase
+     * @param  array<string,mixed>  $identity  Khóa định danh của bản ghi (type, reference_id...)
+     * @param  array<string,mixed>  $payload  Dữ liệu cập nhật
      */
     private function upsertKnowledge(array $identity, array $payload): ChatKnowledgeBase
     {
@@ -328,7 +328,7 @@ final class ChatKnowledgeSyncService
     /**
      * Tạo mã hash SHA-256 từ nội dung bản ghi để phát hiện thay đổi.
      *
-     * @param array<string,mixed> $payload Dữ liệu của bản ghi tri thức
+     * @param  array<string,mixed>  $payload  Dữ liệu của bản ghi tri thức
      * @return string Chuỗi hash SHA-256
      */
     private function contentHash(array $payload): string
@@ -358,8 +358,8 @@ final class ChatKnowledgeSyncService
     /**
      * Định dạng dữ liệu thành chuỗi có nhãn (ví dụ: "Lịch trình: ...").
      *
-     * @param string $label Nhãn của thông tin
-     * @param mixed $value Giá trị thông tin cần chuyển đổi
+     * @param  string  $label  Nhãn của thông tin
+     * @param  mixed  $value  Giá trị thông tin cần chuyển đổi
      * @return string|null Chuỗi thông tin đã định dạng hoặc null
      */
     private function jsonText(string $label, mixed $value): ?string
@@ -374,7 +374,7 @@ final class ChatKnowledgeSyncService
     /**
      * Chuyển đổi các kiểu dữ liệu phức tạp (mảng, object) thành chuỗi văn bản phẳng.
      *
-     * @param mixed $value Giá trị cần chuyển đổi
+     * @param  mixed  $value  Giá trị cần chuyển đổi
      * @return string Chuỗi văn bản phẳng
      */
     private function valueToText(mixed $value): string
@@ -401,7 +401,7 @@ final class ChatKnowledgeSyncService
     /**
      * Làm sạch văn bản: giải mã thực thể HTML, loại bỏ thẻ HTML và khoảng trắng dư thừa.
      *
-     * @param string $text Văn bản thô
+     * @param  string  $text  Văn bản thô
      * @return string Văn bản đã được làm sạch
      */
     private function cleanText(string $text): string

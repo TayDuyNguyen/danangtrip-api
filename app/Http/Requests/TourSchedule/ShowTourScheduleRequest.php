@@ -21,11 +21,7 @@ class ShowTourScheduleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id' => [
-                'required',
-                'integer',
-                'exists:tour_schedules,id',
-            ],
+            'id' => ['required', 'integer', 'min:1'],
         ];
     }
 

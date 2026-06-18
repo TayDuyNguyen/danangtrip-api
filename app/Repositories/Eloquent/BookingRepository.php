@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -38,17 +39,15 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             $query->where('user_id', $filters['user_id']);
         }
 
-        if (isset($filters['search'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->where('booking_code', 'like', '%'.$filters['search'].'%')
-                    ->orWhereHas('user', function ($q2) use ($filters) {
-                        $q2->where('full_name', 'like', '%'.$filters['search'].'%')
-                            ->orWhere('email', 'like', '%'.$filters['search'].'%');
-                    })
-                    ->orWhereHas('items.tour', function ($q2) use ($filters) {
-                        $q2->where('name', 'like', '%'.$filters['search'].'%');
-                    });
+        if (! empty($filters['tour_schedule_id'])) {
+            $scheduleId = (int) $filters['tour_schedule_id'];
+            $query->whereHas('items', function ($q) use ($scheduleId) {
+                $q->where('tour_schedule_id', $scheduleId);
             });
+        }
+
+        if (isset($filters['search'])) {
+            $this->applySearchFilter($query, (string) $filters['search']);
         }
 
         if (isset($filters['booking_status']) && $filters['booking_status'] !== 'all') {
@@ -90,7 +89,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function findWithDetails(int $id): ?Booking
     {
         return $this->model->newQuery()
-            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
+            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments', 'paymentReceipts', 'refundRequests'])
             ->find($id);
     }
 
@@ -101,7 +100,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     public function findByCode(string $code): ?Booking
     {
         return $this->model->newQuery()
-            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments'])
+            ->with(['user', 'items.tour', 'items.tourSchedule', 'payments', 'paymentReceipts', 'refundRequests'])
             ->where('booking_code', $code)
             ->first();
     }
@@ -305,13 +304,7 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         }
 
         if (isset($filters['search'])) {
-            $query->where(function ($q) use ($filters) {
-                $q->where('booking_code', 'like', '%'.$filters['search'].'%')
-                    ->orWhereHas('user', function ($q2) use ($filters) {
-                        $q2->where('full_name', 'like', '%'.$filters['search'].'%')
-                            ->orWhere('email', 'like', '%'.$filters['search'].'%');
-                    });
-            });
+            $this->applySearchFilter($query, (string) $filters['search'], false);
         }
 
         if ($fromBound !== null) {
@@ -350,6 +343,52 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
             ->where('user_id', $userId)
             ->whereIn('booking_status', [BookingStatus::PENDING->value, BookingStatus::CONFIRMED->value])
             ->exists();
+    }
+
+    /**
+     * Case-insensitive booking search (code, customer, optional tour name).
+     *
+     * @param  Builder  $query
+     */
+    private function applySearchFilter($query, string $search, bool $includeTourName = true): void
+    {
+        $term = trim($search);
+        if ($term === '') {
+            return;
+        }
+
+        $driver = $this->model->getConnection()->getDriverName();
+        $pattern = '%'.$term.'%';
+
+        $query->where(function ($q) use ($pattern, $driver, $includeTourName) {
+            if ($driver === 'pgsql') {
+                $q->where('booking_code', 'ilike', $pattern)
+                    ->orWhereHas('user', function ($q2) use ($pattern) {
+                        $q2->where('full_name', 'ilike', $pattern)
+                            ->orWhere('email', 'ilike', $pattern);
+                    });
+
+                if ($includeTourName) {
+                    $q->orWhereHas('items.tour', function ($q2) use ($pattern) {
+                        $q2->whereRaw('unaccent(name) ilike unaccent(?)', [$pattern]);
+                    });
+                }
+
+                return;
+            }
+
+            $q->where('booking_code', 'like', $pattern)
+                ->orWhereHas('user', function ($q2) use ($pattern) {
+                    $q2->where('full_name', 'like', $pattern)
+                        ->orWhere('email', 'like', $pattern);
+                });
+
+            if ($includeTourName) {
+                $q->orWhereHas('items.tour', function ($q2) use ($pattern) {
+                    $q2->where('name', 'like', $pattern);
+                });
+            }
+        });
     }
 
     /**
