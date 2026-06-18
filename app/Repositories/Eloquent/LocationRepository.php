@@ -144,7 +144,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         }
 
         if (isset($filters['is_featured'])) {
-            $query->where('is_featured', $filters['is_featured']);
+            $this->whereBooleanColumn($query, 'is_featured', (bool) $filters['is_featured']);
         }
 
         if (isset($filters['price_level'])) {
@@ -360,9 +360,11 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     {
         $limit = $limit ?? Constants::LIMIT;
 
-        return $this->model->newQuery()
-            ->where('status', 'active')
-            ->where('is_featured', true)
+        $query = $this->model->newQuery()
+            ->where('status', 'active');
+        $this->whereBooleanColumn($query, 'is_featured', true);
+
+        return $query
             ->orderBy('avg_rating', 'desc')
             ->limit($limit)
             ->get();
@@ -658,7 +660,7 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
         }
 
         if (isset($filters['is_featured'])) {
-            $query->where('is_featured', $filters['is_featured']);
+            $this->whereBooleanColumn($query, 'is_featured', (bool) $filters['is_featured']);
         }
 
         if (isset($filters['price_level'])) {
@@ -705,10 +707,13 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
      */
     public function getAdminLocationStatsSummary(): array
     {
+        $featuredQuery = $this->model->newQuery();
+        $this->whereBooleanColumn($featuredQuery, 'is_featured', true);
+
         return [
             'total' => $this->model->newQuery()->count(),
             'active' => $this->model->newQuery()->where('status', 'active')->count(),
-            'featured' => $this->model->newQuery()->where('is_featured', true)->count(),
+            'featured' => $featuredQuery->count(),
             'total_views' => (int) $this->model->newQuery()->sum('view_count'),
         ];
     }

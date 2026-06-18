@@ -122,11 +122,11 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
         }
 
         if (isset($filters['is_featured'])) {
-            $query->where('is_featured', (bool) $filters['is_featured']);
+            $this->whereBooleanColumn($query, 'is_featured', (bool) $filters['is_featured']);
         }
 
         if (isset($filters['is_hot'])) {
-            $query->where('is_hot', (bool) $filters['is_hot']);
+            $this->whereBooleanColumn($query, 'is_hot', (bool) $filters['is_hot']);
         }
 
         if (isset($filters['status'])) {
@@ -212,8 +212,8 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     public function getFeaturedTours(?int $limit = null): Collection
     {
         $query = $this->model->newQuery()
-            ->where('status', TourStatus::ACTIVE->value)
-            ->where('is_featured', true);
+            ->where('status', TourStatus::ACTIVE->value);
+        $this->whereBooleanColumn($query, 'is_featured', true);
 
         if ($limit) {
             $query->limit($limit);
@@ -229,8 +229,8 @@ class TourRepository extends BaseRepository implements TourRepositoryInterface
     public function getHotTours(?int $limit = null): Collection
     {
         $query = $this->model->newQuery()
-            ->where('status', TourStatus::ACTIVE->value)
-            ->where('is_hot', true);
+            ->where('status', TourStatus::ACTIVE->value);
+        $this->whereBooleanColumn($query, 'is_hot', true);
 
         if ($limit) {
             $query->limit($limit);
