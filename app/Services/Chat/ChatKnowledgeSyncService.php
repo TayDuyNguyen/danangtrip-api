@@ -7,6 +7,7 @@ use App\Models\ChatKnowledgeBase;
 use App\Models\Location;
 use App\Models\Setting;
 use App\Models\Tour;
+use App\Support\BooleanColumn;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -19,7 +20,9 @@ final class ChatKnowledgeSyncService
      */
     public function syncAll(): array
     {
-        ChatKnowledgeBase::query()->update(['is_active' => false]);
+        ChatKnowledgeBase::query()->update(
+            BooleanColumn::prepareAttributes(['is_active' => false])
+        );
 
         return [
             'tour' => $this->syncTours(),

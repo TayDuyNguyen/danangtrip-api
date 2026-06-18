@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Model;
 
 final class ChatKnowledgeBase extends Model
@@ -30,7 +31,7 @@ final class ChatKnowledgeBase extends Model
             'embedding' => 'array',
             'embedding_dimension' => 'integer',
             'last_embedded_at' => 'datetime',
-            'is_active' => 'boolean',
+            'is_active' => PostgresBoolean::class,
         ];
     }
 }

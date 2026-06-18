@@ -149,7 +149,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             $query->where('booking_id', $params['booking_id']);
         }
 
-        return $query->first();
+        return $query->with(['user', 'images'])->first();
     }
 
     /**
@@ -179,7 +179,7 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
         }
 
         if (array_key_exists('is_new', $filters)) {
-            $query->where('is_new', (bool) $filters['is_new']);
+            $this->whereBooleanColumn($query, 'is_new', (bool) $filters['is_new']);
         }
 
         if (isset($filters['type'])) {

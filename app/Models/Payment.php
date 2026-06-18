@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,7 +37,7 @@ final class Payment extends Model
             'received_amount' => 'decimal:2',
             'short_amount' => 'decimal:2',
             'excess_amount' => 'decimal:2',
-            'is_discrepancy' => 'boolean',
+            'is_discrepancy' => PostgresBoolean::class,
             'gateway_response' => 'json',
             'paid_at' => 'datetime',
             'refunded_at' => 'datetime',

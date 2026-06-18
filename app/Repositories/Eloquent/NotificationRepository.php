@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Enums\Pagination;
 use App\Models\Notification;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
+use App\Support\BooleanColumn;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
@@ -63,7 +64,7 @@ final class NotificationRepository extends BaseRepository implements Notificatio
             'read_at' => now(),
         ]);
 
-        return $notification;
+        return $notification->refresh();
     }
 
     /**
@@ -76,7 +77,7 @@ final class NotificationRepository extends BaseRepository implements Notificatio
         $this->whereBooleanColumn($query, 'is_read', false);
 
         return $query->update([
-            'is_read' => true,
+            'is_read' => $this->booleanColumnValue(true),
             'read_at' => now(),
         ]);
     }
@@ -112,6 +113,18 @@ final class NotificationRepository extends BaseRepository implements Notificatio
         $this->whereBooleanColumn($query, 'is_read', $isRead);
 
         return $query->count();
+    }
+
+    public function insert(array $attributes)
+    {
+        if ($this->model->getConnection()->getDriverName() === 'pgsql' && isset($attributes[0]) && is_array($attributes[0])) {
+            $attributes = array_map(
+                fn (array $row) => BooleanColumn::prepareAttributes($row, $this->model->getConnectionName()),
+                $attributes
+            );
+        }
+
+        return $this->model->insert($attributes);
     }
 
     /**

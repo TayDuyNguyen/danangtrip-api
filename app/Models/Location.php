@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -59,7 +60,7 @@ final class Location extends Model
             'view_count' => 'integer',
             'favorite_count' => 'integer',
             'images' => 'array',
-            'is_featured' => 'boolean',
+            'is_featured' => PostgresBoolean::class,
             'created_by' => 'integer',
         ];
     }

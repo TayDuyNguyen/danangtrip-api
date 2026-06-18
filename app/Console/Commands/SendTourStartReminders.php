@@ -6,6 +6,7 @@ use App\Enums\BookingStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Notification;
+use App\Support\JsonColumn;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -44,14 +45,14 @@ final class SendTourStartReminders extends Command
             $tourName = $tour?->name ?? $item?->item_name ?? 'tour của bạn';
             $startTime = $tour?->start_time ?: 'theo lịch đã xác nhận';
 
-            $exists = Notification::query()
+            $existsQuery = Notification::query()
                 ->where('user_id', $booking->user_id)
-                ->where('type', 'tour_start_reminder')
-                ->where('data->booking_id', $booking->id)
-                ->where('data->travel_date', $targetDate)
-                ->exists();
+                ->where('type', 'tour_start_reminder');
 
-            if ($exists) {
+            JsonColumn::whereInt($existsQuery, 'data', 'booking_id', (int) $booking->id);
+            JsonColumn::whereText($existsQuery, 'data', 'travel_date', $targetDate);
+
+            if ($existsQuery->exists()) {
                 $skipped++;
 
                 continue;

@@ -13,6 +13,7 @@ use App\Models\Tour;
 use App\Models\TourCategory;
 use App\Observers\RatingObserver;
 use App\Services\Chat\ChatKnowledgeSyncService;
+use App\Support\BooleanColumn;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -53,7 +54,7 @@ class AppServiceProvider extends ServiceProvider
             ChatKnowledgeBase::query()
                 ->where('type', $type)
                 ->where('reference_id', $referenceId)
-                ->update(['is_active' => false]);
+                ->update(BooleanColumn::prepareAttributes(['is_active' => false]));
         };
 
         Setting::saved(function () use ($clearHomeCache, $clearChatbotCache): void {

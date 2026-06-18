@@ -13,6 +13,7 @@ use App\Repositories\Interfaces\TourRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Class RatingService
@@ -65,6 +66,7 @@ final class RatingService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'has_rated' => (bool) $rating,
+                    'has_public_rating' => $rating?->status === 'approved',
                     'can_rate' => $canRate,
                     'message' => $message,
                     'rating' => $rating,
@@ -132,7 +134,7 @@ final class RatingService
                 }
             }
 
-            $rating = DB::transaction(function () use ($data, $request) {
+            $rating = DB::transaction(function () use ($data) {
                 $ratingData = [
                     'user_id' => $data['user_id'],
                     'score' => $data['score'],
@@ -141,6 +143,7 @@ final class RatingService
                     'rejected_reason' => null,
                     'approved_by' => null,
                     'approved_at' => now(),
+                    'is_new' => true,
                 ];
 
                 if (isset($data['location_id'])) {
@@ -153,28 +156,37 @@ final class RatingService
                     $ratingData['booking_id'] = $data['booking_id'];
                 }
 
-                $rating = $this->ratingRepository->create($ratingData);
+                return $this->ratingRepository->create($ratingData);
+            });
 
+            $message = 'Rating created successfully';
+            if ($request->hasFile('images')) {
                 $imageUrls = $this->storeRatingImages($request, $rating->id);
                 if (count($imageUrls) > 0) {
                     $this->ratingRepository->update($rating->id, [
                         'image_count' => count($imageUrls),
                     ]);
-
                     $this->ratingImageRepository->createMany($rating->id, $imageUrls);
+                } else {
+                    $message = 'Rating created successfully. Some images could not be uploaded.';
+                    Log::warning('RATING_IMAGE_UPLOAD_SKIPPED', [
+                        'rating_id' => $rating->id,
+                        'user_id' => $data['user_id'],
+                    ]);
                 }
+            }
 
-                return $this->ratingRepository->with(['images', 'location', 'user'])->find($rating->id);
-            });
+            $rating = $this->ratingRepository->with(['images', 'location', 'user'])->find($rating->id);
 
             return [
                 'status' => HttpStatusCode::CREATED->value,
                 'data' => $rating,
-                'message' => 'Rating created successfully',
+                'message' => $message,
             ];
-        } catch (\Exception $e) {
-            Log::error('Create rating error: '.$e->getMessage(), [
-                'exception' => $e,
+        } catch (Throwable $e) {
+            Log::error('RATING_CREATE_FAILED', [
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
                 'data' => $data,
             ]);
 
@@ -228,7 +240,9 @@ final class RatingService
                         'image_count' => count($imageUrls),
                     ]);
 
-                    $this->ratingImageRepository->createMany($rating->id, $imageUrls);
+                    if (count($imageUrls) > 0) {
+                        $this->ratingImageRepository->createMany($rating->id, $imageUrls);
+                    }
                 }
 
                 if ($wasApproved) {
@@ -622,7 +636,12 @@ final class RatingService
         $uploadResult = $this->uploadService->uploadImages($files, 'ratings/'.$ratingId);
 
         if ($uploadResult['status'] !== HttpStatusCode::CREATED->value) {
-            throw new \Exception('Failed to upload rating images to Cloudinary: '.($uploadResult['message'] ?? ''));
+            Log::warning('RATING_IMAGE_UPLOAD_FAILED', [
+                'rating_id' => $ratingId,
+                'message' => $uploadResult['message'] ?? null,
+            ]);
+
+            return [];
         }
 
         $urls = [];

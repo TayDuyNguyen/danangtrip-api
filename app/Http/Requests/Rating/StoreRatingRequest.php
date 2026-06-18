@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Rating;
 
+use App\Support\UploadedFileErrors;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
 class StoreRatingRequest extends FormRequest
@@ -55,7 +57,17 @@ class StoreRatingRequest extends FormRequest
                 'max:5',
             ],
             'images.*' => [
-                'file',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (! $value instanceof UploadedFile) {
+                        $fail('Không nhận được file ảnh hợp lệ. (Invalid image upload.)');
+
+                        return;
+                    }
+
+                    if ($message = UploadedFileErrors::message($value)) {
+                        $fail($message);
+                    }
+                },
                 'image',
                 'mimes:jpg,jpeg,png,webp',
                 'max:5120',
@@ -79,8 +91,11 @@ class StoreRatingRequest extends FormRequest
             'score.between' => 'The score must be between 1 and 5. (Điểm đánh giá phải từ 1 đến 5.)',
             'images.array' => 'Images must be an array. (Images phải là một mảng.)',
             'images.max' => 'Images must not exceed 5 files. (Tối đa 5 ảnh.)',
-            'images.*.image' => 'Each file must be an image. (Mỗi file phải là ảnh.)',
+            'images.*.image' => 'Each file must be an image. (Mỗi file phải là ảnh jpg, jpeg, png hoặc webp.)',
+            'images.*.mimes' => 'Only JPEG, PNG and WEBP images are allowed. (Chỉ chấp nhận jpg, jpeg, png, webp.)',
             'images.*.max' => 'Each image must not exceed 5MB. (Mỗi ảnh tối đa 5MB.)',
+            'images.*.file' => 'Image upload failed. Try a smaller jpg/png/webp file. (Không tải được ảnh — thử file nhỏ hơn.)',
+            'images.*.uploaded' => 'Image upload failed. Check file size and format. (Không tải được ảnh — kiểm tra dung lượng và định dạng.)',
         ];
     }
 }

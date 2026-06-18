@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -34,7 +35,7 @@ final class Rating extends Model
             'image_count' => 'integer',
             'helpful_count' => 'integer',
             'approved_at' => 'datetime',
-            'is_new' => 'boolean',
+            'is_new' => PostgresBoolean::class,
         ];
     }
 

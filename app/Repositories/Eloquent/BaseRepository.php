@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Repositories\Interfaces\RepositoryInterface;
+use App\Support\BooleanColumn;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -54,11 +55,16 @@ abstract class BaseRepository implements RepositoryInterface
      */
     protected function whereBooleanColumn(Builder $query, string $column, bool $value): Builder
     {
-        if ($this->model->getConnection()->getDriverName() === 'pgsql') {
-            return $query->whereRaw($value ? "{$column} IS TRUE" : "{$column} IS FALSE");
-        }
+        return BooleanColumn::where($query, $column, $value);
+    }
 
-        return $query->where($column, $value);
+    /**
+     * Bind a boolean value for mass updates on PostgreSQL.
+     * (Bind giá trị boolean an toàn khi update hàng loạt trên PostgreSQL)
+     */
+    protected function booleanColumnValue(bool $value): mixed
+    {
+        return BooleanColumn::value($value, $this->model->getConnectionName());
     }
 
     /**
@@ -202,7 +208,9 @@ abstract class BaseRepository implements RepositoryInterface
             $this->withRelations = [];
         }
 
-        return $query->where($where)->first();
+        BooleanColumn::applyWheres($query, $where);
+
+        return $query->first();
     }
 
     /**
@@ -217,7 +225,9 @@ abstract class BaseRepository implements RepositoryInterface
             $this->withRelations = [];
         }
 
-        return $query->where($where)->get();
+        BooleanColumn::applyWheres($query, $where);
+
+        return $query->get();
     }
 
     /**
@@ -226,7 +236,10 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function count(array $where = []): int
     {
-        return $this->model->newQuery()->where($where)->count();
+        $query = $this->model->newQuery();
+        BooleanColumn::applyWheres($query, $where);
+
+        return $query->count();
     }
 
     /**
@@ -235,7 +248,10 @@ abstract class BaseRepository implements RepositoryInterface
      */
     public function exists(array $where): bool
     {
-        return $this->model->newQuery()->where($where)->exists();
+        $query = $this->model->newQuery();
+        BooleanColumn::applyWheres($query, $where);
+
+        return $query->exists();
     }
 
     /**

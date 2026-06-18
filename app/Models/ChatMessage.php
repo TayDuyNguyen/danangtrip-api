@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -27,9 +28,9 @@ final class ChatMessage extends Model
     protected function casts(): array
     {
         return [
-            'is_in_scope' => 'boolean',
+            'is_in_scope' => PostgresBoolean::class,
             'tokens_used' => 'integer',
-            'cache_hit' => 'boolean',
+            'cache_hit' => PostgresBoolean::class,
             'context' => 'array',
             'metadata' => 'array',
         ];

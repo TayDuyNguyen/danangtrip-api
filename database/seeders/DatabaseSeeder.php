@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,          // base/01, base/02
             TagSeeder::class,               // base/03, base/04
             TourCategorySeeder::class,      // base/05, base/06
-            SettingSeeder::class,           // PHP code
+            SettingSeeder::class,           // base/07
             UserSeeder::class,              // base/08, demo/01
             LocationSeeder::class,          // demo/03
             TourSeeder::class,              // demo/04

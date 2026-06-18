@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -24,7 +25,7 @@ final class PointRule extends Model
         return [
             'points' => 'integer',
             'max_per_day' => 'integer',
-            'requires_approval' => 'boolean',
+            'requires_approval' => PostgresBoolean::class,
         ];
     }
 }
