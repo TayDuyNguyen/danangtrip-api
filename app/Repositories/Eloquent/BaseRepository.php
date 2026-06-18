@@ -4,6 +4,7 @@ namespace App\Repositories\Eloquent;
 
 use App\Repositories\Interfaces\RepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -45,6 +46,19 @@ abstract class BaseRepository implements RepositoryInterface
     public function setModel(): void
     {
         $this->model = app()->make($this->getModel());
+    }
+
+    /**
+     * Filter a boolean column in a PostgreSQL-safe way.
+     * (Lọc cột boolean an toàn với PostgreSQL)
+     */
+    protected function whereBooleanColumn(Builder $query, string $column, bool $value): Builder
+    {
+        if ($this->model->getConnection()->getDriverName() === 'pgsql') {
+            return $query->whereRaw($value ? "{$column} IS TRUE" : "{$column} IS FALSE");
+        }
+
+        return $query->where($column, $value);
     }
 
     /**

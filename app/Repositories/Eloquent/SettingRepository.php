@@ -26,9 +26,11 @@ final class SettingRepository extends BaseRepository implements SettingRepositor
      */
     public function getPublicSettings(): Collection
     {
-        return $this->model->newQuery()
-            ->where('is_public', true)
-            ->get();
+        $query = $this->model->newQuery();
+
+        $this->whereBooleanColumn($query, 'is_public', true);
+
+        return $query->get();
     }
 
     /**
