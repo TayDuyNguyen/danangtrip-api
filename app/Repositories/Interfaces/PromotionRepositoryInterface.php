@@ -2,6 +2,7 @@
 
 namespace App\Repositories\Interfaces;
 
+use App\Models\Promotion;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -34,4 +35,10 @@ interface PromotionRepositoryInterface extends RepositoryInterface
      * (Lấy danh sách khuyến mãi đang hợp lệ cho giao diện công khai)
      */
     public function getActivePromotions(): Collection;
+
+    public function findByCodeForUpdate(string $code): ?Promotion;
+
+    public function findForUpdate(int $id): ?Promotion;
+
+    public function decrementUsedCountIfPositive(int $id): bool;
 }

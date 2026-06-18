@@ -140,7 +140,17 @@ class SepayPaymentService
                     ];
                 }
 
-                $payment = $this->paymentRepository->findLatestPendingByBookingIdForUpdate((int) $booking->id);
+                $paymentSessionCutoff = now()->subMinutes(
+                    max(1, (int) config('booking.payment_session_minutes', 15))
+                );
+                $this->paymentRepository->markExpiredPendingPaymentsFailedByBookingId(
+                    (int) $booking->id,
+                    $paymentSessionCutoff
+                );
+                $payment = $this->paymentRepository->findLatestPendingByBookingIdForUpdate(
+                    (int) $booking->id,
+                    $paymentSessionCutoff
+                );
 
                 if (! $payment) {
                     $payment = $this->paymentRepository->create([

@@ -66,14 +66,16 @@ class SendRatingApprovedNotification implements ShouldQueue
         $normalizedComment = preg_replace('/\s+/u', ' ', trim((string) $rating->comment)) ?? '';
         $hasQualityComment = mb_strlen($normalizedComment) >= 50;
 
-        $pointService->awardPoints(
-            $user->id,
-            'review_quality',
-            'rating',
-            $rating->id,
-            "Đánh giá được duyệt: {$targetName}",
-            true
-        );
+        if ($hasQualityComment) {
+            $pointService->awardPoints(
+                $user->id,
+                'review_quality',
+                'rating',
+                $rating->id,
+                "Đánh giá chất lượng được duyệt: {$targetName}",
+                true
+            );
+        }
 
         if ((int) $rating->image_count > 0 || $rating->images->isNotEmpty()) {
             $pointService->awardPoints(
@@ -100,7 +102,7 @@ class SendRatingApprovedNotification implements ShouldQueue
             'user_id' => $user->id,
             'type' => 'rating_approved',
             'title' => 'Đánh giá của bạn đã được duyệt',
-            'content' => "Đánh giá của bạn tại {$targetName} đã được duyệt và hệ thống đã cộng điểm thưởng cho bạn.",
+            'content' => "Đánh giá của bạn tại {$targetName} đã được duyệt. Điểm thưởng được cộng khi đánh giá đáp ứng điều kiện của chương trình.",
             'data' => [
                 'rating_id' => $rating->id,
                 'location_id' => $rating->location_id,

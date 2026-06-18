@@ -26,7 +26,7 @@ class StoreBookingRequest extends FormRequest
             'customer_phone' => 'required|string|max:20',
             'customer_address' => 'nullable|string|max:255',
             'customer_note' => 'nullable|string',
-            'payment_method' => ['required', 'string', Rule::in(PaymentMethod::values())],
+            'payment_method' => ['required', 'string', Rule::in(PaymentMethod::customerCheckoutMethods())],
             'promotion_code' => 'nullable|string|max:50',
             'user_voucher_code' => 'nullable|string|max:50',
         ];

@@ -24,14 +24,7 @@ class CreatePaymentRequest extends FormRequest
             'payment_method' => [
                 'required',
                 'string',
-                Rule::in([
-                    PaymentMethod::BANK_TRANSFER->value,
-                    PaymentMethod::SEPAY->value,
-                    PaymentMethod::PAYOS->value,
-                    PaymentMethod::MOMO->value,
-                    PaymentMethod::VNPAY->value,
-                    PaymentMethod::ZALOPAY->value,
-                ]),
+                Rule::in(PaymentMethod::customerCheckoutMethods()),
             ],
             'return_url' => [
                 'nullable',

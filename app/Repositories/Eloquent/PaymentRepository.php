@@ -64,14 +64,32 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             ->first();
     }
 
-    public function findLatestPendingByBookingIdForUpdate(int $bookingId): ?Payment
+    public function findLatestPendingByBookingIdForUpdate(int $bookingId, ?Carbon $createdAfter = null): ?Payment
+    {
+        $query = $this->model->newQuery()
+            ->where('booking_id', $bookingId)
+            ->where('payment_status', PaymentStatus::PENDING->value);
+
+        if ($createdAfter !== null) {
+            $query->where('created_at', '>', $createdAfter);
+        }
+
+        return $query
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+    }
+
+    public function markExpiredPendingPaymentsFailedByBookingId(int $bookingId, Carbon $cutoff): int
     {
         return $this->model->newQuery()
             ->where('booking_id', $bookingId)
             ->where('payment_status', PaymentStatus::PENDING->value)
-            ->latest('id')
-            ->lockForUpdate()
-            ->first();
+            ->where('created_at', '<=', $cutoff)
+            ->update([
+                'payment_status' => PaymentStatus::FAILED->value,
+                'updated_at' => now(),
+            ]);
     }
 
     /**
@@ -84,6 +102,17 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
             ->where('payment_status', PaymentStatus::SUCCESS->value)
             ->latest('id')
             ->first();
+    }
+
+    public function markPendingPaymentsFailedByBookingId(int $bookingId): int
+    {
+        return $this->model->newQuery()
+            ->where('booking_id', $bookingId)
+            ->where('payment_status', PaymentStatus::PENDING->value)
+            ->update([
+                'payment_status' => PaymentStatus::FAILED->value,
+                'updated_at' => now(),
+            ]);
     }
 
     /**

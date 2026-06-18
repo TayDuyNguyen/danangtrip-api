@@ -48,7 +48,7 @@ class PaymentService
     {
         try {
             return DB::transaction(function () use ($data) {
-                $booking = $this->bookingRepository->find($data['booking_id']);
+                $booking = $this->bookingRepository->findForUpdate((int) $data['booking_id']);
 
                 if (! $booking) {
                     return [
@@ -70,6 +70,21 @@ class PaymentService
                         'message' => 'This booking has already been paid',
                     ];
                 }
+
+                if (in_array($booking->booking_status, [
+                    BookingStatus::CANCELLED->value,
+                    BookingStatus::COMPLETED->value,
+                ], true)) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'This booking can no longer accept payments',
+                    ];
+                }
+
+                $this->paymentRepository->markExpiredPendingPaymentsFailedByBookingId(
+                    (int) $booking->id,
+                    now()->subMinutes($this->paymentSessionMinutes())
+                );
 
                 $bookingAmount = (float) ($booking->final_amount ?? $booking->total_amount ?? 0);
                 if ($bookingAmount < 0) {
@@ -174,7 +189,7 @@ class PaymentService
                         'transaction_code' => $transactionCode,
                         'booking_code' => $booking->booking_code,
                         'created_at' => $payment->created_at?->toISOString(),
-                        'expires_at' => $payment->created_at?->copy()->addMinutes(15)->toISOString(),
+                        'expires_at' => $payment->created_at?->copy()->addMinutes(max(1, (int) config('booking.payment_session_minutes', 15)))->toISOString(),
                         'sepay_checkout' => $checkout,
                     ],
                     'message' => 'Payment link created successfully',
@@ -364,7 +379,17 @@ class PaymentService
             ];
         }
 
-        $sepayCheckout = $payment->gateway_response['checkout'] ?? null;
+        $sessionExpired = $payment->payment_status === PaymentStatus::PENDING->value
+            && $payment->created_at?->lte(now()->subMinutes($this->paymentSessionMinutes()));
+
+        if ($sessionExpired) {
+            $this->paymentRepository->update((int) $payment->id, [
+                'payment_status' => PaymentStatus::FAILED->value,
+            ]);
+            $payment->payment_status = PaymentStatus::FAILED->value;
+        }
+
+        $sepayCheckout = $sessionExpired ? null : ($payment->gateway_response['checkout'] ?? null);
         if (
             $payment->payment_status === PaymentStatus::PENDING->value
             && ($payment->payment_gateway === 'sepay' || $payment->payment_gateway === 'bank_transfer' || $payment->payment_method === PaymentMethod::BANK_TRANSFER->value)
@@ -396,7 +421,7 @@ class PaymentService
                 'gateway_response' => $payment->gateway_response,
                 'paid_at' => $payment->paid_at,
                 'created_at' => $payment->created_at?->toISOString(),
-                'expires_at' => $payment->created_at?->copy()->addMinutes(15)->toISOString(),
+                'expires_at' => $payment->created_at?->copy()->addMinutes(max(1, (int) config('booking.payment_session_minutes', 15)))->toISOString(),
                 'sepay_checkout' => $sepayCheckout,
             ],
             'message' => 'Payment status retrieved successfully',
@@ -429,6 +454,16 @@ class PaymentService
             return [
                 'status' => HttpStatusCode::BAD_REQUEST->value,
                 'message' => 'This booking has already been paid',
+            ];
+        }
+
+        if (in_array($booking->booking_status, [
+            BookingStatus::CANCELLED->value,
+            BookingStatus::COMPLETED->value,
+        ], true)) {
+            return [
+                'status' => HttpStatusCode::BAD_REQUEST->value,
+                'message' => 'This booking can no longer accept payments',
             ];
         }
 
@@ -465,6 +500,11 @@ class PaymentService
     private function usesSepayQr(string $paymentMethod): bool
     {
         return in_array($paymentMethod, [PaymentMethod::SEPAY->value, PaymentMethod::PAYOS->value], true);
+    }
+
+    private function paymentSessionMinutes(): int
+    {
+        return max(1, (int) config('booking.payment_session_minutes', 15));
     }
 
     /**
