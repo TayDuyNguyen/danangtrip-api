@@ -364,10 +364,7 @@ class BookingService
 
                 if (! empty($data['promotion_code'])) {
                     $code = trim((string) $data['promotion_code']);
-                    $promotion = $this->promotionRepository->getModel()::query()
-                        ->whereRaw('LOWER(code) = ?', [strtolower($code)])
-                        ->lockForUpdate()
-                        ->first();
+                    $promotion = $this->promotionRepository->findByCodeForUpdate($code);
 
                     if (! $promotion) {
                         return [
@@ -393,11 +390,7 @@ class BookingService
                     $promotionId = (int) $promotion->id;
 
                     if ($promotion->usage_per_user !== null && $userId) {
-                        $userUsageCount = $this->bookingRepository->getModel()::query()
-                            ->where('user_id', $userId)
-                            ->where('promotion_id', $promotionId)
-                            ->where('booking_status', '!=', 'cancelled')
-                            ->count();
+                        $userUsageCount = $this->bookingRepository->countNonCancelledByUserAndPromotion($userId, $promotionId);
                         if ($userUsageCount >= $promotion->usage_per_user) {
                             return [
                                 'status' => HttpStatusCode::BAD_REQUEST->value,
@@ -1007,6 +1000,146 @@ class BookingService
         }
     }
 
+    /**
+     * Auto-cancel pending bookings that were never paid within the hold window.
+     *
+     * @return array{expired: int, skipped: int, booking_ids: int[]}
+     */
+    public function expireUnpaidBookings(?Carbon $now = null, ?int $expiryMinutes = null): array
+    {
+        $now ??= now();
+        $expiryMinutes = max(1, $expiryMinutes ?? (int) config('booking.unpaid_expiry_minutes', 60));
+        $cutoff = $now->copy()->subMinutes($expiryMinutes);
+        $cancellationReason = "Đơn bị hủy tự động do quá {$expiryMinutes} phút chưa hoàn tất thanh toán.";
+
+        $bookings = $this->bookingRepository->getUnpaidExpiredCandidates($cutoff);
+
+        $expired = 0;
+        $skipped = 0;
+        $bookingIds = [];
+
+        foreach ($bookings as $booking) {
+            try {
+                $didExpire = DB::transaction(function () use ($booking, $cancellationReason, $expiryMinutes, $cutoff): bool {
+                    $lockedBooking = $this->bookingRepository->findForUpdate((int) $booking->id);
+                    if (! $lockedBooking) {
+                        return false;
+                    }
+
+                    $bookedAt = $lockedBooking->booked_at ?? $lockedBooking->created_at;
+                    if (! $bookedAt || $bookedAt->greaterThan($cutoff)) {
+                        return false;
+                    }
+
+                    if ($lockedBooking->booking_status !== BookingStatus::PENDING->value) {
+                        return false;
+                    }
+
+                    if (! in_array($lockedBooking->payment_status, ['pending', 'unpaid', 'failed'], true)) {
+                        return false;
+                    }
+
+                    $lockedBooking->loadMissing(['items.tour', 'payments']);
+
+                    $this->bookingRepository->updateBooking((int) $lockedBooking->id, [
+                        'booking_status' => BookingStatus::CANCELLED->value,
+                        'payment_status' => PaymentStatus::FAILED->value,
+                        'cancelled_at' => now(),
+                        'cancellation_reason' => $cancellationReason,
+                    ]);
+
+                    foreach ($lockedBooking->items as $item) {
+                        $schedule = $this->tourScheduleRepository->findForUpdate($item->tour_schedule_id);
+                        if (! $schedule) {
+                            continue;
+                        }
+
+                        $returnedSeats = $item->quantity_adult + $item->quantity_child;
+                        $this->tourScheduleRepository->decreaseBookedPeople((int) $schedule->id, $returnedSeats);
+                        $schedule = $this->tourScheduleRepository->findForUpdate((int) $schedule->id);
+                        if (
+                            $schedule->booking_availability === TourScheduleBookingAvailability::SOLD_OUT
+                            && $schedule->booked_people < $schedule->max_people
+                            && $schedule->status === 'available'
+                            && $schedule->start_date?->toDateString() >= now()->toDateString()
+                            && ($schedule->booking_deadline === null || $schedule->booking_deadline->isFuture())
+                            && $item->tour?->status !== TourStatus::INACTIVE->value
+                        ) {
+                            $this->tourScheduleRepository->updateBookingAvailability(
+                                (int) $schedule->id,
+                                TourScheduleBookingAvailability::OPEN->value
+                            );
+                        }
+                        $this->tourStatusSyncService->syncByTourId((int) $schedule->tour_id);
+                    }
+
+                    $this->paymentRepository->markPendingPaymentsFailedByBookingId((int) $lockedBooking->id);
+
+                    if ($lockedBooking->promotion_id) {
+                        $this->promotionRepository->decrementUsedCountIfPositive((int) $lockedBooking->promotion_id);
+                    }
+
+                    if ($lockedBooking->user_voucher_id) {
+                        $this->bookingRepository->restoreUserVoucherToActive((int) $lockedBooking->user_voucher_id);
+                    }
+
+                    $freshBooking = $lockedBooking->fresh();
+                    $this->createBookingNotification(
+                        $freshBooking,
+                        'booking_unpaid_expired',
+                        'Đơn đặt tour đã bị hủy',
+                        "Đơn {$lockedBooking->booking_code} đã bị hủy tự động vì quá {$expiryMinutes} phút chưa thanh toán. Chỗ trên tour đã được trả lại."
+                    );
+
+                    return true;
+                });
+
+                if ($didExpire) {
+                    $expired++;
+                    $bookingIds[] = (int) $booking->id;
+                } else {
+                    $skipped++;
+                }
+            } catch (\Throwable $e) {
+                $skipped++;
+                Log::error('Failed to expire unpaid booking', [
+                    'booking_id' => $booking->id,
+                    'exception' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'expired' => $expired,
+            'skipped' => $skipped,
+            'booking_ids' => $bookingIds,
+        ];
+    }
+
+    /**
+     * Preview bookings eligible for automatic unpaid expiry without mutating data.
+     *
+     * @return array{count: int, booking_ids: int[]}
+     */
+    public function previewUnpaidBookings(?Carbon $now = null, ?int $expiryMinutes = null): array
+    {
+        $now ??= now();
+        $expiryMinutes = max(1, $expiryMinutes ?? (int) config('booking.unpaid_expiry_minutes', 60));
+        $bookings = $this->bookingRepository->getUnpaidExpiredCandidates(
+            $now->copy()->subMinutes($expiryMinutes)
+        );
+
+        return [
+            'count' => $bookings->count(),
+            'booking_ids' => $bookings->pluck('id')->map(fn ($id) => (int) $id)->all(),
+        ];
+    }
+
+    private function paymentSessionMinutes(): int
+    {
+        return max(1, (int) config('booking.payment_session_minutes', 15));
+    }
+
     private function withLatestPendingPayment(Booking $booking): Booking
     {
         $payments = $booking->relationLoaded('payments')
@@ -1015,6 +1148,9 @@ class BookingService
 
         $latestPendingPayment = $payments
             ->where('payment_status', PaymentStatus::PENDING->value)
+            ->filter(fn ($payment) => $payment->created_at?->gt(
+                now()->subMinutes($this->paymentSessionMinutes())
+            ))
             ->sortByDesc('id')
             ->first();
 
@@ -1026,7 +1162,7 @@ class BookingService
             'payment_gateway' => $latestPendingPayment->payment_gateway,
             'amount' => $latestPendingPayment->amount,
             'created_at' => $latestPendingPayment->created_at?->toISOString(),
-            'expires_at' => $latestPendingPayment->created_at?->copy()->addMinutes(15)->toISOString(),
+            'expires_at' => $latestPendingPayment->created_at?->copy()->addMinutes($this->paymentSessionMinutes())->toISOString(),
         ] : null);
 
         return $booking;

@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquent;
 use App\Enums\BookingStatus;
 use App\Enums\Pagination;
 use App\Models\Booking;
+use App\Models\UserVoucher;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -419,5 +420,41 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
     private function isDateOnlyString(string $value): bool
     {
         return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
+    }
+
+    public function getUnpaidExpiredCandidates(Carbon $cutoff, int $limit = 200): Collection
+    {
+        return $this->model->newQuery()
+            ->with(['items.tour', 'payments'])
+            ->where('booking_status', BookingStatus::PENDING->value)
+            ->whereIn('payment_status', ['pending', 'unpaid', 'failed'])
+            ->where(function ($query) use ($cutoff): void {
+                $query->where('booked_at', '<=', $cutoff)
+                    ->orWhere(function ($nested) use ($cutoff): void {
+                        $nested->whereNull('booked_at')->where('created_at', '<=', $cutoff);
+                    });
+            })
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function countNonCancelledByUserAndPromotion(int $userId, int $promotionId): int
+    {
+        return $this->model->newQuery()
+            ->where('user_id', $userId)
+            ->where('promotion_id', $promotionId)
+            ->where('booking_status', '!=', BookingStatus::CANCELLED->value)
+            ->count();
+    }
+
+    public function restoreUserVoucherToActive(int $userVoucherId): bool
+    {
+        return (bool) UserVoucher::query()
+            ->where('id', $userVoucherId)
+            ->update([
+                'status' => 'active',
+                'used_at' => null,
+            ]);
     }
 }

@@ -53,7 +53,7 @@ final class RatingService
                     ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
                     ->where('bookings.user_id', $userId)
                     ->where('booking_items.tour_id', $params['tour_id'])
-                    ->whereIn('bookings.booking_status', ['completed', 'confirmed'])
+                    ->where('bookings.booking_status', 'completed')
                     ->exists();
 
                 if (! $hasBooking) {
@@ -123,7 +123,7 @@ final class RatingService
                     ->join('booking_items', 'bookings.id', '=', 'booking_items.booking_id')
                     ->where('bookings.user_id', $data['user_id'])
                     ->where('booking_items.tour_id', $data['tour_id'])
-                    ->whereIn('bookings.booking_status', ['completed', 'confirmed'])
+                    ->where('bookings.booking_status', 'completed')
                     ->exists();
 
                 if (! $hasBooking) {

@@ -24,7 +24,7 @@ class RetryPaymentRequest extends FormRequest
     {
         return [
             'booking_code' => ['required', 'string', 'regex:/^[A-Za-z0-9_-]{1,20}$/'],
-            'payment_method' => ['nullable', 'string', Rule::in(PaymentMethod::values())],
+            'payment_method' => ['nullable', 'string', Rule::in(PaymentMethod::customerCheckoutMethods())],
             'return_url' => ['nullable', 'url', 'max:2048'],
         ];
     }

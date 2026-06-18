@@ -3,6 +3,7 @@
 namespace App\Repositories\Interfaces;
 
 use App\Models\Booking;
+use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
@@ -95,4 +96,13 @@ interface BookingRepositoryInterface extends RepositoryInterface
     public function createItem(int $bookingId, array $data): void;
 
     public function updateBooking(int $bookingId, array $data): bool;
+
+    /**
+     * Pending bookings past the unpaid hold cutoff.
+     */
+    public function getUnpaidExpiredCandidates(Carbon $cutoff, int $limit = 200): Collection;
+
+    public function countNonCancelledByUserAndPromotion(int $userId, int $promotionId): int;
+
+    public function restoreUserVoucherToActive(int $userVoucherId): bool;
 }

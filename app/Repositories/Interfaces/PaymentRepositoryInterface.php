@@ -3,6 +3,7 @@
 namespace App\Repositories\Interfaces;
 
 use App\Models\Payment;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -33,12 +34,19 @@ interface PaymentRepositoryInterface extends RepositoryInterface
     /**
      * Find latest pending payment for a booking and lock the row.
      */
-    public function findLatestPendingByBookingIdForUpdate(int $bookingId): ?Payment;
+    public function findLatestPendingByBookingIdForUpdate(int $bookingId, ?Carbon $createdAfter = null): ?Payment;
+
+    /**
+     * Close pending checkout sessions older than the supplied cutoff.
+     */
+    public function markExpiredPendingPaymentsFailedByBookingId(int $bookingId, Carbon $cutoff): int;
 
     /**
      * Find a successful payment for a booking.
      */
     public function findSuccessfulByBookingId(int $bookingId): ?Payment;
+
+    public function markPendingPaymentsFailedByBookingId(int $bookingId): int;
 
     /**
      * Get payments for export.

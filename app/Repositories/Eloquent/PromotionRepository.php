@@ -99,4 +99,27 @@ final class PromotionRepository extends BaseRepository implements PromotionRepos
             ->orderBy('created_at', 'desc')
             ->get();
     }
+
+    public function findByCodeForUpdate(string $code): ?Promotion
+    {
+        return $this->model->newQuery()
+            ->whereRaw('LOWER(code) = ?', [strtolower($code)])
+            ->lockForUpdate()
+            ->first();
+    }
+
+    public function findForUpdate(int $id): ?Promotion
+    {
+        return $this->model->newQuery()
+            ->lockForUpdate()
+            ->find($id);
+    }
+
+    public function decrementUsedCountIfPositive(int $id): bool
+    {
+        return (bool) $this->model->newQuery()
+            ->where('id', $id)
+            ->where('used_count', '>', 0)
+            ->decrement('used_count');
+    }
 }

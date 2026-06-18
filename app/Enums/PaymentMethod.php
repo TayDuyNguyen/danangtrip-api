@@ -21,4 +21,15 @@ enum PaymentMethod: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    /**
+     * Payment methods available for customer checkout (SePay VietQR only).
+     */
+    public static function customerCheckoutMethods(): array
+    {
+        return [
+            self::SEPAY->value,
+            self::PAYOS->value,
+        ];
+    }
 }
