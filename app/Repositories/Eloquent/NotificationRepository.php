@@ -34,7 +34,7 @@ final class NotificationRepository extends BaseRepository implements Notificatio
             ->orderByDesc('created_at');
 
         if (isset($filters['is_read'])) {
-            $query->where('is_read', (bool) $filters['is_read']);
+            $this->whereBooleanColumn($query, 'is_read', (bool) $filters['is_read']);
         }
 
         $perPage = $filters['per_page'] ?? Pagination::PER_PAGE->value;
@@ -72,13 +72,13 @@ final class NotificationRepository extends BaseRepository implements Notificatio
      */
     public function markAllAsRead(int $userId): int
     {
-        return $this->model->newQuery()
-            ->where('user_id', $userId)
-            ->where('is_read', false)
-            ->update([
-                'is_read' => true,
-                'read_at' => now(),
-            ]);
+        $query = $this->model->newQuery()->where('user_id', $userId);
+        $this->whereBooleanColumn($query, 'is_read', false);
+
+        return $query->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
     }
 
     /**
@@ -96,10 +96,22 @@ final class NotificationRepository extends BaseRepository implements Notificatio
      */
     public function getUnreadCount(int $userId): int
     {
-        return $this->model->newQuery()
-            ->where('user_id', $userId)
-            ->where('is_read', false)
-            ->count();
+        $query = $this->model->newQuery()->where('user_id', $userId);
+        $this->whereBooleanColumn($query, 'is_read', false);
+
+        return $query->count();
+    }
+
+    /**
+     * Count notifications by read status.
+     * (Đếm thông báo theo trạng thái đã đọc)
+     */
+    public function countByReadStatus(bool $isRead): int
+    {
+        $query = $this->model->newQuery();
+        $this->whereBooleanColumn($query, 'is_read', $isRead);
+
+        return $query->count();
     }
 
     /**
@@ -121,7 +133,7 @@ final class NotificationRepository extends BaseRepository implements Notificatio
         }
 
         if (isset($filters['is_read'])) {
-            $query->where('is_read', (bool) $filters['is_read']);
+            $this->whereBooleanColumn($query, 'is_read', (bool) $filters['is_read']);
         }
 
         if (! empty($filters['search'])) {

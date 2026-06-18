@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\HttpStatusCode;
 use App\Jobs\SendAdminNotificationEmail;
-use App\Models\Notification;
 use App\Models\User;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
@@ -171,9 +170,9 @@ final class NotificationService
 
             // Calculate global stats
             $data['stats'] = [
-                'total' => Notification::count(),
-                'read' => Notification::where('is_read', true)->count(),
-                'unread' => Notification::where('is_read', false)->count(),
+                'total' => $this->notificationRepository->count(),
+                'read' => $this->notificationRepository->countByReadStatus(true),
+                'unread' => $this->notificationRepository->countByReadStatus(false),
             ];
 
             return [
