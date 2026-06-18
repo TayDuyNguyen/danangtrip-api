@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use App\Enums\TourBookingAvailability;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -66,8 +67,8 @@ final class Tour extends Model
             'min_people' => 'integer',
             'available_from' => 'date',
             'available_to' => 'date',
-            'is_featured' => 'boolean',
-            'is_hot' => 'boolean',
+            'is_featured' => PostgresBoolean::class,
+            'is_hot' => PostgresBoolean::class,
             'view_count' => 'integer',
             'booking_count' => 'integer',
             'rating_avg' => 'decimal:2',

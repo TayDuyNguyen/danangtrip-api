@@ -3,6 +3,7 @@
 namespace App\Services\Chat;
 
 use App\Models\ChatKnowledgeBase;
+use App\Support\BooleanColumn;
 use Illuminate\Support\Collection;
 
 final class ChatVectorSearchService
@@ -50,7 +51,7 @@ final class ChatVectorSearchService
         // TỐI ƯU HÓA: Chỉ lấy id và embedding từ database để tránh tải các trường text/markdown dung lượng lớn
         $candidates = ChatKnowledgeBase::query()
             ->select(['id', 'embedding'])
-            ->where('is_active', true)
+            ->tap(fn ($query) => BooleanColumn::where($query, 'is_active', true))
             ->whereNotNull('embedding')
             ->when($types !== [], fn ($query) => $query->whereIn('type', $types))
             ->get();

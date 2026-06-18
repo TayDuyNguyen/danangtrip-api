@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -17,7 +18,7 @@ final class Setting extends Model
     ];
 
     protected $casts = [
-        'is_public' => 'boolean',
+        'is_public' => PostgresBoolean::class,
     ];
 
     /**

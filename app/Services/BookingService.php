@@ -15,6 +15,7 @@ use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\PromotionRepositoryInterface;
 use App\Repositories\Interfaces\TourRepositoryInterface;
 use App\Repositories\Interfaces\TourScheduleRepositoryInterface;
+use App\Support\JsonColumn;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -1037,13 +1038,13 @@ class BookingService
             return;
         }
 
-        $exists = Notification::query()
+        $existsQuery = Notification::query()
             ->where('user_id', $booking->user_id)
-            ->where('type', $type)
-            ->where('data->booking_id', $booking->id)
-            ->exists();
+            ->where('type', $type);
 
-        if ($exists) {
+        JsonColumn::whereInt($existsQuery, 'data', 'booking_id', (int) $booking->id);
+
+        if ($existsQuery->exists()) {
             return;
         }
 

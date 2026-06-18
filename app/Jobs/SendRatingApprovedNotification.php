@@ -5,8 +5,11 @@ namespace App\Jobs;
 use App\Models\Notification;
 use App\Models\Rating;
 use App\Services\PointService;
+use App\Support\JsonColumn;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Job to send notification when a rating is approved.
@@ -32,6 +35,19 @@ class SendRatingApprovedNotification implements ShouldQueue
      * (Thực hiện job)
      */
     public function handle(PointService $pointService): void
+    {
+        try {
+            $this->sendNotification($pointService);
+        } catch (Throwable $e) {
+            Log::error('RATING_APPROVED_NOTIFICATION_FAILED', [
+                'rating_id' => $this->ratingId,
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+            ]);
+        }
+    }
+
+    private function sendNotification(PointService $pointService): void
     {
         $rating = Rating::with(['location', 'tour', 'user', 'images'])->find($this->ratingId);
 
@@ -70,13 +86,13 @@ class SendRatingApprovedNotification implements ShouldQueue
             );
         }
 
-        $exists = Notification::query()
+        $existsQuery = Notification::query()
             ->where('user_id', $user->id)
-            ->where('type', 'rating_approved')
-            ->where('data->rating_id', $rating->id)
-            ->exists();
+            ->where('type', 'rating_approved');
 
-        if ($exists) {
+        JsonColumn::whereInt($existsQuery, 'data', 'rating_id', (int) $rating->id);
+
+        if ($existsQuery->exists()) {
             return;
         }
 

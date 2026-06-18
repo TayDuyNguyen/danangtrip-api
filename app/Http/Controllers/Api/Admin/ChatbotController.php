@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ChatCache;
 use App\Models\ChatMessage;
+use App\Support\BooleanColumn;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -228,7 +229,13 @@ final class ChatbotController extends Controller
 
             $logs = ChatMessage::query()
                 ->when($intent, fn ($q) => $q->where('intent', $intent))
-                ->when($cacheHit !== null, fn ($q) => $q->where('cache_hit', filter_var($cacheHit, FILTER_VALIDATE_BOOLEAN)))
+                ->when($cacheHit !== null, function ($q) use ($cacheHit) {
+                    BooleanColumn::where(
+                        $q,
+                        'cache_hit',
+                        filter_var($cacheHit, FILTER_VALIDATE_BOOLEAN)
+                    );
+                })
                 ->when($rating, fn ($q) => $q->where('metadata->rating', $rating))
                 ->when($search, fn ($q) => $q->where(fn ($sq) => $sq->where('question', 'like', "%{$search}%")->orWhere('answer', 'like', "%{$search}%")))
                 ->orderByDesc('created_at')

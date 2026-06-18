@@ -262,7 +262,14 @@ class SepayPaymentService
                     'message' => 'SePay IPN handled successfully',
                 ];
             });
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            Log::error('SEPAY_IPN_HANDLE_FAILED', [
+                'message' => $e->getMessage(),
+                'exception' => $e::class,
+                'booking_code' => $bookingCode ?? null,
+                'amount' => $amount ?? null,
+            ]);
+
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
                 'message' => 'Failed to handle SePay IPN',

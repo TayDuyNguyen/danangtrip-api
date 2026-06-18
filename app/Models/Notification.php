@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\PostgresBoolean;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -40,7 +41,7 @@ final class Notification extends Model
     {
         return [
             'data' => 'array',
-            'is_read' => 'boolean',
+            'is_read' => PostgresBoolean::class,
             'read_at' => 'datetime',
             'created_at' => 'datetime',
         ];

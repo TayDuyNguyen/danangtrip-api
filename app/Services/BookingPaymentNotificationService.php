@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Mail\BookingPaymentConfirmedMail;
 use App\Models\Booking;
 use App\Models\Notification;
+use App\Support\JsonColumn;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -58,13 +59,13 @@ class BookingPaymentNotificationService
             return;
         }
 
-        $exists = Notification::query()
+        $existsQuery = Notification::query()
             ->where('user_id', $booking->user_id)
-            ->where('type', 'booking_payment_confirmed')
-            ->where('data->booking_id', $booking->id)
-            ->exists();
+            ->where('type', 'booking_payment_confirmed');
 
-        if ($exists) {
+        JsonColumn::whereInt($existsQuery, 'data', 'booking_id', (int) $booking->id);
+
+        if ($existsQuery->exists()) {
             return;
         }
 

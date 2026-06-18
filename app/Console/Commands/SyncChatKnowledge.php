@@ -6,6 +6,7 @@ use App\Models\ChatCache;
 use App\Models\ChatKnowledgeBase;
 use App\Services\Chat\ChatEmbeddingService;
 use App\Services\Chat\ChatKnowledgeSyncService;
+use App\Support\BooleanColumn;
 use Illuminate\Console\Command;
 
 final class SyncChatKnowledge extends Command
@@ -39,7 +40,7 @@ final class SyncChatKnowledge extends Command
         }
 
         $query = ChatKnowledgeBase::query()
-            ->where('is_active', true)
+            ->tap(fn ($builder) => BooleanColumn::where($builder, 'is_active', true))
             ->orderBy('id');
 
         if (! $this->option('force')) {

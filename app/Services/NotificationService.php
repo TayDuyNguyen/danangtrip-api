@@ -7,7 +7,7 @@ use App\Jobs\SendAdminNotificationEmail;
 use App\Models\User;
 use App\Repositories\Interfaces\NotificationRepositoryInterface;
 use App\Repositories\Interfaces\UserRepositoryInterface;
-use Exception;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -17,19 +17,11 @@ use Throwable;
  */
 final class NotificationService
 {
-    /**
-     * NotificationService constructor.
-     * (Khởi tạo NotificationService)
-     */
     public function __construct(
         protected NotificationRepositoryInterface $notificationRepository,
         protected UserRepositoryInterface $userRepository
     ) {}
 
-    /**
-     * Get user notifications.
-     * (Lấy danh sách thông báo của người dùng)
-     */
     public function getNotifications(int $userId, array $filters): array
     {
         try {
@@ -39,7 +31,8 @@ final class NotificationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $notifications,
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_LIST_FAILED', $e, ['user_id' => $userId]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -48,10 +41,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Mark a notification as read.
-     * (Đánh dấu một thông báo là đã đọc)
-     */
     public function markAsRead(int $userId, int $notificationId): array
     {
         try {
@@ -69,7 +58,11 @@ final class NotificationService
                 'data' => $notification,
                 'message' => 'Notification marked as read.',
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_MARK_AS_READ_FAILED', $e, [
+                'user_id' => $userId,
+                'notification_id' => $notificationId,
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -78,10 +71,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Mark all notifications as read.
-     * (Đánh dấu tất cả thông báo là đã đọc)
-     */
     public function markAllAsRead(int $userId): array
     {
         try {
@@ -92,7 +81,8 @@ final class NotificationService
                 'data' => ['updated_count' => $updatedCount],
                 'message' => "{$updatedCount} notifications marked as read.",
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_MARK_ALL_AS_READ_FAILED', $e, ['user_id' => $userId]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -101,18 +91,12 @@ final class NotificationService
         }
     }
 
-    /**
-     * Delete a notification.
-     * (Xóa một thông báo)
-     */
     public function deleteNotification(?int $userId, int $notificationId): array
     {
         try {
             if ($userId === null || $userId === 0) {
-                // Admin xóa
                 $deleted = $this->notificationRepository->delete($notificationId);
             } else {
-                // User xóa thông báo của mình
                 $deleted = $this->notificationRepository->deleteForUser($userId, $notificationId);
             }
 
@@ -127,7 +111,11 @@ final class NotificationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Notification deleted successfully.',
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_DELETE_FAILED', $e, [
+                'user_id' => $userId,
+                'notification_id' => $notificationId,
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -136,10 +124,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Get unread notifications count.
-     * (Lấy số lượng thông báo chưa đọc)
-     */
     public function getUnreadCount(int $userId): array
     {
         try {
@@ -149,7 +133,8 @@ final class NotificationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => ['unread_count' => $count],
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_UNREAD_COUNT_FAILED', $e, ['user_id' => $userId]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -158,17 +143,13 @@ final class NotificationService
         }
     }
 
-    /**
-     * Get admin notifications.
-     * (Lấy danh sách thông báo cho admin)
-     */
     public function getAdminNotifications(array $filters): array
     {
         try {
-            $notifications = $this->notificationRepository->getAdminNotifications($filters);
-            $data = $notifications->toArray();
-
-            // Calculate global stats
+            $paginator = $this->notificationRepository->getAdminNotifications($filters);
+            $data = $paginator instanceof Arrayable
+                ? $paginator->toArray()
+                : [];
             $data['stats'] = [
                 'total' => $this->notificationRepository->count(),
                 'read' => $this->notificationRepository->countByReadStatus(true),
@@ -179,7 +160,8 @@ final class NotificationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => $data,
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_ADMIN_LIST_FAILED', $e, ['filters' => $filters]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -188,10 +170,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Send notification to a specific user.
-     * (Gửi thông báo cho một người dùng cụ thể)
-     */
     public function sendNotification(array $data): array
     {
         try {
@@ -215,7 +193,11 @@ final class NotificationService
                 'data' => $notification,
                 'message' => 'Notification sent successfully.',
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_SEND_FAILED', $e, [
+                'user_id' => $data['user_id'] ?? null,
+                'type' => $data['type'] ?? null,
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -224,10 +206,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Send notification to all users.
-     * (Gửi thông báo cho tất cả người dùng)
-     */
     public function sendNotificationToAll(array $data): array
     {
         try {
@@ -251,7 +229,10 @@ final class NotificationService
                 'status' => HttpStatusCode::SUCCESS->value,
                 'message' => 'Initial notifications sent to all users.',
             ];
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
+            $this->logFailure('NOTIFICATION_SEND_ALL_FAILED', $e, [
+                'type' => $data['type'] ?? null,
+            ]);
 
             return [
                 'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
@@ -260,9 +241,6 @@ final class NotificationService
         }
     }
 
-    /**
-     * Send an email copy of the in-app notification.
-     */
     private function queueMailToUser(User $user, array $data): void
     {
         if (empty($user->email)) {
@@ -294,5 +272,13 @@ final class NotificationService
                 'exception' => $e::class,
             ]);
         }
+    }
+
+    private function logFailure(string $event, Throwable $e, array $context = []): void
+    {
+        Log::error($event, array_merge($context, [
+            'message' => $e->getMessage(),
+            'exception' => $e::class,
+        ]));
     }
 }
