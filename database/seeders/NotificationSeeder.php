@@ -11,6 +11,6 @@ final class NotificationSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('66_notifications_seed.sql');
+        $this->importSeederSql('seeders_v2/demo/08_notifications_activity.sql');
     }
 }

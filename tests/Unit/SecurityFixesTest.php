@@ -6,6 +6,7 @@ use App\Enums\HttpStatusCode;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\RefundRequest;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use App\Repositories\Interfaces\RefreshTokenRepositoryInterface;
@@ -14,6 +15,7 @@ use App\Services\AuthService;
 use App\Services\BookingPaymentNotificationService;
 use App\Services\PaymentService;
 use App\Services\PointService;
+use App\Services\RefundService;
 use App\Services\SepayPaymentService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -118,6 +120,77 @@ class SecurityFixesTest extends TestCase
         $this->assertSame('Password has been reset successfully.', $result['message']);
     }
 
+    public function test_refund_admin_payload_masks_account_for_list_view(): void
+    {
+        $refund = Mockery::mock(RefundRequest::class)->makePartial();
+        $refund->shouldReceive('loadMissing')->with('booking')->andReturnSelf();
+
+        $refund->id = 1;
+        $refund->refund_code = 'RF-TEST12345';
+        $refund->booking_id = 10;
+        $refund->reason_type = 'cancellation';
+        $refund->status = 'pending';
+        $refund->requested_amount = 100000;
+        $refund->approved_amount = 100000;
+        $refund->refund_percent = 100;
+        $refund->bank_code = 'VCB';
+        $refund->account_no = '1234567890';
+        $refund->account_name = 'NGUYEN VAN A';
+        $refund->reason = 'Reason';
+        $refund->policy_snapshot = null;
+        $refund->transfer_reference = null;
+        $refund->requested_at = null;
+        $refund->completed_at = null;
+
+        $booking = Mockery::mock(Booking::class)->makePartial();
+        $booking->booking_code = 'BOOK-1234';
+        $refund->booking = $booking;
+
+        $refundService = new RefundService(new PointService);
+        $payload = $refundService->adminPayload($refund, true);
+
+        $this->assertSame('******7890', $payload['masked_account_no']);
+        $this->assertArrayNotHasKey('account_no', $payload);
+        $this->assertArrayNotHasKey('qr_image_url', $payload);
+    }
+
+    public function test_refund_admin_payload_reveals_account_and_generates_vietqr_for_detail_view(): void
+    {
+        $refund = Mockery::mock(RefundRequest::class)->makePartial();
+        $refund->shouldReceive('loadMissing')->with('booking')->andReturnSelf();
+
+        $refund->id = 1;
+        $refund->refund_code = 'RF-TEST12345';
+        $refund->booking_id = 10;
+        $refund->reason_type = 'cancellation';
+        $refund->status = 'pending';
+        $refund->requested_amount = 100000;
+        $refund->approved_amount = 100000;
+        $refund->refund_percent = 100;
+        $refund->bank_code = 'VCB';
+        $refund->account_no = '1234567890';
+        $refund->account_name = 'NGUYEN VAN A';
+        $refund->reason = 'Reason';
+        $refund->policy_snapshot = null;
+        $refund->transfer_reference = null;
+        $refund->requested_at = null;
+        $refund->completed_at = null;
+
+        $booking = Mockery::mock(Booking::class)->makePartial();
+        $booking->booking_code = 'BOOK-1234';
+        $refund->booking = $booking;
+
+        $refundService = new RefundService(new PointService);
+        $payload = $refundService->adminPayload($refund, false);
+
+        $this->assertSame('******7890', $payload['masked_account_no']);
+        $this->assertSame('1234567890', $payload['account_no']);
+        $this->assertStringContainsString('img.vietqr.io/image/VCB-1234567890-compact2.png', $payload['qr_image_url']);
+        $this->assertStringContainsString('amount=100000', $payload['qr_image_url']);
+        $this->assertStringContainsString('addInfo=RF-TEST12345', $payload['qr_image_url']);
+        $this->assertStringContainsString('accountName=NGUYEN%20VAN%20A', $payload['qr_image_url']);
+    }
+
     private function makePaymentService(
         PaymentRepositoryInterface $paymentRepository,
         BookingRepositoryInterface $bookingRepository
@@ -128,6 +201,7 @@ class SecurityFixesTest extends TestCase
             Mockery::mock(SepayPaymentService::class),
             Mockery::mock(BookingPaymentNotificationService::class),
             new PointService,
+            new RefundService(new PointService),
         );
     }
 }

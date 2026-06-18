@@ -142,6 +142,24 @@ class SettingSeeder extends Seeder
                 'value_type' => 'string',
                 'is_public' => true,
             ],
+            [
+                'key' => 'cancellation.rules',
+                'value' => json_encode([
+                    'rules' => [
+                        ['minimum_hours_before_departure' => 168, 'refund_percent' => 100],
+                        ['minimum_hours_before_departure' => 72, 'refund_percent' => 50],
+                        ['minimum_hours_before_departure' => 0, 'refund_percent' => 0],
+                    ],
+                    'grace_period_minutes' => 30,
+                    'grace_minimum_hours_before_departure' => 12,
+                    'grace_max_uses_per_booking' => 1,
+                    'grace_disallowed_after_booking_deadline' => true,
+                    'holiday_refund_percent' => 0,
+                    'holiday_ranges' => [],
+                ], JSON_UNESCAPED_UNICODE),
+                'value_type' => 'json',
+                'is_public' => true,
+            ],
 
             // Default SEO tags
             [

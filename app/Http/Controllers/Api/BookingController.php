@@ -122,4 +122,13 @@ class BookingController extends Controller
 
         return $this->error($result['message'], $result['status']);
     }
+
+    public function refundPreview(ShowBookingRequest $request, int $id): JsonResponse
+    {
+        $result = $this->bookingService->previewRefund($id, (int) $request->user()->id);
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'], $result['message'])
+            : $this->error($result['message'], $result['status']);
+    }
 }

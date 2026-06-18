@@ -248,6 +248,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/user/bookings/code/{booking_code}', [BookingController::class, 'showByCode'])
             ->where('booking_code', '[A-Za-z0-9_-]{1,20}');
         Route::get('/user/bookings/{id}/invoice', [BookingController::class, 'invoice'])->whereNumber('id');
+        Route::get('/user/bookings/{id}/refund-preview', [BookingController::class, 'refundPreview'])->whereNumber('id');
         Route::post('/user/bookings/{id}/cancel', [BookingController::class, 'cancel'])->whereNumber('id');
 
         // Payments
@@ -407,6 +408,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/bookings/export', [AdminBookingController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/bookings/{id}', [AdminBookingController::class, 'show'])->whereNumber('id');
         Route::get('/bookings/{id}/invoice', [AdminBookingController::class, 'invoice'])->whereNumber('id')->middleware('throttle:api.exports');
+        Route::get('/bookings/{id}/refund-preview', [AdminBookingController::class, 'refundPreview'])->whereNumber('id');
         Route::patch('/bookings/{id}/status', [AdminBookingController::class, 'updateStatus'])->whereNumber('id');
         Route::patch('/bookings/{id}/confirm-payment', [AdminBookingController::class, 'confirmPayment'])->whereNumber('id');
 
@@ -416,6 +418,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/payments/export', [AdminPaymentController::class, 'export'])->middleware('throttle:api.exports');
         Route::get('/payments/{id}', [AdminPaymentController::class, 'show'])->whereNumber('id');
         Route::post('/payments/{id}/refund', [AdminPaymentController::class, 'refund'])->whereNumber('id')->middleware('throttle:api.exports');
+        Route::get('/refunds', [AdminPaymentController::class, 'refunds'])->middleware('throttle:api.admin');
+        Route::get('/refunds/{id}', [AdminPaymentController::class, 'showRefund'])->whereNumber('id')->middleware('throttle:api.admin');
+        Route::post('/refunds/{id}/complete', [AdminPaymentController::class, 'completeRefund'])->whereNumber('id')->middleware('throttle:api.strict');
 
         // Tags & Amenities Management
         // (Quản lý Tags & Tiện ích)

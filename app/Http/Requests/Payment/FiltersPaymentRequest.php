@@ -25,6 +25,11 @@ class FiltersPaymentRequest extends FormRequest
                 'string',
                 'max:50',
             ],
+            'refund_status' => [
+                'nullable',
+                'string',
+                'in:pending,processing,completed,failed,rejected',
+            ],
             'date_from' => [
                 'nullable',
                 'date_format:Y-m-d',

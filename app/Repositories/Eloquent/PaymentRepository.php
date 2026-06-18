@@ -32,7 +32,7 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
      */
     public function getPayments(array $filters): LengthAwarePaginator
     {
-        $query = $this->model->newQuery()->with('booking.user');
+        $query = $this->model->newQuery()->with(['booking.user', 'booking.refundRequests']);
 
         $this->applyPaymentFilters($query, $filters);
 
@@ -112,6 +112,12 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
 
         if (! empty($filters['payment_gateway'])) {
             $query->where('payment_gateway', $filters['payment_gateway']);
+        }
+
+        if (! empty($filters['refund_status'])) {
+            $query->whereHas('booking.refundRequests', function ($refundQuery) use ($filters) {
+                $refundQuery->where('status', $filters['refund_status']);
+            });
         }
 
         if ($fromBound !== null) {

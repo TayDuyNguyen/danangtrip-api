@@ -15,7 +15,7 @@ final class ChatSessionMemoryService
      * Tải thông tin phiên làm việc của chatbot từ bộ nhớ cache.
      * Nếu không có phiên làm việc tồn tại, trả về cấu trúc mặc định.
      *
-     * @param string $sessionId ID của phiên làm việc
+     * @param  string  $sessionId  ID của phiên làm việc
      * @return array<string,mixed> Dữ liệu phiên làm việc
      */
     public function loadSession(string $sessionId): array
@@ -33,6 +33,7 @@ final class ChatSessionMemoryService
                     ],
                     'clarification_step' => null,
                     'clarification_attempts' => 0,
+                    'context_signature' => '',
                     'updated_at' => null,
                 ];
             }
@@ -54,6 +55,7 @@ final class ChatSessionMemoryService
                 ],
                 'clarification_step' => null,
                 'clarification_attempts' => 0,
+                'context_signature' => '',
                 'updated_at' => null,
             ];
         }
@@ -62,9 +64,8 @@ final class ChatSessionMemoryService
     /**
      * Lưu thông tin phiên làm việc của chatbot vào bộ nhớ cache.
      *
-     * @param string $sessionId ID của phiên làm việc
-     * @param array<string,mixed> $sessionData Dữ liệu phiên làm việc cần lưu
-     * @return void
+     * @param  string  $sessionId  ID của phiên làm việc
+     * @param  array<string,mixed>  $sessionData  Dữ liệu phiên làm việc cần lưu
      */
     public function saveSession(string $sessionId, array $sessionData): void
     {
@@ -80,8 +81,7 @@ final class ChatSessionMemoryService
     /**
      * Xóa thông tin phiên làm việc của chatbot khỏi bộ nhớ cache.
      *
-     * @param string $sessionId ID của phiên làm việc
-     * @return void
+     * @param  string  $sessionId  ID của phiên làm việc
      */
     public function clearSession(string $sessionId): void
     {
@@ -96,18 +96,43 @@ final class ChatSessionMemoryService
      * Cập nhật thông tin phiên làm việc dựa trên kết quả phân tích câu hỏi mới.
      * Đồng thời tự động cập nhật các slots và xác định bước làm rõ (clarification) tiếp theo.
      *
-     * @param string $sessionId ID của phiên làm việc
-     * @param array<string,mixed> $understanding Kết quả phân tích câu hỏi từ NLU
-     * @param string $intent Ý định hiện tại của người dùng
+     * @param  string  $sessionId  ID của phiên làm việc
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích câu hỏi từ NLU
+     * @param  string  $intent  Ý định hiện tại của người dùng
+     * @param  array<string,mixed>  $context  Ngữ cảnh trang hiện tại
      * @return array<string,mixed> Dữ liệu phiên làm việc sau khi cập nhật
      */
-    public function updateSession(string $sessionId, array $understanding, string $intent): array
-    {
+    public function updateSession(
+        string $sessionId,
+        array $understanding,
+        string $intent,
+        array $context = []
+    ): array {
         $session = $this->loadSession($sessionId);
+        $contextSignature = $this->contextSignature($context);
+        $previousContextSignature = (string) ($session['context_signature'] ?? '');
+        $contextChanged = $contextSignature !== ''
+            && $previousContextSignature !== ''
+            && $contextSignature !== $previousContextSignature;
 
-        // If we are in a clarification step and the new intent is a fallback (location/unknown),
-        // we retain the previous intent so we don't break the clarification flow.
-        if ($session['clarification_step'] !== null && in_array($intent, ['location', 'unknown'], true) && $session['intent'] !== null) {
+        if ($contextChanged) {
+            $session['slots'] = [
+                'destination' => null,
+                'people' => null,
+                'max_price' => null,
+                'date' => null,
+            ];
+            $session['clarification_step'] = null;
+            $session['clarification_attempts'] = 0;
+        }
+
+        if ($contextSignature !== '') {
+            $session['context_signature'] = $contextSignature;
+        }
+
+        // Chỉ giữ intent cũ khi câu trả lời thực sự không xác định. Location là một
+        // intent hợp lệ và phải được phép thoát khỏi clarification của tour.
+        if ($session['clarification_step'] !== null && $intent === 'unknown' && $session['intent'] !== null) {
             $intent = $session['intent'];
         }
 
@@ -186,10 +211,25 @@ final class ChatSessionMemoryService
     }
 
     /**
+     * @param  array<string,mixed>  $context
+     */
+    private function contextSignature(array $context): string
+    {
+        $parts = [
+            (string) ($context['page_type'] ?? ''),
+            (string) ($context['entity_type'] ?? ''),
+            (string) ($context['entity_id'] ?? ''),
+            (string) ($context['entity_slug'] ?? ''),
+        ];
+
+        return trim(implode(':', $parts), ':');
+    }
+
+    /**
      * Phân tích và trích xuất số lượng từ văn bản đầu vào.
      * Hỗ trợ phát hiện khoảng số, số đứng một mình, hoặc số bằng chữ tiếng Việt.
      *
-     * @param string $text Văn bản đầu vào cần phân tích
+     * @param  string  $text  Văn bản đầu vào cần phân tích
      * @return int Số được trích xuất (mặc định trả về 0 nếu không tìm thấy)
      */
     private function extractNumber(string $text): int

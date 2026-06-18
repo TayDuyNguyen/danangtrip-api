@@ -6,7 +6,7 @@ use App\Enums\BookingStatus;
 use App\Enums\HttpStatusCode;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
-use App\Models\Notification;
+use App\Models\PaymentReceipt;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +36,8 @@ class PaymentService
         protected BookingRepositoryInterface $bookingRepository,
         protected SepayPaymentService $sepayPaymentService,
         protected BookingPaymentNotificationService $paymentNotificationService,
-        protected PointService $pointService
+        protected PointService $pointService,
+        protected RefundService $refundService
     ) {}
 
     /**
@@ -70,15 +71,28 @@ class PaymentService
                     ];
                 }
 
-                $rawAmount = (float) ($booking->final_amount ?? $booking->total_amount ?? 0);
-                if ($rawAmount < 0) {
+                $bookingAmount = (float) ($booking->final_amount ?? $booking->total_amount ?? 0);
+                if ($bookingAmount < 0) {
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
                         'message' => 'Booking payment amount cannot be negative',
                     ];
                 }
 
-                $amount = $rawAmount;
+                $receivedAmount = (float) PaymentReceipt::query()
+                    ->where('booking_id', $booking->id)
+                    ->sum('amount');
+                $amount = $booking->payment_status === 'partially_paid'
+                    ? max(0, $bookingAmount - $receivedAmount)
+                    : $bookingAmount;
+
+                if ($bookingAmount > 0 && $amount <= 0) {
+                    return [
+                        'status' => HttpStatusCode::BAD_REQUEST->value,
+                        'message' => 'This booking has already received the full payment amount',
+                    ];
+                }
+
                 $transactionCode = 'PAY-'.strtoupper(Str::random(10));
 
                 $paymentGateway = $this->usesSepayQr($data['payment_method'])
@@ -373,6 +387,10 @@ class PaymentService
                 'transaction_code' => $payment->transaction_code,
                 'booking_id' => $payment->booking_id,
                 'amount' => $payment->amount,
+                'received_amount' => $payment->received_amount,
+                'short_amount' => $payment->short_amount,
+                'excess_amount' => $payment->excess_amount,
+                'reconciliation_status' => $payment->reconciliation_status,
                 'payment_method' => $payment->payment_method,
                 'payment_gateway' => $payment->payment_gateway,
                 'gateway_response' => $payment->gateway_response,
@@ -473,43 +491,40 @@ class PaymentService
                     ];
                 }
 
-                $this->paymentRepository->update($id, [
-                    'payment_status' => PaymentStatus::REFUNDED->value,
-                    'refunded_at' => now(),
-                    'refund_reason' => $data['refund_reason'],
-                ]);
-
-                $this->bookingRepository->updatePaymentStatus($payment->booking_id, PaymentStatus::REFUNDED->value);
-                $booking = $this->bookingRepository->find((int) $payment->booking_id);
-
-                if ($booking?->user_id) {
-                    $exists = Notification::query()
-                        ->where('user_id', $booking->user_id)
-                        ->where('type', 'payment_refunded')
-                        ->where('data->payment_id', $payment->id)
+                $refund = $payment->refundRequests()
+                    ->where('status', 'pending')
+                    ->latest('id')
+                    ->first();
+                if (! $refund) {
+                    $completedPolicyRefund = $payment->booking?->refundRequests()
+                        ->whereIn('reason_type', ['cancellation', 'overpayment'])
+                        ->where('status', 'completed')
                         ->exists();
-
-                    if (! $exists) {
-                        Notification::query()->create([
-                            'user_id' => $booking->user_id,
-                            'type' => 'payment_refunded',
-                            'title' => 'Thanh toán đã được hoàn tiền',
-                            'content' => "Khoản thanh toán cho đơn {$booking->booking_code} đã được cập nhật hoàn tiền. Lý do: {$data['refund_reason']}.",
-                            'data' => [
-                                'payment_id' => $payment->id,
-                                'booking_id' => $booking->id,
-                                'booking_code' => $booking->booking_code,
-                                'payment_status' => PaymentStatus::REFUNDED->value,
-                                'refund_reason' => $data['refund_reason'],
-                            ],
-                            'is_read' => false,
-                            'created_at' => now(),
-                        ]);
+                    if ($completedPolicyRefund) {
+                        return [
+                            'status' => HttpStatusCode::BAD_REQUEST->value,
+                            'message' => 'The policy refund for this booking has already been completed',
+                        ];
                     }
+                    $refund = $this->refundService->createAdminAdjustmentRequest(
+                        $payment,
+                        $data,
+                        (int) Auth::id()
+                    );
                 }
+                $refund = $this->refundService->complete($refund, (int) Auth::id(), $data);
+
+                $payment->refresh();
+                $this->paymentRepository->update($id, [
+                    'refund_reason' => $data['refund_reason'],
+                    'refunded_at' => $payment->payment_status === PaymentStatus::REFUNDED->value
+                        ? ($payment->refunded_at ?? now())
+                        : null,
+                ]);
 
                 return [
                     'status' => HttpStatusCode::SUCCESS->value,
+                    'data' => $this->refundService->adminPayload($refund),
                     'message' => 'Payment refunded successfully',
                 ];
             });
@@ -529,6 +544,17 @@ class PaymentService
     public function getPayments(array $filters): array
     {
         $payments = $this->paymentRepository->getPayments($filters);
+        $payments->setCollection($payments->getCollection()->map(function ($payment) {
+            $pendingRefund = $payment->booking?->refundRequests
+                ->sortByDesc('id')
+                ->first();
+            $payment->setAttribute(
+                'latest_refund_request',
+                $pendingRefund ? $this->refundService->adminPayload($pendingRefund, true) : null
+            );
+
+            return $payment;
+        }));
 
         return [
             'status' => HttpStatusCode::SUCCESS->value,
@@ -551,6 +577,15 @@ class PaymentService
                 'message' => 'Payment not found',
             ];
         }
+
+        $payment->loadMissing(['booking.refundRequests']);
+        $pendingRefund = $payment->booking?->refundRequests
+            ->sortByDesc('id')
+            ->first();
+        $payment->setAttribute(
+            'latest_refund_request',
+            $pendingRefund ? $this->refundService->adminPayload($pendingRefund) : null
+        );
 
         return [
             'status' => HttpStatusCode::SUCCESS->value,

@@ -11,6 +11,6 @@ class InteractionSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('09_ratings_interactions.sql');
+        $this->importSeederSql('seeders_v2/demo/07_ratings.sql');
     }
 }

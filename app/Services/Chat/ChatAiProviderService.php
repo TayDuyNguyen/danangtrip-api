@@ -13,14 +13,12 @@ final class ChatAiProviderService
 {
     /**
      * @var array<int,string>
-     * Lịch trình xoay vòng và dấu vết thực thi của AI.
+     *                        Lịch trình xoay vòng và dấu vết thực thi của AI.
      */
     private array $logs = [];
 
     /**
      * Xóa sạch lịch sử logs của các lần gọi API trước đó.
-     *
-     * @return void
      */
     public function clearLogs(): void
     {
@@ -40,8 +38,7 @@ final class ChatAiProviderService
     /**
      * Thêm một thông tin hoặc sự kiện vào lịch sử logs.
      *
-     * @param string $message Thông báo cần ghi log
-     * @return void
+     * @param  string  $message  Thông báo cần ghi log
      */
     private function addLog(string $message): void
     {
@@ -53,8 +50,8 @@ final class ChatAiProviderService
      * Tự động duyệt qua danh sách các provider trong `provider_order` và xoay vòng key
      * nếu một khóa bị lỗi hoặc rate-limit (failover).
      *
-     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
-     * @param array<string,mixed> $options Cấu hình thêm (temperature, max_tokens...)
+     * @param  array<int,array{role:string,content:string}>  $messages  Danh sách tin nhắn hội thoại
+     * @param  array<string,mixed>  $options  Cấu hình thêm (temperature, max_tokens...)
      * @return array{ok:bool,text:string|null,provider:string|null,model:string|null,tokens_used:int,attempts:int}
      */
     public function complete(array $messages, array $options = []): array
@@ -125,11 +122,11 @@ final class ChatAiProviderService
      * Trích xuất các thực thể du lịch từ câu hỏi bằng mô hình AI NLU.
      * Tự động chuyển đổi dự phòng nếu lỗi.
      *
-     * @param string $question Câu hỏi đầu vào của người dùng
-     * @param string $locale Ngôn ngữ hiện tại (vi/en)
-     * @param array<string,mixed> $currentEntities Các thực thể đã trích xuất từ rule-based
-     * @param string $detectedIntent Ý định đã được nhận diện trước đó
-     * @param string $reason Lý do cần gọi AI (nếu có)
+     * @param  string  $question  Câu hỏi đầu vào của người dùng
+     * @param  string  $locale  Ngôn ngữ hiện tại (vi/en)
+     * @param  array<string,mixed>  $currentEntities  Các thực thể đã trích xuất từ rule-based
+     * @param  string  $detectedIntent  Ý định đã được nhận diện trước đó
+     * @param  string  $reason  Lý do cần gọi AI (nếu có)
      * @return array<string,mixed>|null
      */
     public function extractEntitiesWithAi(string $question, string $locale, array $currentEntities, string $detectedIntent = '', string $reason = ''): ?array
@@ -252,14 +249,14 @@ final class ChatAiProviderService
     /**
      * Gọi mô hình Google Gemini để trích xuất thực thể du lịch dưới dạng JSON.
      *
-     * @param string $question Câu hỏi đầu vào của người dùng
-     * @param string $systemPrompt Chỉ dẫn hệ thống cho mô hình NLU
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp Gemini
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ mục của API key trong cấu hình
-     * @param array<string,mixed> $currentEntities Các thực thể hiện tại từ rule-based
-     * @param string $detectedIntent Ý định đã được nhận diện
-     * @param string $reason Lý do cần gọi AI
+     * @param  string  $question  Câu hỏi đầu vào của người dùng
+     * @param  string  $systemPrompt  Chỉ dẫn hệ thống cho mô hình NLU
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp Gemini
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ mục của API key trong cấu hình
+     * @param  array<string,mixed>  $currentEntities  Các thực thể hiện tại từ rule-based
+     * @param  string  $detectedIntent  Ý định đã được nhận diện
+     * @param  string  $reason  Lý do cần gọi AI
      * @return array<string,mixed>|null
      */
     private function extractEntitiesGemini(
@@ -315,15 +312,15 @@ final class ChatAiProviderService
     /**
      * Gọi mô hình OpenAI hoặc tương thích (Groq, OpenRouter) để trích xuất thực thể.
      *
-     * @param string $question Câu hỏi đầu vào của người dùng
-     * @param string $systemPrompt Chỉ dẫn hệ thống cho mô hình NLU
-     * @param string $provider Tên nhà cung cấp AI
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ mục của API key trong cấu hình
-     * @param array<string,mixed> $currentEntities Các thực thể hiện tại từ rule-based
-     * @param string $detectedIntent Ý định đã được nhận diện
-     * @param string $reason Lý do cần gọi AI
+     * @param  string  $question  Câu hỏi đầu vào của người dùng
+     * @param  string  $systemPrompt  Chỉ dẫn hệ thống cho mô hình NLU
+     * @param  string  $provider  Tên nhà cung cấp AI
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ mục của API key trong cấu hình
+     * @param  array<string,mixed>  $currentEntities  Các thực thể hiện tại từ rule-based
+     * @param  string  $detectedIntent  Ý định đã được nhận diện
+     * @param  string  $reason  Lý do cần gọi AI
      * @return array<string,mixed>|null
      */
     private function extractEntitiesOpenAiCompatible(
@@ -392,8 +389,8 @@ final class ChatAiProviderService
      * Merge rule-based entities với AI NLU entities.
      * AI NLU override rule-based nếu có giá trị mới.
      *
-     * @param array<string,mixed> $current Thực thể hiện có từ rule-based
-     * @param array<string,mixed> $aiExtracted Thực thể mới trích xuất từ AI
+     * @param  array<string,mixed>  $current  Thực thể hiện có từ rule-based
+     * @param  array<string,mixed>  $aiExtracted  Thực thể mới trích xuất từ AI
      * @return array<string,mixed>
      */
     private function mergeEntities(array $current, array $aiExtracted): array
@@ -436,11 +433,11 @@ final class ChatAiProviderService
     /**
      * Gọi API của Google Gemini để hoàn thiện văn bản hoặc hội thoại (Chat Completion).
      *
-     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp Gemini
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ số của API key trong cấu hình
-     * @param array<string,mixed> $options Các tùy chọn cấu hình bổ sung
+     * @param  array<int,array{role:string,content:string}>  $messages  Danh sách tin nhắn hội thoại
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp Gemini
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ số của API key trong cấu hình
+     * @param  array<string,mixed>  $options  Các tùy chọn cấu hình bổ sung
      * @return array{text:string,tokens_used:int}
      */
     private function completeGemini(array $messages, array $providerConfig, string $key, int $keyIndex, array $options = []): array
@@ -485,12 +482,12 @@ final class ChatAiProviderService
     /**
      * Gọi API của các dòng mô hình tương thích OpenAI để hoàn thiện hội thoại.
      *
-     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn hội thoại
-     * @param string $provider Tên nhà cung cấp AI (openai, groq, openrouter...)
-     * @param array<string,mixed> $providerConfig Cấu hình của nhà cung cấp
-     * @param string $key API key đang sử dụng
-     * @param int $keyIndex Chỉ số của API key trong cấu hình
-     * @param array<string,mixed> $options Các tùy chọn cấu hình bổ sung
+     * @param  array<int,array{role:string,content:string}>  $messages  Danh sách tin nhắn hội thoại
+     * @param  string  $provider  Tên nhà cung cấp AI (openai, groq, openrouter...)
+     * @param  array<string,mixed>  $providerConfig  Cấu hình của nhà cung cấp
+     * @param  string  $key  API key đang sử dụng
+     * @param  int  $keyIndex  Chỉ số của API key trong cấu hình
+     * @param  array<string,mixed>  $options  Các tùy chọn cấu hình bổ sung
      * @return array{text:string,tokens_used:int}
      */
     private function completeOpenAiCompatible(array $messages, string $provider, array $providerConfig, string $key, int $keyIndex, array $options = []): array
@@ -535,10 +532,10 @@ final class ChatAiProviderService
     /**
      * Kiểm tra trạng thái phản hồi HTTP. Nếu lỗi, áp dụng thời gian tạm ngưng (cooldown) phù hợp cho khóa API.
      *
-     * @param Response $response Đối tượng phản hồi HTTP
-     * @param string $provider Tên nhà cung cấp dịch vụ AI
-     * @param int $keyIndex Chỉ số khóa API trong cấu hình
-     * @return void
+     * @param  Response  $response  Đối tượng phản hồi HTTP
+     * @param  string  $provider  Tên nhà cung cấp dịch vụ AI
+     * @param  int  $keyIndex  Chỉ số khóa API trong cấu hình
+     *
      * @throws RuntimeException khi phản hồi không thành công
      */
     private function ensureSuccessfulResponse(Response $response, string $provider, int $keyIndex): void
@@ -572,7 +569,7 @@ final class ChatAiProviderService
     /**
      * Trích xuất thông tin chỉ dẫn hệ thống (System Prompt) từ danh sách tin nhắn để ghép chuỗi cho Gemini.
      *
-     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn
+     * @param  array<int,array{role:string,content:string}>  $messages  Danh sách tin nhắn
      * @return string Văn bản chỉ dẫn hệ thống
      */
     private function extractSystemMessage(array $messages): string
@@ -589,7 +586,7 @@ final class ChatAiProviderService
     /**
      * Chuyển đổi danh sách tin nhắn hội thoại thành chuỗi prompt phẳng phục vụ định dạng Gemini.
      *
-     * @param array<int,array{role:string,content:string}> $messages Danh sách tin nhắn
+     * @param  array<int,array{role:string,content:string}>  $messages  Danh sách tin nhắn
      * @return string Chuỗi prompt đã gộp
      */
     private function messagesToPrompt(array $messages): string
@@ -603,9 +600,8 @@ final class ChatAiProviderService
     /**
      * Kiểm tra xem một khóa API cụ thể có đang bị tạm ngưng (cooldown) hay không.
      *
-     * @param string $provider Tên nhà cung cấp AI
-     * @param int $keyIndex Chỉ số khóa trong cấu hình
-     * @return bool
+     * @param  string  $provider  Tên nhà cung cấp AI
+     * @param  int  $keyIndex  Chỉ số khóa trong cấu hình
      */
     private function isCoolingDown(string $provider, int $keyIndex): bool
     {
@@ -615,10 +611,9 @@ final class ChatAiProviderService
     /**
      * Thiết lập trạng thái tạm ngưng (cooldown) cho một khóa API cụ thể trong khoảng thời gian xác định.
      *
-     * @param string $provider Tên nhà cung cấp AI
-     * @param int $keyIndex Chỉ số khóa trong cấu hình
-     * @param int|null $seconds Số giây tạm ngưng
-     * @return void
+     * @param  string  $provider  Tên nhà cung cấp AI
+     * @param  int  $keyIndex  Chỉ số khóa trong cấu hình
+     * @param  int|null  $seconds  Số giây tạm ngưng
      */
     private function coolDown(string $provider, int $keyIndex, ?int $seconds = null): void
     {
@@ -632,8 +627,8 @@ final class ChatAiProviderService
     /**
      * Tạo khóa cache phục vụ lưu trữ trạng thái tạm ngưng (cooldown key) của API key.
      *
-     * @param string $provider Tên nhà cung cấp AI
-     * @param int $keyIndex Chỉ số khóa
+     * @param  string  $provider  Tên nhà cung cấp AI
+     * @param  int  $keyIndex  Chỉ số khóa
      * @return string Tên khóa cache
      */
     private function cooldownKey(string $provider, int $keyIndex): string

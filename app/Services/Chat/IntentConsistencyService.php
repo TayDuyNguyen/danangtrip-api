@@ -8,8 +8,8 @@ final class IntentConsistencyService
      * Xác định xem có nên bỏ qua kết quả rule-based và bắt buộc gọi AI NLU hay không.
      * Dựa trên các quy tắc cấu hình kiểm tra tính không nhất quán của dữ liệu thực thể.
      *
-     * @param string $intent Ý định nhận diện bởi bộ lọc rule-based
-     * @param array<string,mixed> $entities Các thực thể đã trích xuất được từ rule-based
+     * @param  string  $intent  Ý định nhận diện bởi bộ lọc rule-based
+     * @param  array<string,mixed>  $entities  Các thực thể đã trích xuất được từ rule-based
      * @return bool Trả về true nếu bắt buộc phải gọi AI để trích xuất lại
      */
     public function shouldForceAi(string $intent, array $entities): bool

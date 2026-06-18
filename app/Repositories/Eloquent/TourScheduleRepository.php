@@ -97,10 +97,19 @@ class TourScheduleRepository extends BaseRepository implements TourScheduleRepos
         }
 
         if (! empty($filters['q'])) {
-            $keyword = (string) $filters['q'];
-            $query->whereHas('tour', function (Builder $tourQuery) use ($keyword): void {
-                $tourQuery->where('name', 'like', '%'.$keyword.'%');
-            });
+            $keyword = trim((string) $filters['q']);
+            if ($keyword !== '') {
+                $driver = $query->getConnection()->getDriverName();
+                $pattern = '%'.$keyword.'%';
+
+                $query->whereHas('tour', function (Builder $tourQuery) use ($driver, $pattern): void {
+                    if ($driver === 'pgsql') {
+                        $tourQuery->whereRaw('unaccent(name) ilike unaccent(?)', [$pattern]);
+                    } else {
+                        $tourQuery->where('name', 'like', $pattern);
+                    }
+                });
+            }
         }
     }
 

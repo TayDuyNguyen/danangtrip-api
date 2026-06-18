@@ -7,14 +7,15 @@ use App\Models\Tour;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 final class ChatQueryUnderstandingService
 {
     /**
      * Phân tích câu hỏi của người dùng để trích xuất các thực thể rule-based.
      *
-     * @param string $question Câu hỏi gốc của người dùng
-     * @param string $locale Ngôn ngữ hiện tại (mặc định là 'vi')
+     * @param  string  $question  Câu hỏi gốc của người dùng
+     * @param  string  $locale  Ngôn ngữ hiện tại (mặc định là 'vi')
      * @return array<string,mixed> Mảng chứa các thực thể trích xuất được và độ tin cậy
      */
     public function understand(string $question, string $locale = 'vi'): array
@@ -49,7 +50,7 @@ final class ChatQueryUnderstandingService
      * Gợi ý loại nội dung cần tìm kiếm dựa trên từ khóa rule-based.
      * AI NLU sẽ ghi đè hoặc bổ sung phần này nếu được kích hoạt.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return array<int,string> Mảng các loại nội dung gợi ý
      */
     private function extractContentTypeHints(string $query): array
@@ -98,7 +99,7 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất chủ đề cụ thể (như ẩm thực, khách sạn, bãi biển, núi...) dựa trên các từ khóa.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return array<int,string> Mảng các chủ đề gợi ý
      */
     private function extractTopicHints(string $query): array
@@ -136,7 +137,7 @@ final class ChatQueryUnderstandingService
     /**
      * Tính toán điểm tin cậy (confidence score) cho kết quả phân tích rule-based.
      *
-     * @param array<string,mixed> $entities Các thực thể đã trích xuất được
+     * @param  array<string,mixed>  $entities  Các thực thể đã trích xuất được
      * @return float Điểm số tin cậy trong khoảng [0.0, 1.0]
      */
     private function calculateConfidence(array $entities): float
@@ -181,7 +182,7 @@ final class ChatQueryUnderstandingService
         try {
             return Cache::remember('chatbot:dynamic_destinations', 3600, function (): array {
                 $locations = [];
-                if (\Illuminate\Support\Facades\Schema::hasTable('locations')) {
+                if (Schema::hasTable('locations')) {
                     $locations = Location::query()
                         ->where('status', 'active')
                         ->pluck('name')
@@ -191,7 +192,7 @@ final class ChatQueryUnderstandingService
                 }
 
                 $tours = [];
-                if (\Illuminate\Support\Facades\Schema::hasTable('tours')) {
+                if (Schema::hasTable('tours')) {
                     $tours = Tour::query()
                         ->where('status', 'active')
                         ->pluck('name')
@@ -260,7 +261,7 @@ final class ChatQueryUnderstandingService
     /**
      * Loại bỏ các dấu tiếng Việt khỏi chuỗi văn bản.
      *
-     * @param string $str Chuỗi có dấu
+     * @param  string  $str  Chuỗi có dấu
      * @return string Chuỗi không dấu
      */
     private function removeVietnameseTones(string $str): string
@@ -292,7 +293,7 @@ final class ChatQueryUnderstandingService
     /**
      * Chuẩn hóa văn bản: loại bỏ khoảng trắng dư thừa và chuyển về chữ thường.
      *
-     * @param string $value Chuỗi tin nhắn gốc
+     * @param  string  $value  Chuỗi tin nhắn gốc
      * @return string Tin nhắn đã được chuẩn hóa
      */
     private function normalize(string $value): string
@@ -306,7 +307,7 @@ final class ChatQueryUnderstandingService
      * Áp dụng từ đồng nghĩa hoặc viết tắt (aliases) cho chuỗi văn bản đã chuẩn hóa.
      * Giúp cải thiện tỷ lệ khớp từ khóa.
      *
-     * @param string $text Tin nhắn đã được chuẩn hóa
+     * @param  string  $text  Tin nhắn đã được chuẩn hóa
      * @return string Tin nhắn sau khi áp dụng từ đồng nghĩa
      */
     private function applyAliases(string $text): string
@@ -355,7 +356,7 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất tên địa danh/điểm đến từ câu hỏi người dùng dựa trên từ điển.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return string|null Tên địa danh canonical, hoặc null nếu không tìm thấy
      */
     private function extractDestination(string $query): ?string
@@ -376,7 +377,7 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất vùng miền/thành phố du lịch từ câu hỏi.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return string|null Tên vùng miền canonical, hoặc null nếu không tìm thấy
      */
     private function extractRegion(string $query): ?string
@@ -402,7 +403,7 @@ final class ChatQueryUnderstandingService
     /**
      * Phân tích và trích xuất chủ đề địa điểm (ẩm thực, lưu trú, bãi biển, bảo tàng...) từ câu hỏi.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return string|null Tên chủ đề canonical, hoặc null nếu không tìm thấy
      */
     private function extractLocationTopic(string $query): ?string
@@ -431,8 +432,8 @@ final class ChatQueryUnderstandingService
     /**
      * Hỗ trợ trích xuất số tiền và quy đổi đơn vị (VND, triệu, nghìn, k) dựa trên các marker từ khóa.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
-     * @param array<int,string> $markers Các từ khóa nhận diện đứng trước số tiền
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
+     * @param  array<int,string>  $markers  Các từ khóa nhận diện đứng trước số tiền
      * @return int|null Giá trị số tiền dạng integer VNĐ, hoặc null nếu không tìm thấy
      */
     private function extractPrice(string $query, array $markers): ?int
@@ -456,7 +457,7 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất số lượng khách/người từ tin nhắn.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return int|null Số lượng người, hoặc null nếu không tìm thấy
      */
     private function extractPeople(string $query): ?int
@@ -475,7 +476,7 @@ final class ChatQueryUnderstandingService
      *  - "ngân sách khoảng/tầm X triệu"    => ước tính => coi là max
      *  - "khoảng X triệu" (standalone)        => ước tính
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return int|null Giá trị tối đa VNĐ, hoặc null
      */
     private function extractMaxPrice(string $query): ?int
@@ -528,8 +529,8 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất thời điểm khởi hành du lịch từ câu hỏi người dùng (hôm nay, ngày mai, cuối tuần, tuần sau, d/m/y).
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
-     * @param string $locale Ngôn ngữ hiện tại
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
+     * @param  string  $locale  Ngôn ngữ hiện tại
      * @return string|null Chuỗi định dạng Y-m-d, hoặc null nếu không tìm thấy
      */
     private function extractDate(string $query, string $locale): ?string
@@ -584,7 +585,7 @@ final class ChatQueryUnderstandingService
     /**
      * Trích xuất thời lượng chuyến đi (số ngày) từ câu hỏi.
      *
-     * @param string $query Truy vấn đã được chuẩn hóa
+     * @param  string  $query  Truy vấn đã được chuẩn hóa
      * @return int|null Số ngày hành trình du lịch, hoặc null
      */
     private function extractDurationDays(string $query): ?int
@@ -599,8 +600,8 @@ final class ChatQueryUnderstandingService
     /**
      * Kiểm tra xem chuỗi văn bản có chứa bất kỳ từ khóa nào trong danh sách hay không.
      *
-     * @param string $haystack Chuỗi văn bản nguồn
-     * @param array<int,string> $needles Danh sách các từ khóa cần tìm
+     * @param  string  $haystack  Chuỗi văn bản nguồn
+     * @param  array<int,string>  $needles  Danh sách các từ khóa cần tìm
      * @return bool Trả về true nếu có ít nhất một từ khóa khớp
      */
     private function containsAny(string $haystack, array $needles): bool
@@ -618,8 +619,8 @@ final class ChatQueryUnderstandingService
      * Kiểm tra xem một từ khóa cụ thể có xuất hiện trong chuỗi văn bản hay không.
      * Hỗ trợ tìm kiếm khớp biên từ (word-boundary) đối với một số từ tiếng Việt ngắn nhạy cảm để tránh nhận diện nhầm.
      *
-     * @param string $haystack Chuỗi văn bản nguồn
-     * @param string $needle Từ khóa cần kiểm tra
+     * @param  string  $haystack  Chuỗi văn bản nguồn
+     * @param  string  $needle  Từ khóa cần kiểm tra
      * @return bool Trả về true nếu từ khóa tồn tại
      */
     private function containsWord(string $haystack, string $needle): bool
@@ -638,8 +639,8 @@ final class ChatQueryUnderstandingService
      * Dọn dẹp mềm các thực thể không liên quan dựa trên intent nghiệp vụ mới.
      * Giúp lọc bỏ bớt nhiễu trong câu lệnh tìm kiếm SQL/Vector.
      *
-     * @param array<string,mixed> $understanding Mảng thực thể hiện có
-     * @param string $intent Ý định nghiệp vụ mới
+     * @param  array<string,mixed>  $understanding  Mảng thực thể hiện có
+     * @param  string  $intent  Ý định nghiệp vụ mới
      * @return array<string,mixed> Mảng thực thể sau khi lọc sạch
      */
     public function normalizeEntitiesForIntent(array $understanding, string $intent): array

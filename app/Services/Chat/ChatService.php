@@ -17,16 +17,16 @@ final class ChatService
     /**
      * Khởi tạo ChatService với các dịch vụ phụ thuộc liên quan đến chatbot.
      *
-     * @param ChatQueryUnderstandingService $queryUnderstanding Bộ phân tích câu hỏi người dùng
-     * @param ChatIntentGuardService $intentGuard Bộ kiểm duyệt và phân loại ý định
-     * @param ChatKnowledgeSearchService $knowledgeSearch Bộ tìm kiếm tri thức SQL/Vector
-     * @param ChatAiProviderService $aiProvider Dịch vụ AI hoàn thành chat và trích xuất thực thể
-     * @param ChatQueryNormalizerService $normalizer Bộ chuẩn hóa và ánh xạ thực thể
-     * @param ChatRecommendationBuilderService $recommendationBuilder Bộ xây dựng gợi ý thẻ địa điểm/tour
-     * @param IntentConsistencyService $consistencyService Bộ kiểm tra tính nhất quán ý định
-     * @param ChatSessionMemoryService $sessionMemory Bộ nhớ phiên hội thoại (slots filling)
-     * @param ChatToolGuardrailService $guardrail Bộ ràng buộc dữ liệu đầu vào
-     * @param ChatEmbeddingService $embeddingService Dịch vụ nhúng văn bản (vectorization)
+     * @param  ChatQueryUnderstandingService  $queryUnderstanding  Bộ phân tích câu hỏi người dùng
+     * @param  ChatIntentGuardService  $intentGuard  Bộ kiểm duyệt và phân loại ý định
+     * @param  ChatKnowledgeSearchService  $knowledgeSearch  Bộ tìm kiếm tri thức SQL/Vector
+     * @param  ChatAiProviderService  $aiProvider  Dịch vụ AI hoàn thành chat và trích xuất thực thể
+     * @param  ChatQueryNormalizerService  $normalizer  Bộ chuẩn hóa và ánh xạ thực thể
+     * @param  ChatRecommendationBuilderService  $recommendationBuilder  Bộ xây dựng gợi ý thẻ địa điểm/tour
+     * @param  IntentConsistencyService  $consistencyService  Bộ kiểm tra tính nhất quán ý định
+     * @param  ChatSessionMemoryService  $sessionMemory  Bộ nhớ phiên hội thoại (slots filling)
+     * @param  ChatToolGuardrailService  $guardrail  Bộ ràng buộc dữ liệu đầu vào
+     * @param  ChatEmbeddingService  $embeddingService  Dịch vụ nhúng văn bản (vectorization)
      */
     public function __construct(
         protected ChatQueryUnderstandingService $queryUnderstanding,
@@ -45,9 +45,10 @@ final class ChatService
      * Xử lý tin nhắn từ người dùng thông qua pipeline chatbot toàn diện.
      * Phân tích ý định, kiểm duyệt, tìm kiếm tri thức và gọi AI sinh phản hồi.
      *
-     * @param array<string,mixed> $data Dữ liệu tin nhắn gồm 'message', 'locale', 'session_id', 'history'
-     * @param Request $request Đối tượng request hiện tại chứa IP, User-Agent và Auth User
+     * @param  array<string,mixed>  $data  Dữ liệu tin nhắn gồm 'message', 'locale', 'session_id', 'history'
+     * @param  Request  $request  Đối tượng request hiện tại chứa IP, User-Agent và Auth User
      * @return array<string,mixed> Phản hồi chatbot gồm status và payload dữ liệu trả về cho client
+     *
      * @throws \Throwable
      */
     public function send(array $data, Request $request): array
@@ -57,6 +58,8 @@ final class ChatService
         $locale = (string) ($data['locale'] ?? 'vi');
         $sessionId = $this->resolveSessionId($request, $data['session_id'] ?? null);
         $history = $data['history'] ?? [];
+        $pageContext = is_array($data['context'] ?? null) ? $data['context'] : [];
+        $contextSignature = $this->contextSignature($pageContext);
 
         $trace = [
             'timestamp' => now()->toDateTimeString(),
@@ -96,15 +99,22 @@ final class ChatService
             // =====================================================================
             // BƯỚC 2: Intent Guard (dùng normalized_question sau rule-based)
             // =====================================================================
-            $classification = $this->intentGuard->classify((string) $understanding['normalized_question']);
+            $classification = $this->intentGuard->classify(
+                (string) $understanding['normalized_question'],
+                $pageContext
+            );
             $intent = $classification['intent'];
             $isInScope = $classification['is_in_scope'];
-            $trace['steps'][] = "2️⃣  INTENT GUARD: intent=$intent | in_scope=".($isInScope ? 'YES' : 'NO').' | reason='.($classification['reason'] ?? 'none');
+            $understanding['intent_confidence'] = (float) ($classification['confidence'] ?? 0.0);
+            $understanding['intent_scores'] = (array) ($classification['scores'] ?? []);
+            $understanding['page_context'] = $pageContext;
+            $trace['steps'][] = "2️⃣  INTENT GUARD: intent=$intent | in_scope=".($isInScope ? 'YES' : 'NO').' | confidence='.($classification['confidence'] ?? 0).' | reason='.($classification['reason'] ?? 'none').' | page_context='.$contextSignature;
 
             if (! $isInScope) {
                 $answer = $this->outOfScopeAnswer($locale);
                 $this->recordMessage($request, $sessionId, $question, $answer, $intent, false, false, [], [
                     'reason' => $classification['reason'] ?? null,
+                    'page_context' => $pageContext,
                 ], $startTime);
                 $trace['steps'][] = "⚠️  Out of scope answer generated: \"$answer\"";
                 $this->writeTraceToLog($trace);
@@ -154,7 +164,8 @@ final class ChatService
             // BƯỚC 5: HYBRID NLU & CONSISTENCY CHECK — Kiểm tra nhất quán & Biểu quyết
             // =====================================================================
             $ruleIntent = $intent;
-            $ruleConfidence = (float) ($understanding['confidence'] ?? 0.0);
+            // Confidence của intent phải đến từ bộ phân loại intent, không phải độ đầy đủ của slots.
+            $ruleConfidence = (float) ($classification['confidence'] ?? 0.0);
             $threshold = (float) config('chatbot.nlu.confidence_threshold', 0.8);
             $aiNluTriggered = false;
 
@@ -214,12 +225,19 @@ final class ChatService
 
             // Load session memory early to check clarification state
             $session = $this->sessionMemory->loadSession($sessionId);
+            $sessionContextSignature = (string) ($session['context_signature'] ?? '');
+            $contextChanged = $contextSignature !== ''
+                && $sessionContextSignature !== ''
+                && $contextSignature !== $sessionContextSignature;
 
             // Nếu đang trong luồng hỏi lại (clarification) và người dùng trả lời:
-            // Ta giữ nguyên intent cũ (e.g. 'tour' hoặc 'booking') trừ khi người dùng chủ động đổi sang ý định hệ thống khác (greeting, handoff, v.v.)
+            // Chỉ giữ intent cũ nếu câu mới không có tín hiệu intent rõ ràng và không đổi context trang.
             if ($session['clarification_step'] !== null && $session['intent'] !== null) {
                 $systemIntents = ['greeting', 'handoff', 'loyalty', 'payment', 'refund', 'contact', 'account'];
-                if (! in_array($intent, $systemIntents, true)) {
+                $hasExplicitTopicSwitch = (bool) ($classification['explicit_match'] ?? false)
+                    && $ruleConfidence >= 0.65
+                    && $intent !== $session['intent'];
+                if (! in_array($intent, $systemIntents, true) && ! $hasExplicitTopicSwitch && ! $contextChanged) {
                     $intent = $session['intent'];
                     $understanding['intent'] = $intent;
                 }
@@ -235,11 +253,13 @@ final class ChatService
             if ($intent === 'unknown' || ($aiNluTriggered && $finalConfidence < 0.4)) {
                 $intent = 'unknown';
                 $understanding['intent'] = 'unknown';
-                $answer = $this->unknownAnswer($locale);
+                $answer = $this->unknownAnswer($locale, $pageContext);
                 $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, [], [
                     'reason' => 'unknown_intent_clarification',
                     'understanding' => $understanding,
                     'ai_nlu_triggered' => $aiNluTriggered,
+                    'classification' => $classification,
+                    'page_context' => $pageContext,
                 ], $startTime);
                 $trace['steps'][] = '⚠️  Unknown intent fallback triggered.';
                 $this->writeTraceToLog($trace);
@@ -276,7 +296,12 @@ final class ChatService
             // NÂNG CẤP BƯỚC: SESSION MEMORY & CLARIFICATION FLOW
             // =====================================================================
             // Cập nhật session memory với intent và understanding hiện tại
-            $session = $this->sessionMemory->updateSession($sessionId, $understanding, $intent);
+            $session = $this->sessionMemory->updateSession(
+                $sessionId,
+                $understanding,
+                $intent,
+                $pageContext
+            );
             $trace['steps'][] = '4️⃣  SESSION MEMORY: slots='.json_encode($session['slots'] ?? [], JSON_UNESCAPED_UNICODE).' | clarification_step='.($session['clarification_step'] ?? 'null');
 
             // Check group booking handoff (>50 people) or intent handoff
@@ -344,12 +369,20 @@ final class ChatService
             // =====================================================================
             // BƯỚC 5b: SEMANTIC CACHE CHECK (Sau khi NLU và Slots hoàn thành)
             // =====================================================================
-            $cached = $this->lookupSemanticCache($question, $locale, $intent, $session['slots'] ?? [], $knowledgeVersion);
+            $cached = $this->lookupSemanticCache(
+                $question,
+                $locale,
+                $intent,
+                $session['slots'] ?? [],
+                $knowledgeVersion,
+                $contextSignature
+            );
             if ($cached) {
                 $this->recordMessage($request, $sessionId, $question, $cached->answer, $intent, true, true, [], [
                     'provider' => $cached->provider,
                     'model' => $cached->model,
                     'semantic_cache_hit' => true,
+                    'page_context' => $pageContext,
                 ], $startTime);
                 $trace['steps'][] = '🚀 Semantic cache HIT!';
                 $this->writeTraceToLog($trace);
@@ -437,11 +470,19 @@ final class ChatService
             // =====================================================================
             // Cache + Record + Return
             // =====================================================================
-            $cacheHash = $this->cacheHash($locale, $intent, (string) $understanding['normalized_question'], $knowledgeVersion);
+            $cacheHash = $this->cacheHash(
+                $locale,
+                $intent,
+                (string) $understanding['normalized_question'],
+                $knowledgeVersion,
+                $contextSignature
+            );
+            $cacheSlots = $session['slots'] ?? [];
+            $cacheSlots['_context_signature'] = $contextSignature;
             $this->storeCache(
                 $cacheHash, $question, $locale, $intent, $answer,
                 $recommendations, $knowledge['center'], $knowledge['zoom'],
-                $provider, $model, null, $session['slots'] ?? []
+                $provider, $model, null, $cacheSlots
             );
 
             $this->recordMessage($request, $sessionId, $question, $answer, $intent, true, false, $alignedContext, [
@@ -452,6 +493,8 @@ final class ChatService
                 'attempts' => $ai['attempts'] ?? 0,
                 'understanding' => $understanding,
                 'ai_nlu_triggered' => $aiNluTriggered,
+                'classification' => $classification,
+                'page_context' => $pageContext,
             ], $startTime);
 
             $trace['steps'][] = '🤖 BOT ANSWER: '.str_replace("\n", ' ', substr($answer, 0, 120)).'...';
@@ -494,13 +537,13 @@ final class ChatService
      * Xây dựng danh sách tin nhắn để gửi lên mô hình AI.
      * Tích hợp system prompt với dữ liệu ngữ cảnh (database records, blogs, policies) và lịch sử hội thoại.
      *
-     * @param string $question Câu hỏi nguyên bản từ người dùng
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
-     * @param string $intent Ý định cuối cùng được xác định
-     * @param array<int,array<string,mixed>> $context Ngữ cảnh dữ liệu thật lấy từ cơ sở dữ liệu
-     * @param array<string,mixed> $understanding Kết quả phân tích thực thể và thông tin slot đi kèm
-     * @param array<int,array<string,mixed>> $history Lịch sử tin nhắn trước đó của phiên chat
-     * @param array<int,string> $warnings Danh sách cảnh báo kiểm duyệt đầu vào (ví dụ: ngày quá khứ)
+     * @param  string  $question  Câu hỏi nguyên bản từ người dùng
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $intent  Ý định cuối cùng được xác định
+     * @param  array<int,array<string,mixed>>  $context  Ngữ cảnh dữ liệu thật lấy từ cơ sở dữ liệu
+     * @param  array<string,mixed>  $understanding  Kết quả phân tích thực thể và thông tin slot đi kèm
+     * @param  array<int,array<string,mixed>>  $history  Lịch sử tin nhắn trước đó của phiên chat
+     * @param  array<int,string>  $warnings  Danh sách cảnh báo kiểm duyệt đầu vào (ví dụ: ngày quá khứ)
      * @return array<int,array<string,string>> Danh sách các tin nhắn đã định dạng cho API hoàn thành chat
      */
     private function buildAiMessages(string $question, string $locale, string $intent, array $context, array $understanding, array $history = [], array $warnings = []): array
@@ -537,18 +580,18 @@ final class ChatService
         if ($hasContext) {
             $blocks = [];
             if (! empty($locationsAndTours)) {
-                $blocks[] = "=== OFFICIAL DATABASE RECORDS (LOCATIONS & TOURS) ===\n" .
-                    "Only these items are official location or tour database records. The UI can display recommendation cards for these items.\n" .
+                $blocks[] = "=== OFFICIAL DATABASE RECORDS (LOCATIONS & TOURS) ===\n".
+                    "Only these items are official location or tour database records. The UI can display recommendation cards for these items.\n".
                     json_encode($locationsAndTours, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
             }
             if (! empty($blogsAndArticles)) {
-                $blocks[] = "=== TRAVEL ARTICLES, GUIDES & BLOGS ===\n" .
-                    "These are informal blog posts and articles. They may contain descriptions of travel experiences and mention names of various places or tours.\n" .
-                    "WARNING: Many places or tours mentioned inside the content of these blogs DO NOT exist as database records. You MUST NEVER suggest, recommend, or mention their names in your response unless they are also listed in the \"OFFICIAL DATABASE RECORDS\" section above.\n" .
+                $blocks[] = "=== TRAVEL ARTICLES, GUIDES & BLOGS ===\n".
+                    "These are informal blog posts and articles. They may contain descriptions of travel experiences and mention names of various places or tours.\n".
+                    "WARNING: Many places or tours mentioned inside the content of these blogs DO NOT exist as database records. You MUST NEVER suggest, recommend, or mention their names in your response unless they are also listed in the \"OFFICIAL DATABASE RECORDS\" section above.\n".
                     json_encode($blogsAndArticles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
             }
             if (! empty($policies)) {
-                $blocks[] = "=== SYSTEM POLICIES ===\n" .
+                $blocks[] = "=== SYSTEM POLICIES ===\n".
                     json_encode($policies, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
             }
             $contextBlock = implode("\n\n", $blocks);
@@ -650,7 +693,7 @@ final class ChatService
      * Tạo câu trả lời chào mừng mặc định theo ngôn ngữ được chọn.
      * Giới thiệu các chức năng chatbot hỗ trợ (tour, địa điểm, ẩm thực, v.v.).
      *
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
      * @return string Văn bản chào mừng chi tiết
      */
     private function greetingAnswer(string $locale): string
@@ -694,9 +737,9 @@ final class ChatService
      * Tạo câu trả lời dự phòng khi AI Provider gặp sự cố hoặc phản hồi không thành công.
      * Trả về danh sách các tiêu đề gợi ý khớp từ cơ sở dữ liệu nếu có.
      *
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
-     * @param string $intent Ý định của câu hỏi
-     * @param array<int,array<string,mixed>> $context Tập dữ liệu tri thức tìm kiếm được
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $intent  Ý định của câu hỏi
+     * @param  array<int,array<string,mixed>>  $context  Tập dữ liệu tri thức tìm kiếm được
      * @return string Văn bản phản hồi dự phòng trực quan kèm tiêu đề
      */
     private function fallbackAnswer(string $locale, string $intent, array $context): string
@@ -777,7 +820,7 @@ final class ChatService
     /**
      * Trả về câu trả lời mặc định khi câu hỏi của người dùng nằm ngoài phạm vi hỗ trợ của chatbot.
      *
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
      * @return string Thông báo giới hạn phạm vi dịch vụ
      */
     private function outOfScopeAnswer(string $locale): string
@@ -793,21 +836,25 @@ final class ChatService
      * Trả về câu trả lời khi hệ thống không thể nhận diện được ý định (unknown intent)
      * hoặc điểm tin cậy NLU quá thấp.
      *
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  array<string,mixed>  $context  Ngữ cảnh trang hiện tại
      * @return string Thông báo hướng dẫn người dùng nhập rõ ràng hơn
      */
-    private function unknownAnswer(string $locale): string
+    private function unknownAnswer(string $locale, array $context = []): string
     {
+        $entityName = trim((string) ($context['entity_name'] ?? ''));
+        $subject = $entityName !== '' ? " \"$entityName\"" : '';
+
         if ($locale === 'en') {
             return implode("\n", [
                 "I didn't quite understand your request 😅",
-                'Are you looking for a tour, food spots, hotels, or travel blogs? Please share more details so I can assist you better! 😊',
+                "Would you like place information{$subject}, a matching tour, or a travel article? Please choose one so I can help accurately.",
             ]);
         }
 
         return implode("\n", [
             'Mình chưa hiểu rõ ý bạn lắm 😅',
-            'Bạn đang muốn tìm tour du lịch, khám phá địa điểm ăn uống, tìm khách sạn hay muốn đọc cẩm nang du lịch? Hãy chia sẻ thêm để mình hỗ trợ tốt nhất nhé! 😊',
+            "Bạn muốn xem thông tin địa điểm{$subject}, tìm tour phù hợp, hay đọc bài viết/cẩm nang? Bạn chọn một hướng để mình trả lời chính xác nhé.",
         ]);
     }
 
@@ -819,19 +866,18 @@ final class ChatService
      * Lưu trữ kết quả xử lý của chatbot vào bảng lưu cache ngữ nghĩa (ChatCache).
      * Thực hiện sinh vector nhúng cho câu hỏi nếu chưa có để hỗ trợ đối sánh ngữ nghĩa sau này.
      *
-     * @param string $hash Mã băm MD5 duy nhất cho tổ hợp (locale, intent, normalized_question, version)
-     * @param string $question Câu hỏi từ người dùng
-     * @param string $locale Ngôn ngữ hiện tại
-     * @param string $intent Ý định câu hỏi
-     * @param string $answer Phản hồi bằng văn bản từ chatbot
-     * @param array $recommendations Danh sách gợi ý địa điểm/tour đi kèm
-     * @param array|null $center Tọa độ bản đồ trung tâm
-     * @param int|null $zoom Mức phóng to bản đồ
-     * @param string|null $provider Nhà cung cấp dịch vụ AI đã sử dụng
-     * @param string|null $model Mô hình AI đã sử dụng
-     * @param array|null $embedding Vector nhúng của câu hỏi
-     * @param array|null $slots Các giá trị tham số trích xuất được lưu trữ kèm theo
-     * @return void
+     * @param  string  $hash  Mã băm MD5 duy nhất cho tổ hợp (locale, intent, normalized_question, version)
+     * @param  string  $question  Câu hỏi từ người dùng
+     * @param  string  $locale  Ngôn ngữ hiện tại
+     * @param  string  $intent  Ý định câu hỏi
+     * @param  string  $answer  Phản hồi bằng văn bản từ chatbot
+     * @param  array  $recommendations  Danh sách gợi ý địa điểm/tour đi kèm
+     * @param  array|null  $center  Tọa độ bản đồ trung tâm
+     * @param  int|null  $zoom  Mức phóng to bản đồ
+     * @param  string|null  $provider  Nhà cung cấp dịch vụ AI đã sử dụng
+     * @param  string|null  $model  Mô hình AI đã sử dụng
+     * @param  array|null  $embedding  Vector nhúng của câu hỏi
+     * @param  array|null  $slots  Các giá trị tham số trích xuất được lưu trữ kèm theo
      */
     private function storeCache(
         string $hash,
@@ -890,17 +936,16 @@ final class ChatService
      * Lưu trữ lịch sử tin nhắn hội thoại chatbot vào cơ sở dữ liệu.
      * Ghi nhận thông tin người dùng, IP, User-Agent, token tiêu thụ, độ trễ và siêu dữ liệu đi kèm.
      *
-     * @param Request $request Đối tượng request chứa IP, Agent
-     * @param string $sessionId ID phiên chat hiện tại
-     * @param string $question Câu hỏi từ người dùng
-     * @param string $answer Phản hồi từ chatbot
-     * @param string $intent Ý định cuối cùng được xác định
-     * @param bool $isInScope Câu hỏi có thuộc phạm vi hỗ trợ không
-     * @param bool $cacheHit Kết quả này lấy ra từ bộ nhớ đệm hay không
-     * @param array $context Tập ngữ cảnh tri thức đã dùng để sinh phản hồi
-     * @param array $metadata Siêu dữ liệu khác (latency, tokens, provider...)
-     * @param float|null $startTime Thời điểm bắt đầu xử lý request (microtime)
-     * @return void
+     * @param  Request  $request  Đối tượng request chứa IP, Agent
+     * @param  string  $sessionId  ID phiên chat hiện tại
+     * @param  string  $question  Câu hỏi từ người dùng
+     * @param  string  $answer  Phản hồi từ chatbot
+     * @param  string  $intent  Ý định cuối cùng được xác định
+     * @param  bool  $isInScope  Câu hỏi có thuộc phạm vi hỗ trợ không
+     * @param  bool  $cacheHit  Kết quả này lấy ra từ bộ nhớ đệm hay không
+     * @param  array  $context  Tập ngữ cảnh tri thức đã dùng để sinh phản hồi
+     * @param  array  $metadata  Siêu dữ liệu khác (latency, tokens, provider...)
+     * @param  float|null  $startTime  Thời điểm bắt đầu xử lý request (microtime)
      */
     private function recordMessage(
         Request $request,
@@ -948,19 +993,19 @@ final class ChatService
      * Định dạng cấu trúc dữ liệu payload trả về cho client.
      * Tự động tạo câu hỏi gợi ý và đóng gói các siêu dữ liệu phân tích ý định.
      *
-     * @param string $answer Phản hồi văn thành phần văn bản cuối cùng
-     * @param array $recommendations Danh sách gợi ý địa điểm/tour đi kèm
-     * @param string $intent Ý định câu hỏi
-     * @param bool $isInScope Câu hỏi có thuộc phạm vi hỗ trợ hay không
-     * @param bool $cacheHit Kết quả này được phục vụ từ cache hay không
-     * @param array|null $center Tọa độ bản đồ trung tâm
-     * @param int|null $zoom Mức độ thu phóng bản đồ
-     * @param string|null $provider Nhà cung cấp dịch vụ AI đã sử dụng
-     * @param string|null $model Mô hình AI đã sử dụng
-     * @param int $tokensUsed Số lượng tokens tiêu thụ (nếu có)
-     * @param array|null $understanding Kết quả hiểu câu hỏi (intent, slots)
-     * @param bool $aiNluTriggered AI NLU có được gọi để bổ sung thông tin không
-     * @param string|null $clarificationStep Bước đang yêu cầu người dùng làm rõ thông tin
+     * @param  string  $answer  Phản hồi văn thành phần văn bản cuối cùng
+     * @param  array  $recommendations  Danh sách gợi ý địa điểm/tour đi kèm
+     * @param  string  $intent  Ý định câu hỏi
+     * @param  bool  $isInScope  Câu hỏi có thuộc phạm vi hỗ trợ hay không
+     * @param  bool  $cacheHit  Kết quả này được phục vụ từ cache hay không
+     * @param  array|null  $center  Tọa độ bản đồ trung tâm
+     * @param  int|null  $zoom  Mức độ thu phóng bản đồ
+     * @param  string|null  $provider  Nhà cung cấp dịch vụ AI đã sử dụng
+     * @param  string|null  $model  Mô hình AI đã sử dụng
+     * @param  int  $tokensUsed  Số lượng tokens tiêu thụ (nếu có)
+     * @param  array|null  $understanding  Kết quả hiểu câu hỏi (intent, slots)
+     * @param  bool  $aiNluTriggered  AI NLU có được gọi để bổ sung thông tin không
+     * @param  string|null  $clarificationStep  Bước đang yêu cầu người dùng làm rõ thông tin
      * @return array<string,mixed> Dữ liệu phản hồi đã chuẩn hoá
      */
     private function responsePayload(
@@ -1010,8 +1055,8 @@ final class ChatService
      * Xác định hoặc tự sinh mã định danh phiên làm việc (Session ID) cho người dùng.
      * Nếu không truyền session_id, sẽ băm chuỗi chứa IP và User-Agent để định danh ẩn danh.
      *
-     * @param Request $request Đối tượng request hiện tại
-     * @param string|null $sessionId Mã phiên được truyền từ client (nếu có)
+     * @param  Request  $request  Đối tượng request hiện tại
+     * @param  string|null  $sessionId  Mã phiên được truyền từ client (nếu có)
      * @return string Mã phiên chat dài tối đa 100 ký tự
      */
     private function resolveSessionId(Request $request, ?string $sessionId): string
@@ -1029,26 +1074,37 @@ final class ChatService
     /**
      * Sinh mã băm SHA256 duy nhất dùng để đối sánh chính xác (exact match) câu hỏi trong cache.
      *
-     * @param string $locale Ngôn ngữ hiện tại
-     * @param string $intent Ý định của câu hỏi
-     * @param string $question Câu hỏi đã chuẩn hóa
-     * @param string $version Mã hash phiên bản dữ liệu tri thức hiện tại
+     * @param  string  $locale  Ngôn ngữ hiện tại
+     * @param  string  $intent  Ý định của câu hỏi
+     * @param  string  $question  Câu hỏi đã chuẩn hóa
+     * @param  string  $version  Mã hash phiên bản dữ liệu tri thức hiện tại
      * @return string Chuỗi mã băm SHA256 dài 64 ký tự
      */
-    private function cacheHash(string $locale, string $intent, string $question, string $version): string
-    {
-        return hash('sha256', implode('|', [$locale, $intent, Str::lower($question), $version]));
+    private function cacheHash(
+        string $locale,
+        string $intent,
+        string $question,
+        string $version,
+        string $contextSignature = ''
+    ): string {
+        return hash('sha256', implode('|', [
+            $locale,
+            $intent,
+            $contextSignature,
+            Str::lower($question),
+            $version,
+        ]));
     }
 
     /**
      * Tìm kiếm câu hỏi trong bộ nhớ đệm (Semantic Cache) bằng so khớp chính xác hash
      * hoặc tìm kiếm tương đồng vector nhúng (Cosine Similarity) đối với các câu hỏi tương tự.
      *
-     * @param string $question Câu hỏi từ người dùng
-     * @param string $locale Ngôn ngữ hiện tại
-     * @param string $intent Ý định nhận diện ban đầu
-     * @param array $slots Các slots dữ liệu hiện tại trong phiên hội thoại
-     * @param string $knowledgeVersion Mã phiên bản dữ liệu tri thức hiện tại trong hệ thống
+     * @param  string  $question  Câu hỏi từ người dùng
+     * @param  string  $locale  Ngôn ngữ hiện tại
+     * @param  string  $intent  Ý định nhận diện ban đầu
+     * @param  array  $slots  Các slots dữ liệu hiện tại trong phiên hội thoại
+     * @param  string  $knowledgeVersion  Mã phiên bản dữ liệu tri thức hiện tại trong hệ thống
      * @return ChatCache|null Trả về bản ghi bộ nhớ đệm nếu khớp, ngược lại trả về null
      */
     private function lookupSemanticCache(
@@ -1056,9 +1112,10 @@ final class ChatService
         string $locale,
         string $intent,
         array $slots,
-        string $knowledgeVersion
+        string $knowledgeVersion,
+        string $contextSignature = ''
     ): ?ChatCache {
-        $exactHash = $this->cacheHash($locale, $intent, $question, $knowledgeVersion);
+        $exactHash = $this->cacheHash($locale, $intent, $question, $knowledgeVersion, $contextSignature);
         $cached = ChatCache::query()
             ->where('question_hash', $exactHash)
             ->where(function ($query): void {
@@ -1067,14 +1124,17 @@ final class ChatService
             ->first();
 
         if ($cached) {
-            // For transactional intents, we still check slots
-            if (in_array($intent, ['tour', 'booking', 'schedule'], true)) {
-                if ($this->slotsMatch($slots, $cached->slots)) {
-                    return $cached;
-                }
-            } else {
+            if ($this->cacheContextMatches($cached->slots, $contextSignature)
+                && (! in_array($intent, ['tour', 'booking', 'schedule'], true)
+                    || $this->slotsMatch($slots, $cached->slots))) {
                 return $cached;
             }
+        }
+
+        // Câu ngắn/phụ thuộc ngữ cảnh không được dùng semantic cache vì rất dễ lấy nhầm
+        // giữa trang tour, địa điểm và bài viết.
+        if ($this->isContextDependentQuestion($question)) {
+            return null;
         }
 
         // If not found or slots mismatch, try Semantic vector match
@@ -1105,6 +1165,9 @@ final class ChatService
         $bestScore = 0.0;
 
         foreach ($candidates as $candidate) {
+            if (! $this->cacheContextMatches($candidate->slots, $contextSignature)) {
+                continue;
+            }
             $score = $this->cosineSimilarity($queryVector, (array) $candidate->embedding);
             if ($score > $bestScore) {
                 $bestScore = $score;
@@ -1126,12 +1189,49 @@ final class ChatService
         return null;
     }
 
+    private function contextSignature(array $context): string
+    {
+        $parts = [
+            (string) ($context['page_type'] ?? ''),
+            (string) ($context['entity_type'] ?? ''),
+            (string) ($context['entity_id'] ?? ''),
+            (string) ($context['entity_slug'] ?? ''),
+        ];
+
+        return trim(implode(':', $parts), ':');
+    }
+
+    private function cacheContextMatches(?array $cachedSlots, string $contextSignature): bool
+    {
+        $cachedSignature = (string) (($cachedSlots ?? [])['_context_signature'] ?? '');
+
+        return hash_equals($cachedSignature, $contextSignature);
+    }
+
+    private function isContextDependentQuestion(string $question): bool
+    {
+        $normalized = mb_strtolower(trim($question));
+        $wordCount = preg_match_all('/[\p{L}\p{N}]+/u', $normalized);
+
+        if ($wordCount !== false && $wordCount <= 4) {
+            return true;
+        }
+
+        foreach (['tour này', 'chỗ này', 'địa điểm này', 'bài này', 'ở đây', 'giá bao nhiêu', 'còn chỗ không'] as $phrase) {
+            if (str_contains($normalized, $phrase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * So sánh các tham số slot (điểm đến, số người, ngày khởi hành) của phiên hội thoại hiện tại
      * với dữ liệu đã lưu trong bản ghi cache để xác định xem có khớp hoàn toàn không.
      *
-     * @param array $current Tập slots hiện tại từ phiên hội thoại
-     * @param array|null $cached Tập slots lưu trữ trong cache
+     * @param  array  $current  Tập slots hiện tại từ phiên hội thoại
+     * @param  array|null  $cached  Tập slots lưu trữ trong cache
      * @return bool Trả về true nếu toàn bộ slots khớp nhau, ngược lại là false
      */
     private function slotsMatch(array $current, ?array $cached): bool
@@ -1152,8 +1252,8 @@ final class ChatService
      * Tính độ tương đồng Cosine giữa hai vector số thực.
      * Phục vụ đối sánh ngữ nghĩa câu hỏi đối với bộ nhớ đệm.
      *
-     * @param array<int,float|int|string> $a Vector thứ nhất
-     * @param array<int,float|int|string> $b Vector thứ hai
+     * @param  array<int,float|int|string>  $a  Vector thứ nhất
+     * @param  array<int,float|int|string>  $b  Vector thứ hai
      * @return float Điểm số tương đồng trong khoảng [0.0, 1.0]
      */
     private function cosineSimilarity(array $a, array $b): float
@@ -1207,8 +1307,6 @@ final class ChatService
     /**
      * Đọc các cài đặt động của chatbot cấu hình trực tiếp từ bảng `settings` trong CSDL.
      * Nạp các giá trị này đè lên cấu hình config mặc định của Laravel.
-     *
-     * @return void
      */
     private function loadDbSettings(): void
     {
@@ -1231,7 +1329,7 @@ final class ChatService
     /**
      * Tạo phản hồi chuyển hướng kết nối người dùng trực tiếp tới nhân viên CSKH thực tế (Handoff).
      *
-     * @param string $locale Ngôn ngữ hiện tại ('vi' hoặc 'en')
+     * @param  string  $locale  Ngôn ngữ hiện tại ('vi' hoặc 'en')
      * @return string Phản hồi chứa liên kết hotline, Zalo và email hỗ trợ
      */
     private function handoffAnswer(string $locale): string
@@ -1264,7 +1362,7 @@ final class ChatService
     /**
      * Chuẩn hóa văn bản câu hỏi của người dùng bằng cách loại bỏ khoảng trắng thừa.
      *
-     * @param string $question Câu hỏi đầu vào
+     * @param  string  $question  Câu hỏi đầu vào
      * @return string Câu hỏi đã được loại bỏ khoảng trắng thừa ở hai đầu và giữa các từ
      */
     private function normalizeQuestion(string $question): string
@@ -1277,8 +1375,8 @@ final class ChatService
     /**
      * Tạo câu hỏi làm rõ tương ứng với tham số slot còn thiếu trong hội thoại (điểm đến hoặc số người).
      *
-     * @param string $step Tên tham số thiếu ('destination' hoặc 'people')
-     * @param string $locale Ngôn ngữ hiện tại
+     * @param  string  $step  Tên tham số thiếu ('destination' hoặc 'people')
+     * @param  string  $locale  Ngôn ngữ hiện tại
      * @return string Câu hỏi làm rõ hướng đến người dùng
      */
     private function getClarificationAnswer(string $step, string $locale): string
@@ -1302,9 +1400,9 @@ final class ChatService
      * Sinh danh sách các câu hỏi gợi ý liên quan tiếp theo dựa trên ý định hiện tại.
      * (Hiện tại trả về mảng rỗng để phục vụ mở rộng trong tương lai).
      *
-     * @param string $intent Ý định của hội thoại
-     * @param string $locale Ngôn ngữ hiện tại
-     * @param array $understanding Tập thông tin NLU đã phân tích
+     * @param  string  $intent  Ý định của hội thoại
+     * @param  string  $locale  Ngôn ngữ hiện tại
+     * @param  array  $understanding  Tập thông tin NLU đã phân tích
      * @return array<int,string> Mảng chứa các câu hỏi gợi ý đề xuất
      */
     private function generateSuggestedQuestions(string $intent, string $locale, array $understanding): array
@@ -1316,8 +1414,7 @@ final class ChatService
      * Kiểm tra sự thay đổi của phiên bản dữ liệu tri thức cơ sở dữ liệu.
      * Nếu phát hiện phiên bản mới không khớp với phiên bản đã lưu trước đó, sẽ xoá toàn bộ Semantic Cache.
      *
-     * @param string $newVersion Phiên bản MD5 tri thức mới cập nhật từ DB
-     * @return void
+     * @param  string  $newVersion  Phiên bản MD5 tri thức mới cập nhật từ DB
      */
     private function checkAndInvalidateCache(string $newVersion): void
     {
@@ -1336,8 +1433,7 @@ final class ChatService
      * Ghi dấu vết pipeline vào Laravel log.
      * Hỗ trợ in trực tiếp ra console nếu đang chạy ở giao diện dòng lệnh (CLI).
      *
-     * @param array $trace Mảng chứa toàn bộ lịch sử các bước thực thi, độ trễ và lỗi nếu có
-     * @return void
+     * @param  array  $trace  Mảng chứa toàn bộ lịch sử các bước thực thi, độ trễ và lỗi nếu có
      */
     private function writeTraceToLog(array $trace): void
     {

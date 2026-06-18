@@ -11,6 +11,6 @@ class TourSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('06_tours.sql');
+        $this->importSeederSql('seeders_v2/demo/04_tours.sql');
     }
 }

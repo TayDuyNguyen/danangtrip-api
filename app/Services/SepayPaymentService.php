@@ -7,7 +7,9 @@ use App\Enums\HttpStatusCode;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
+use App\Models\Notification;
 use App\Models\Payment;
+use App\Models\PaymentReceipt;
 use App\Repositories\Interfaces\BookingRepositoryInterface;
 use App\Repositories\Interfaces\PaymentRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +23,8 @@ class SepayPaymentService
         protected PaymentRepositoryInterface $paymentRepository,
         protected BookingRepositoryInterface $bookingRepository,
         protected BookingPaymentNotificationService $paymentNotificationService,
-        protected PointService $pointService
+        protected PointService $pointService,
+        protected RefundService $refundService
     ) {}
 
     public function buildCheckoutPayload(Payment $payment, Booking $booking, ?string $returnUrl = null): array
@@ -94,8 +97,11 @@ class SepayPaymentService
         }
 
         try {
-            return DB::transaction(function () use ($payload, $amount, $bookingCode, $reference) {
-                $booking = $this->bookingRepository->findByCode($bookingCode);
+            return DB::transaction(function () use ($payload, $amount, $bookingCode, $reference, $content) {
+                $booking = Booking::query()
+                    ->where('booking_code', $bookingCode)
+                    ->lockForUpdate()
+                    ->first();
 
                 if (! $booking) {
                     Log::warning('SEPAY_IPN_BOOKING_NOT_FOUND', [
@@ -109,31 +115,28 @@ class SepayPaymentService
                     ];
                 }
 
-                $expectedAmount = $this->normalizeAmount(
-                    $booking->final_amount ?? $booking->total_amount ?? 0
-                );
-                if ($amount !== $expectedAmount) {
-                    Log::warning('SEPAY_IPN_AMOUNT_MISMATCH', [
-                        'booking_code' => $bookingCode,
-                        'amount' => $amount,
-                        'expected_amount' => $expectedAmount,
-                        'reference' => $reference,
-                    ]);
-
+                if (in_array($booking->booking_status, [BookingStatus::CANCELLED->value, BookingStatus::COMPLETED->value], true)) {
                     return [
                         'status' => HttpStatusCode::BAD_REQUEST->value,
-                        'message' => 'SePay IPN amount does not match booking amount',
+                        'message' => 'Booking cannot accept additional payments',
                     ];
                 }
 
-                if ($booking->payment_status === PaymentStatus::SUCCESS->value) {
+                $expectedAmount = $this->normalizeAmount(
+                    $booking->final_amount ?? $booking->total_amount ?? 0
+                );
+                $gatewayTransactionId = $reference ?: 'payload-'.hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE));
+                $existingReceipt = PaymentReceipt::query()
+                    ->where('gateway_transaction_id', $gatewayTransactionId)
+                    ->first();
+                if ($existingReceipt) {
                     return [
                         'status' => HttpStatusCode::SUCCESS->value,
                         'data' => [
                             'booking_code' => $booking->booking_code,
-                            'already_paid' => true,
+                            'already_processed' => true,
                         ],
-                        'message' => 'Payment already processed',
+                        'message' => 'Payment receipt already processed',
                     ];
                 }
 
@@ -143,35 +146,105 @@ class SepayPaymentService
                     $payment = $this->paymentRepository->create([
                         'booking_id' => $booking->id,
                         'transaction_code' => $this->buildSepayTransactionCode($reference, (string) $booking->booking_code),
-                        'amount' => $expectedAmount,
+                        'amount' => $amount,
                         'payment_method' => PaymentMethod::SEPAY->value,
                         'payment_status' => PaymentStatus::PENDING->value,
                         'payment_gateway' => 'sepay',
                     ]);
                 }
 
-                $this->paymentRepository->update((int) $payment->id, [
-                    'payment_status' => PaymentStatus::SUCCESS->value,
-                    'payment_gateway' => 'sepay',
-                    'gateway_response' => [
-                        'provider' => 'sepay',
-                        'reference' => $reference,
-                        'payload' => $payload,
-                    ],
-                    'paid_at' => now(),
+                PaymentReceipt::query()->create([
+                    'booking_id' => $booking->id,
+                    'payment_id' => $payment->id,
+                    'gateway' => 'sepay',
+                    'gateway_transaction_id' => $gatewayTransactionId,
+                    'amount' => $amount,
+                    'transfer_content' => Str::limit($content, 255, ''),
+                    'gateway_payload' => $payload,
+                    'received_at' => now(),
                 ]);
 
-                $this->bookingRepository->updatePaymentStatus((int) $booking->id, PaymentStatus::SUCCESS->value);
-                $this->bookingRepository->updateStatus((int) $booking->id, BookingStatus::CONFIRMED->value);
-                $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $booking->id);
-                if ($booking->user_id) {
-                    $this->pointService->awardPoints(
-                        (int) $booking->user_id,
-                        'booking_paid',
-                        'booking',
-                        (int) $booking->id,
-                        'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                $totalReceived = (int) round((float) PaymentReceipt::query()
+                    ->where('booking_id', $booking->id)
+                    ->sum('amount'));
+                $shortAmount = max($expectedAmount - $totalReceived, 0);
+                $excessAmount = max($totalReceived - $expectedAmount, 0);
+                $isPaid = $totalReceived >= $expectedAmount;
+                $reconciliationStatus = $excessAmount > 0
+                    ? 'excess'
+                    : ($shortAmount > 0 ? 'partial' : 'matched');
+                $gatewayResponse = [
+                    'provider' => 'sepay',
+                    'reference' => $reference,
+                    'payload' => $payload,
+                ];
+                if (! $isPaid) {
+                    $remainingPayment = clone $payment;
+                    $remainingPayment->setAttribute('amount', $shortAmount);
+                    $gatewayResponse['checkout'] = $this->buildCheckoutPayload(
+                        $remainingPayment,
+                        $booking
                     );
+                }
+
+                $this->paymentRepository->update((int) $payment->id, [
+                    'payment_status' => $isPaid ? PaymentStatus::SUCCESS->value : PaymentStatus::PENDING->value,
+                    'payment_gateway' => 'sepay',
+                    'received_amount' => $totalReceived,
+                    'short_amount' => $shortAmount,
+                    'excess_amount' => $excessAmount,
+                    'is_discrepancy' => $reconciliationStatus !== 'matched',
+                    'reconciliation_status' => $reconciliationStatus,
+                    'gateway_response' => $gatewayResponse,
+                    'paid_at' => $isPaid ? now() : null,
+                ]);
+
+                if (! $isPaid) {
+                    $this->bookingRepository->updatePaymentStatus((int) $booking->id, 'partially_paid');
+                    if ($booking->user_id) {
+                        Notification::query()->create([
+                            'user_id' => $booking->user_id,
+                            'type' => 'payment_partially_received',
+                            'title' => 'Đã nhận một phần thanh toán',
+                            'content' => "Đơn {$booking->booking_code} đã nhận ".number_format($totalReceived, 0, ',', '.').'đ, còn thiếu '.number_format($shortAmount, 0, ',', '.').'đ.',
+                            'data' => [
+                                'booking_id' => $booking->id,
+                                'received_amount' => $totalReceived,
+                                'short_amount' => $shortAmount,
+                                'gateway_transaction_id' => $gatewayTransactionId,
+                            ],
+                            'is_read' => false,
+                        ]);
+                    }
+                } else {
+                    $wasAlreadyPaid = $booking->payment_status === PaymentStatus::SUCCESS->value;
+                    $this->bookingRepository->updatePaymentStatus((int) $booking->id, PaymentStatus::SUCCESS->value);
+                    $this->bookingRepository->updateStatus((int) $booking->id, BookingStatus::CONFIRMED->value);
+                    Payment::query()
+                        ->where('booking_id', $booking->id)
+                        ->where('id', '!=', $payment->id)
+                        ->where('payment_status', PaymentStatus::PENDING->value)
+                        ->update([
+                            'payment_status' => PaymentStatus::FAILED->value,
+                            'reconciliation_status' => 'superseded',
+                            'updated_at' => now(),
+                        ]);
+                    if (! $wasAlreadyPaid) {
+                        $this->paymentNotificationService->sendPaymentConfirmedAfterCommit((int) $booking->id);
+                        if ($booking->user_id) {
+                            $this->pointService->awardPoints(
+                                (int) $booking->user_id,
+                                'booking_paid',
+                                'booking',
+                                (int) $booking->id,
+                                'Thưởng điểm thanh toán đơn '.$booking->booking_code
+                            );
+                        }
+                    }
+                    if ($excessAmount > 0) {
+                        $booking->refresh()->loadMissing(['items.tour', 'payments', 'paymentReceipts']);
+                        $this->refundService->createOverpaymentRequest($booking, $payment->fresh(), $excessAmount);
+                    }
                 }
 
                 return [
@@ -179,7 +252,12 @@ class SepayPaymentService
                     'data' => [
                         'booking_code' => $booking->booking_code,
                         'transaction_code' => $payment->transaction_code,
-                        'amount' => $expectedAmount,
+                        'received_amount' => $amount,
+                        'total_received' => $totalReceived,
+                        'expected_amount' => $expectedAmount,
+                        'short_amount' => $shortAmount,
+                        'excess_amount' => $excessAmount,
+                        'reconciliation_status' => $reconciliationStatus,
                     ],
                     'message' => 'SePay IPN handled successfully',
                 ];

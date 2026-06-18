@@ -11,6 +11,6 @@ class BookingSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('08_bookings_payments.sql');
+        $this->importSeederSql('seeders_v2/demo/06_bookings.sql');
     }
 }

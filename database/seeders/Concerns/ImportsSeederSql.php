@@ -27,6 +27,22 @@ trait ImportsSeederSql
             return;
         }
 
+        // Strip trigger queries to avoid Insufficient privilege errors on Cloud DB (Supabase)
+        $sql = str_replace([
+            'ALTER TABLE tours DISABLE TRIGGER ALL;',
+            'ALTER TABLE tours ENABLE TRIGGER ALL;',
+            'ALTER TABLE locations DISABLE TRIGGER ALL;',
+            'ALTER TABLE locations ENABLE TRIGGER ALL;',
+            'ALTER TABLE blog_posts DISABLE TRIGGER ALL;',
+            'ALTER TABLE blog_posts ENABLE TRIGGER ALL;',
+            'ALTER TABLE "tours" DISABLE TRIGGER ALL;',
+            'ALTER TABLE "tours" ENABLE TRIGGER ALL;',
+            'ALTER TABLE "locations" DISABLE TRIGGER ALL;',
+            'ALTER TABLE "locations" ENABLE TRIGGER ALL;',
+            'ALTER TABLE "blog_posts" DISABLE TRIGGER ALL;',
+            'ALTER TABLE "blog_posts" ENABLE TRIGGER ALL;',
+        ], '', $sql);
+
         DB::unprepared($sql);
         $this->command?->info("Imported {$fileName}");
     }

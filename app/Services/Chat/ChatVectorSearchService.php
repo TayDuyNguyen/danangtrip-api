@@ -10,7 +10,7 @@ final class ChatVectorSearchService
     /**
      * Khởi tạo dịch vụ tìm kiếm vector.
      *
-     * @param ChatEmbeddingService $embeddingService Dịch vụ tạo vector nhúng
+     * @param  ChatEmbeddingService  $embeddingService  Dịch vụ tạo vector nhúng
      */
     public function __construct(
         private readonly ChatEmbeddingService $embeddingService
@@ -22,9 +22,9 @@ final class ChatVectorSearchService
      * tính toán độ tương đồng Cosine trên bộ nhớ PHP, lọc ra top các bản ghi tốt nhất,
      * và chỉ thực hiện nạp đầy đủ thông tin (Eloquent model hydration) cho những bản ghi được chọn.
      *
-     * @param string $question Câu hỏi hoặc truy vấn tìm kiếm của người dùng
-     * @param string $intent Ý định của người dùng (tour, location, blog...)
-     * @param int $limit Số lượng kết quả tối đa trả về
+     * @param  string  $question  Câu hỏi hoặc truy vấn tìm kiếm của người dùng
+     * @param  string  $intent  Ý định của người dùng (tour, location, blog...)
+     * @param  int  $limit  Số lượng kết quả tối đa trả về
      * @return Collection<int,ChatKnowledgeBase>
      */
     public function search(string $question, string $intent, int $limit): Collection
@@ -66,9 +66,9 @@ final class ChatVectorSearchService
                 'score' => $this->cosineSimilarity($queryVector, (array) $item->embedding),
             ];
         })
-        ->filter(fn (array $result): bool => $result['score'] >= $minSimilarity)
-        ->sortByDesc('score')
-        ->take($candidateLimit);
+            ->filter(fn (array $result): bool => $result['score'] >= $minSimilarity)
+            ->sortByDesc('score')
+            ->take($candidateLimit);
 
         if ($scored->isEmpty()) {
             return collect();
@@ -96,7 +96,7 @@ final class ChatVectorSearchService
      * Phân loại các loại tri thức tương ứng với từng ý định nghiệp vụ để thu hẹp phạm vi tìm kiếm.
      * Ví dụ: ý định liên quan tới tour thì tìm trong tour/blog/policy; ý định về địa điểm tìm trong địa điểm/blog.
      *
-     * @param string $intent Ý định của người dùng
+     * @param  string  $intent  Ý định của người dùng
      * @return array<int,string> Danh sách các loại tri thức phù hợp
      */
     private function typesForIntent(string $intent): array
@@ -115,8 +115,8 @@ final class ChatVectorSearchService
      * Tính độ tương đồng Cosine (Cosine Similarity) giữa hai vector số thực.
      * Giá trị trả về nằm trong khoảng [-1.0, 1.0]. Điểm số càng gần 1.0 thì hai văn bản càng tương đồng ngữ nghĩa.
      *
-     * @param array<int,float|int|string> $a Vector thứ nhất
-     * @param array<int,float|int|string> $b Vector thứ hai
+     * @param  array<int,float|int|string>  $a  Vector thứ nhất
+     * @param  array<int,float|int|string>  $b  Vector thứ hai
      * @return float Điểm tương đồng Cosine
      */
     private function cosineSimilarity(array $a, array $b): float

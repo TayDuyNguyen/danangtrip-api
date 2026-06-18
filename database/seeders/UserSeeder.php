@@ -11,6 +11,7 @@ class UserSeeder extends Seeder
 
     public function run(): void
     {
-        $this->importSeederSql('04_users.sql');
+        $this->importSeederSql('seeders_v2/base/08_admin_users.sql');
+        $this->importSeederSql('seeders_v2/demo/01_demo_users.sql');
     }
 }

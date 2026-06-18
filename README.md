@@ -339,10 +339,15 @@ The booking payment flow supports VietQR bank transfer with SePay IPN:
 2. API creates a pending payment and returns a VietQR image.
 3. Customer transfers with content `DNT {booking_code}`.
 4. SePay calls the IPN URL.
-5. API verifies the booking code and amount, then updates:
+5. API verifies the booking code and received amount, then updates:
     - `payments.payment_status = success`
     - `bookings.payment_status = success`
     - `bookings.booking_status = confirmed`
+
+If the customer transfers less than the booking total, the booking stays
+`partially_paid` and the customer can transfer again with the same booking
+content. If the customer transfers more than the booking total, the booking is
+confirmed and the excess amount creates a pending admin refund request.
 
 Add these values to `.env`:
 
@@ -377,3 +382,53 @@ After changing `.env`, clear config cache:
 ```bash
 docker exec -it danangtrip_app php artisan config:clear
 ```
+
+### Payment Receipts, Refunds, and Cancellation Policy
+
+The payment reconciliation flow uses these tables:
+
+- `payment_receipts`: each real bank transfer received from SePay.
+- `refund_requests`: customer cancellation refunds, overpayment refunds, and
+  admin manual refund adjustments.
+
+Cancellation refund policy:
+
+- At least 7 days before departure: refund 100%.
+- From 3 days to under 7 days before departure: refund 50%.
+- Under 3 days before departure, after departure, or no-show: refund 0%.
+- Within 30 minutes after successful payment: refund 100% only when the tour is
+  at least 12 hours away and the tour is not in a holiday/Tet policy window.
+- Holiday/Tet policy is configured separately in `cancellation.rules`.
+
+Admin refund operation:
+
+1. User cancels a paid booking and submits refund bank details.
+2. API creates a pending `refund_requests` row.
+3. Admin opens the refund request/payment screen, scans the generated VietQR,
+   transfers manually, enters the bank transfer reference, and completes the
+   refund.
+4. Booking-paid reward points are reversed when a paid booking is cancelled or
+   refunded. Customer cancellation does not return a used voucher.
+
+Apply the new schema and policy settings:
+
+```powershell
+php artisan migrate
+php artisan db:seed --class=SettingSeeder --force
+```
+
+Useful verification commands:
+
+```powershell
+php artisan route:list --path=refunds
+php artisan route:list --path=refund-preview
+php artisan route:list --path=sepay
+```
+
+Safe smoke-test scenarios:
+
+- Transfer less than the booking total, then transfer the remaining amount.
+- Transfer more than the booking total and confirm an overpayment refund request
+  is created.
+- Cancel a paid booking at each policy window: 7+ days, 3-7 days, under 3 days.
+- Complete a refund as admin with a real transfer reference.

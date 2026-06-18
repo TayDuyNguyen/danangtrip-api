@@ -20,6 +20,17 @@ final class SendChatRequest extends FormRequest
             'history' => ['sometimes', 'array'],
             'history.*.role' => ['required', 'string', 'in:user,assistant'],
             'history.*.content' => ['required', 'string'],
+            'context' => ['sometimes', 'array'],
+            'context.page_type' => [
+                'sometimes',
+                'string',
+                'in:home,general,location,location_list,location_detail,tour,tour_list,tour_detail,tour_departures,blog,blog_list,blog_detail,food,hotel,payment,booking_detail,profile',
+            ],
+            'context.route' => ['sometimes', 'string', 'max:500'],
+            'context.entity_type' => ['sometimes', 'nullable', 'string', 'in:location,tour,blog,food,hotel'],
+            'context.entity_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'context.entity_slug' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'context.entity_name' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
     }
 
