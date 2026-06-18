@@ -45,6 +45,12 @@ interface NotificationRepositoryInterface extends RepositoryInterface
     public function getUnreadCount(int $userId): int;
 
     /**
+     * Count notifications by read status.
+     * (Đếm thông báo theo trạng thái đã đọc)
+     */
+    public function countByReadStatus(bool $isRead): int;
+
+    /**
      * Get paginated notifications for admin.
      * (Lấy danh sách thông báo cho admin có phân trang)
      */
