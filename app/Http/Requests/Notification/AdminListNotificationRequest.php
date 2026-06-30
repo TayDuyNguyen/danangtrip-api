@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Notification;
 
+use App\Http\Requests\Concerns\NormalizesBooleanQueryParams;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AdminListNotificationRequest extends FormRequest
 {
+    use NormalizesBooleanQueryParams;
+
     /**
      * Determine if the user is authorized to make this request.
      * (Xác định xem người dùng có quyền thực hiện yêu cầu này không)
@@ -13,6 +16,11 @@ class AdminListNotificationRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->mergeBooleanQueryParams(['is_read']);
     }
 
     /**

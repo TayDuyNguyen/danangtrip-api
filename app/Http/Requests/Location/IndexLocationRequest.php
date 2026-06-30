@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests\Location;
 
+use App\Http\Requests\Concerns\NormalizesBooleanQueryParams;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexLocationRequest extends FormRequest
 {
+    use NormalizesBooleanQueryParams;
+
     public function authorize(): bool
     {
         return true;
@@ -46,6 +49,8 @@ class IndexLocationRequest extends FormRequest
         if (! empty($merged)) {
             $this->merge($merged);
         }
+
+        $this->mergeBooleanQueryParams(['is_featured']);
     }
 
     public function rules(): array

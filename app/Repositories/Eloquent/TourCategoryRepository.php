@@ -55,7 +55,7 @@ class TourCategoryRepository extends BaseRepository implements TourCategoryRepos
 
         $perPage = $filters['per_page'] ?? 10;
 
-        $allowedSorts = ['id', 'name', 'price_adult', 'created_at', 'rating_avg'];
+        $allowedSorts = ['created_at', 'price_adult', 'view_count', 'name', 'rating_avg', 'booking_count'];
         $sort = in_array($filters['sort_by'] ?? '', $allowedSorts) ? $filters['sort_by'] : 'created_at';
         $order = strtolower($filters['sort_order'] ?? '') === 'asc' ? 'asc' : 'desc';
 

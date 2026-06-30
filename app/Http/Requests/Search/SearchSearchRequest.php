@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Search;
 
+use App\Http\Requests\Concerns\NormalizesBooleanQueryParams;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,6 +13,8 @@ use Illuminate\Validation\Rule;
  */
 class SearchSearchRequest extends FormRequest
 {
+    use NormalizesBooleanQueryParams;
+
     protected function prepareForValidation(): void
     {
         $type = $this->input('type', 'location');
@@ -30,6 +33,8 @@ class SearchSearchRequest extends FormRequest
         if (! empty($merged)) {
             $this->merge($merged);
         }
+
+        $this->mergeBooleanQueryParams(['is_featured', 'is_hot']);
     }
 
     public function authorize(): bool

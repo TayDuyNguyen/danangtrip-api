@@ -45,7 +45,7 @@ class ToursBySlugTourCategoryRequest extends FormRequest
             'sort_by' => [
                 'sometimes',
                 'string',
-                'in:created_at,price_adult,rating_avg,price',
+                'in:created_at,price_adult,rating_avg,price,view_count,name,booking_count',
             ],
             'sort_order' => [
                 'sometimes',
