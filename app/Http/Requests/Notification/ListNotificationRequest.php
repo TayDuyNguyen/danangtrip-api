@@ -2,13 +2,21 @@
 
 namespace App\Http\Requests\Notification;
 
+use App\Http\Requests\Concerns\NormalizesBooleanQueryParams;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListNotificationRequest extends FormRequest
 {
+    use NormalizesBooleanQueryParams;
+
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->mergeBooleanQueryParams(['is_read']);
     }
 
     public function rules(): array

@@ -43,7 +43,7 @@ class NearbyByIdLocationRequest extends FormRequest
             'id.exists' => 'The location ID does not exist. (Mã địa điểm không tồn tại.)',
             'limit.integer' => 'The limit must be an integer. (Giới hạn phải là số nguyên.)',
             'limit.min' => 'The limit must be at least 1. (Giới hạn tối thiểu là 1.)',
-            'limit.max' => 'The limit must not exceed 100. (Giới hạn tối đa là 100.)',
+            'limit.max' => 'The limit must not exceed 50. (Giới hạn tối đa là 50.)',
         ];
     }
 }

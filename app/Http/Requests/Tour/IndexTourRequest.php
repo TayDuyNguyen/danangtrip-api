@@ -4,10 +4,13 @@ namespace App\Http\Requests\Tour;
 
 use App\Enums\TourBookingAvailability;
 use App\Enums\TourStatus;
+use App\Http\Requests\Concerns\NormalizesBooleanQueryParams;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexTourRequest extends FormRequest
 {
+    use NormalizesBooleanQueryParams;
+
     public function authorize(): bool
     {
         return true;
@@ -21,6 +24,8 @@ class IndexTourRequest extends FormRequest
             ]);
             $this->request->remove('status');
         }
+
+        $this->mergeBooleanQueryParams(['is_featured', 'is_hot']);
     }
 
     public function rules(): array
@@ -89,6 +94,11 @@ class IndexTourRequest extends FormRequest
                 'integer',
                 'min:1',
                 'max:100',
+            ],
+            'page' => [
+                'sometimes',
+                'integer',
+                'min:1',
             ],
         ];
     }
