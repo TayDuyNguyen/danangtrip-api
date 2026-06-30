@@ -71,4 +71,16 @@ interface PaymentRepositoryInterface extends RepositoryInterface
      * (Lấy báo cáo doanh thu chi tiết theo tour)
      */
     public function getRevenueDetailByTour(?string $from, ?string $to): array;
+
+    /**
+     * Get successful payment totals grouped by gateway.
+     *
+     * @return array<int, array{gateway: string, revenue: float|string, count: int}>
+     */
+    public function getGatewayBreakdown(?string $from, ?string $to, ?string $gatewayFilter = null): array;
+
+    /**
+     * Get total refunded amount in a date range.
+     */
+    public function getTotalRefundedAmount(?string $from, ?string $to): float;
 }

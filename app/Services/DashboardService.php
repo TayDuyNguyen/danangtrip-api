@@ -206,9 +206,23 @@ final class DashboardService
     {
         try {
             $period = $filters['period'] ?? 'month';
-            $from = $filters['from'] ?? null;
-            $to = $filters['to'] ?? null;
+            $requestFrom = $filters['from'] ?? null;
+            $requestTo = $filters['to'] ?? null;
             $tz = config('app.timezone');
+
+            if ($this->isDateOnlyFilter($requestFrom) && $this->isDateOnlyFilter($requestTo)) {
+                $today = Carbon::now($tz)->toDateString();
+                $isDashboardIntraday = $period === 'day'
+                    && $requestFrom === $requestTo
+                    && $requestFrom === $today;
+
+                if (! $isDashboardIntraday) {
+                    return $this->buildRevenueForDateRange($requestFrom, $requestTo, $tz);
+                }
+            }
+
+            $from = $requestFrom;
+            $to = $requestTo;
 
             if ($period === 'day') {
                 $from = Carbon::now($tz)->startOfDay()->toDateTimeString();
@@ -564,7 +578,7 @@ final class DashboardService
     public function getRatingReports(array $filters): array
     {
         try {
-            $data = $this->ratingRepository->getStatsByDateAndStatus($filters);
+            $data = $this->ratingRepository->getRatingReport($filters);
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
@@ -587,13 +601,18 @@ final class DashboardService
         try {
             $year = $filters['year'] ?? (int) date('Y');
 
-            $data = $this->userRepository->getNewUsersByMonth($year);
+            $monthlyStats = $this->userRepository->getNewUsersByMonth($year);
+            $statusCounts = $this->userRepository->getUserStatusCounts();
+            $roleDistribution = $this->userRepository->getRoleDistribution();
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
                 'data' => [
                     'year' => $year,
-                    'stats' => $data,
+                    'stats' => $monthlyStats,
+                    'total_users' => $statusCounts['total'],
+                    'active_users' => $statusCounts['active'],
+                    'role_distribution' => $roleDistribution,
                 ],
             ];
         } catch (Exception $e) {
@@ -647,5 +666,81 @@ final class DashboardService
                 'message' => 'Failed to retrieve revenue detail.',
             ];
         }
+    }
+
+    /**
+     * Get payment gateway breakdown and refunded totals for revenue report charts.
+     */
+    public function getRevenuePaymentsSummary(array $filters): array
+    {
+        try {
+            $from = $filters['from'] ?? null;
+            $to = $filters['to'] ?? null;
+            $gateway = $filters['payment_gateway'] ?? null;
+            $gatewayFilter = ($gateway !== null && $gateway !== '' && $gateway !== 'all') ? $gateway : null;
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => [
+                    'gateway_breakdown' => $this->paymentRepository->getGatewayBreakdown($from, $to, $gatewayFilter),
+                    'total_refunded' => $this->paymentRepository->getTotalRefundedAmount($from, $to),
+                ],
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve revenue payments summary.',
+            ];
+        }
+    }
+
+    private function isDateOnlyFilter(?string $value): bool
+    {
+        return $value !== null
+            && $value !== ''
+            && (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($value));
+    }
+
+    /**
+     * @return array{status: int, data: array{period: string, from: string, to: string, stats: array<int, array{period: string, total_revenue: mixed, transaction_count: int}>}}
+     */
+    private function buildRevenueForDateRange(string $fromDate, string $toDate, string $tz): array
+    {
+        $fromBound = Carbon::parse($fromDate, $tz)->startOfDay()->toDateTimeString();
+        $toBound = Carbon::parse($toDate, $tz)->endOfDay()->toDateTimeString();
+
+        $rawData = $this->paymentRepository->getRevenueByPeriod('month', $fromBound, $toBound);
+
+        $dataMap = collect($rawData)->mapWithKeys(function (array $row) use ($tz) {
+            $key = $row['period'];
+            if ($key instanceof CarbonInterface) {
+                $key = $key->format('Y-m-d');
+            } else {
+                $key = Carbon::parse((string) $key, $tz)->toDateString();
+            }
+
+            return [$key => $row];
+        });
+
+        $stats = [];
+        foreach (CarbonPeriod::create($fromDate, $toDate) as $date) {
+            $key = $date->format('Y-m-d');
+            $item = $dataMap->get($key);
+            $stats[] = [
+                'period' => $key,
+                'total_revenue' => $item['total_revenue'] ?? '0',
+                'transaction_count' => (int) ($item['transaction_count'] ?? 0),
+            ];
+        }
+
+        return [
+            'status' => HttpStatusCode::SUCCESS->value,
+            'data' => [
+                'period' => 'range',
+                'from' => $fromBound,
+                'to' => $toBound,
+                'stats' => $stats,
+            ],
+        ];
     }
 }

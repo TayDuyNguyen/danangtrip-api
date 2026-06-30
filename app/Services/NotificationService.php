@@ -209,7 +209,11 @@ final class NotificationService
     public function sendNotificationToAll(array $data): array
     {
         try {
-            $this->userRepository->chunkAll(500, function ($users) use ($data) {
+            $sentCount = 0;
+
+            $this->userRepository->chunkAll(500, function ($users) use ($data, &$sentCount) {
+                $sentCount += $users->count();
+
                 $notifications = $users->map(fn ($user) => [
                     'user_id' => $user->id,
                     'type' => $data['type'],
@@ -227,6 +231,7 @@ final class NotificationService
 
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
+                'data' => ['sent_count' => $sentCount],
                 'message' => 'Initial notifications sent to all users.',
             ];
         } catch (Throwable $e) {

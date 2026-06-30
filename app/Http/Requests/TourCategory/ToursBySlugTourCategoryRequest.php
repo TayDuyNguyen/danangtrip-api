@@ -9,6 +9,10 @@ class ToursBySlugTourCategoryRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        $this->merge([
+            'slug' => $this->route('slug'),
+        ]);
+
         if ($this->input('sort_by') === 'price') {
             $this->merge(['sort_by' => 'price_adult']);
         }

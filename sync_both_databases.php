@@ -16,10 +16,10 @@ declare(strict_types=1);
 
 require __DIR__.'/vendor/autoload.php';
 
+use Illuminate\Contracts\Console\Kernel;
+
 $app = require __DIR__.'/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
-
-use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;

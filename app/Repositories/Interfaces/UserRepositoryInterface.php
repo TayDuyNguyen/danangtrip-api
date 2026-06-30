@@ -90,4 +90,12 @@ interface UserRepositoryInterface extends RepositoryInterface
      * (Lấy số lượng người dùng theo trạng thái và vai trò)
      */
     public function getUserStatusCounts(): array;
+
+    /**
+     * Get user counts grouped by role.
+     * (Lấy số lượng người dùng theo vai trò)
+     *
+     * @return array<int, array{role: string, count: int}>
+     */
+    public function getRoleDistribution(): array;
 }

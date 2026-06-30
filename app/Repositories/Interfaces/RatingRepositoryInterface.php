@@ -70,4 +70,12 @@ interface RatingRepositoryInterface extends RepositoryInterface
      * (Lấy thống kê đánh giá theo ngày và trạng thái)
      */
     public function getStatsByDateAndStatus(array $filters): array;
+
+    /**
+     * Full ratings report payload for admin dashboard (summary + paginated list).
+     * (Báo cáo đánh giá đầy đủ: tổng hợp + danh sách phân trang)
+     *
+     * @return array{summary: array<string, mixed>, ratings_list: array<string, mixed>}
+     */
+    public function getRatingReport(array $filters): array;
 }

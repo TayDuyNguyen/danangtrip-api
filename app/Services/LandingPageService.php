@@ -65,6 +65,33 @@ final class LandingPageService
     }
 
     /**
+     * Get a published landing page by slug for public visitors.
+     */
+    public function publicShow(string $slug): array
+    {
+        try {
+            $landingPage = $this->landingPageRepository->findPublishedBySlug($slug);
+
+            if (! $landingPage) {
+                return [
+                    'status' => HttpStatusCode::NOT_FOUND->value,
+                    'message' => 'Landing page not found.',
+                ];
+            }
+
+            return [
+                'status' => HttpStatusCode::SUCCESS->value,
+                'data' => $landingPage,
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => HttpStatusCode::INTERNAL_SERVER_ERROR->value,
+                'message' => 'Failed to retrieve landing page.',
+            ];
+        }
+    }
+
+    /**
      * Create a new landing page.
      */
     public function create(array $data): array

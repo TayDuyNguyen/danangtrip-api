@@ -242,16 +242,9 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
      */
     public function getStatsByDateAndStatus(array $filters): array
     {
+        $filters = $this->normalizeReportFilters($filters);
         $query = $this->model->newQuery()
             ->selectRaw('CAST(created_at AS DATE) as date, status, is_new, COUNT(*) as count');
-
-        // Map 'from' / 'to' to 'date_from' / 'date_to' if necessary
-        if (isset($filters['from']) && ! isset($filters['date_from'])) {
-            $filters['date_from'] = $filters['from'];
-        }
-        if (isset($filters['to']) && ! isset($filters['date_to'])) {
-            $filters['date_to'] = $filters['to'];
-        }
 
         $this->applyAdminFilters($query, $filters);
 
@@ -259,6 +252,176 @@ final class RatingRepository extends BaseRepository implements RatingRepositoryI
             ->orderBy('date')
             ->get()
             ->toArray();
+    }
+
+    /**
+     * Full ratings report for admin dashboard UI.
+     * (Báo cáo đánh giá đầy đủ cho giao diện admin)
+     */
+    public function getRatingReport(array $filters): array
+    {
+        $filters = $this->normalizeReportFilters($filters);
+
+        $baseQuery = $this->model->newQuery();
+        $this->applyAdminFilters($baseQuery, $filters);
+
+        $totalCount = (int) (clone $baseQuery)->count();
+        $averageScore = $totalCount > 0
+            ? round((float) (clone $baseQuery)->avg('score'), 1)
+            : 0.0;
+
+        $statusRows = (clone $baseQuery)
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
+        $pendingCount = (int) ($statusRows['pending'] ?? 0);
+        $approvedCount = (int) ($statusRows['approved'] ?? 0);
+        $rejectedCount = (int) ($statusRows['rejected'] ?? 0);
+
+        $newCountQuery = $this->model->newQuery();
+        $this->applyAdminFilters($newCountQuery, $filters);
+        $this->whereBooleanColumn($newCountQuery, 'is_new', true);
+        $newCount = (int) $newCountQuery->count();
+        $viewedCount = max(0, $totalCount - $newCount);
+
+        $starRows = (clone $baseQuery)
+            ->selectRaw('score, COUNT(*) as count')
+            ->groupBy('score')
+            ->get();
+
+        $starDistribution = [];
+        foreach ($starRows as $row) {
+            $starDistribution[(string) $row->score] = (int) $row->count;
+        }
+
+        $locationRow = (clone $baseQuery)
+            ->whereNotNull('location_id')
+            ->selectRaw('COUNT(*) as count, AVG(score) as average')
+            ->first();
+
+        $tourRow = (clone $baseQuery)
+            ->whereNotNull('tour_id')
+            ->selectRaw('COUNT(*) as count, AVG(score) as average')
+            ->first();
+
+        $trendRows = (clone $baseQuery)
+            ->selectRaw('CAST(created_at AS DATE) as date, status, COUNT(*) as count')
+            ->groupBy('date', 'status')
+            ->orderBy('date')
+            ->get();
+
+        $trendByDate = [];
+        foreach ($trendRows as $row) {
+            $date = (string) $row->date;
+            if (! isset($trendByDate[$date])) {
+                $trendByDate[$date] = ['total' => 0, 'approved' => 0];
+            }
+            $count = (int) $row->count;
+            $trendByDate[$date]['total'] += $count;
+            if ($row->status === 'approved') {
+                $trendByDate[$date]['approved'] += $count;
+            }
+        }
+
+        $trendChart = [];
+        foreach ($trendByDate as $date => $values) {
+            $trendChart[] = [
+                'date' => $date,
+                'total' => $values['total'],
+                'approved' => $values['approved'],
+            ];
+        }
+
+        $paginator = $this->paginateForAdmin($filters);
+
+        return [
+            'summary' => [
+                'total_count' => $totalCount,
+                'pending_count' => $pendingCount,
+                'approved_count' => $approvedCount,
+                'rejected_count' => $rejectedCount,
+                'new_count' => $newCount,
+                'viewed_count' => $viewedCount,
+                'average_score' => $averageScore,
+                'star_distribution' => $starDistribution,
+                'status_distribution' => [
+                    'pending' => $pendingCount,
+                    'approved' => $approvedCount,
+                    'rejected' => $rejectedCount,
+                ],
+                'type_distribution' => [
+                    'location' => [
+                        'count' => (int) ($locationRow->count ?? 0),
+                        'average' => round((float) ($locationRow->average ?? 0), 1),
+                    ],
+                    'tour' => [
+                        'count' => (int) ($tourRow->count ?? 0),
+                        'average' => round((float) ($tourRow->average ?? 0), 1),
+                    ],
+                ],
+                'trend_chart' => $trendChart,
+            ],
+            'ratings_list' => [
+                'data' => $paginator->getCollection()
+                    ->map(fn (Rating $rating) => $this->formatReportRatingItem($rating))
+                    ->values()
+                    ->all(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return array<string, mixed>
+     */
+    private function normalizeReportFilters(array $filters): array
+    {
+        if (isset($filters['from']) && ! isset($filters['date_from'])) {
+            $filters['date_from'] = $filters['from'];
+        }
+        if (isset($filters['to']) && ! isset($filters['date_to'])) {
+            $filters['date_to'] = $filters['to'];
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatReportRatingItem(Rating $rating): array
+    {
+        $rating->loadMissing(['user', 'location', 'tour', 'images']);
+
+        $isTour = $rating->tour_id !== null;
+
+        return [
+            'id' => $rating->id,
+            'score' => (int) $rating->score,
+            'comment' => $rating->comment,
+            'images' => $rating->images
+                ->pluck('image_url')
+                ->filter()
+                ->values()
+                ->all(),
+            'status' => $rating->status,
+            'reviewable_type' => $isTour ? 'tour' : 'location',
+            'reviewable_id' => $isTour ? (int) $rating->tour_id : (int) $rating->location_id,
+            'reviewable_name' => $isTour
+                ? (string) ($rating->tour?->name ?? '')
+                : (string) ($rating->location?->name ?? ''),
+            'user' => [
+                'id' => (int) ($rating->user?->id ?? 0),
+                'full_name' => (string) ($rating->user?->full_name ?? 'Anonymous'),
+                'avatar' => $rating->user?->avatar,
+            ],
+            'created_at' => $rating->created_at?->toIso8601String() ?? '',
+        ];
     }
 
     /**

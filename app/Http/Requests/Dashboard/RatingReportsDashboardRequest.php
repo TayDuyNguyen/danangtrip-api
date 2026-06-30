@@ -70,6 +70,17 @@ class RatingReportsDashboardRequest extends FormRequest
                 'integer',
                 'exists:users,id',
             ],
+            'page' => [
+                'sometimes',
+                'integer',
+                'min:1',
+            ],
+            'per_page' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'max:100',
+            ],
         ];
     }
 
