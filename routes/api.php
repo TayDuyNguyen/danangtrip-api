@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\DistrictController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\LandingPageController;
 use App\Http\Controllers\Api\LocationController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\NotificationController;
@@ -146,6 +147,11 @@ Route::prefix('v1')->group(function () {
     // Config: Public configurations
     // (Cấu hình: Cấu hình công khai)
     Route::get('/config', [SettingController::class, 'publicConfig'])->middleware('throttle:api.standard');
+
+    // Public SEO landing pages
+    Route::get('/landing-pages/{slug}', [LandingPageController::class, 'show'])
+        ->where('slug', '[a-z0-9-]+')
+        ->middleware('throttle:api.standard');
 
     // Promotions: Public access
     // (Khuyến mãi: Truy cập công khai)
@@ -295,6 +301,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/reports/users', [AdminDashboardController::class, 'userReports'])->middleware('throttle:api.admin');
         Route::get('/reports/bookings', [AdminDashboardController::class, 'bookingReports'])->middleware('throttle:api.admin');
         Route::get('/reports/revenue-detail', [AdminDashboardController::class, 'revenueDetail'])->middleware('throttle:api.admin');
+        Route::get('/reports/revenue-payments-summary', [AdminDashboardController::class, 'revenuePaymentsSummary'])->middleware('throttle:api.admin');
 
         // Categories Management
         // (Quản lý Danh mục)

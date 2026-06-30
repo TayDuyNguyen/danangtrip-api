@@ -42,7 +42,7 @@ class SearchSearchRequest extends FormRequest
         $type = $this->input('type', 'location');
 
         $common = [
-            'q' => ['required', 'string', 'min:1', 'max:255'],
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
             'type' => ['sometimes', 'string', 'in:location,tour'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],

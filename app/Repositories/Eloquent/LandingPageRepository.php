@@ -66,6 +66,17 @@ final class LandingPageRepository extends BaseRepository implements LandingPageR
     }
 
     /**
+     * Find a published landing page by unique slug.
+     */
+    public function findPublishedBySlug(string $slug): ?object
+    {
+        return $this->model->newQuery()
+            ->where('slug', strtolower(trim($slug)))
+            ->where('status', 'published')
+            ->first();
+    }
+
+    /**
      * Toggle landing page status.
      */
     public function toggleStatus(int $id, string $status): bool

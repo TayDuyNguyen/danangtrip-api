@@ -224,10 +224,98 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
      */
     public function getBookingReport(array $filters): array
     {
+        $filters = $this->normalizeReportFilters($filters);
         $table = $this->model->getTable();
-        $query = $this->model->newQuery()
-            ->selectRaw("CAST({$table}.booked_at AS DATE) as date, booking_status, payment_status, COUNT(*) as count, SUM(total_amount) as total_amount");
-        [$fromBound, $toBound] = $this->bookedAtBounds($filters['from'] ?? null, $filters['to'] ?? null);
+
+        $baseQuery = $this->model->newQuery();
+        $this->applyReportFilters($baseQuery, $filters);
+
+        $totalCount = (int) (clone $baseQuery)->count();
+
+        $statusRows = (clone $baseQuery)
+            ->selectRaw('booking_status, COUNT(*) as count')
+            ->groupBy('booking_status')
+            ->pluck('count', 'booking_status');
+
+        $completedCount = (int) ($statusRows[BookingStatus::COMPLETED->value] ?? 0);
+        $cancelledCount = (int) ($statusRows[BookingStatus::CANCELLED->value] ?? 0);
+
+        $totalRevenue = (float) (clone $baseQuery)
+            ->where('booking_status', '!=', BookingStatus::CANCELLED->value)
+            ->sum('total_amount');
+
+        $statusDistribution = [];
+        foreach ($statusRows as $status => $count) {
+            $statusDistribution[(string) $status] = (int) $count;
+        }
+
+        $trendRows = (clone $baseQuery)
+            ->selectRaw("CAST({$table}.booked_at AS DATE) as date, COUNT(*) as bookings, SUM(total_amount) as revenue")
+            ->groupByRaw("CAST({$table}.booked_at AS DATE)")
+            ->orderByRaw("CAST({$table}.booked_at AS DATE)")
+            ->get();
+
+        $trendChart = $trendRows->map(fn ($row) => [
+            'date' => (string) $row->date,
+            'bookings' => (int) $row->bookings,
+            'revenue' => $row->revenue ?? 0,
+        ])->all();
+
+        $perPage = (int) ($filters['per_page'] ?? Pagination::PER_PAGE->value);
+        $page = (int) ($filters['page'] ?? Pagination::PAGE->value);
+
+        $listQuery = $this->model->newQuery();
+        $this->applyReportFilters($listQuery, $filters);
+
+        $paginator = $listQuery
+            ->with(['user', 'items.tour'])
+            ->orderByDesc('booked_at')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return [
+            'summary' => [
+                'total_count' => $totalCount,
+                'completed_count' => $completedCount,
+                'cancelled_count' => $cancelledCount,
+                'total_revenue' => $totalRevenue,
+                'status_distribution' => $statusDistribution,
+                'trend_chart' => $trendChart,
+            ],
+            'bookings_list' => [
+                'data' => $paginator->getCollection()
+                    ->map(fn (Booking $booking) => $this->formatReportBookingItem($booking))
+                    ->values()
+                    ->all(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    private function normalizeReportFilters(array $filters): array
+    {
+        if (isset($filters['from']) && ! isset($filters['from_date'])) {
+            $filters['from_date'] = $filters['from'];
+        }
+        if (isset($filters['to']) && ! isset($filters['to_date'])) {
+            $filters['to_date'] = $filters['to'];
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @param  Builder  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyReportFilters($query, array $filters): void
+    {
+        [$fromBound, $toBound] = $this->bookedAtBounds($filters['from_date'] ?? null, $filters['to_date'] ?? null);
 
         if ($fromBound !== null) {
             $query->where('booked_at', '>=', $fromBound);
@@ -242,13 +330,49 @@ final class BookingRepository extends BaseRepository implements BookingRepositor
         }
 
         if (! empty($filters['payment_status'])) {
-            $query->where('payment_status', $filters['payment_status']);
+            $paymentStatus = (string) $filters['payment_status'];
+            if ($paymentStatus === 'paid') {
+                $query->whereIn('payment_status', ['success', 'partially_paid']);
+            } else {
+                $query->where('payment_status', $paymentStatus);
+            }
         }
+    }
 
-        return $query->groupByRaw("CAST({$table}.booked_at AS DATE), booking_status, payment_status")
-            ->orderByRaw("CAST({$table}.booked_at AS DATE)")
-            ->get()
-            ->toArray();
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatReportBookingItem(Booking $booking): array
+    {
+        $booking->loadMissing(['user', 'items.tour']);
+
+        $tourNames = $booking->items
+            ->map(fn ($item) => $item->tour?->name)
+            ->filter()
+            ->unique()
+            ->values();
+
+        return [
+            'id' => $booking->id,
+            'booking_code' => (string) $booking->booking_code,
+            'customer_name' => (string) ($booking->customer_name ?: ($booking->user?->full_name ?? 'Guest')),
+            'tour_name' => $tourNames->isNotEmpty() ? $tourNames->implode(', ') : '',
+            'total_amount' => $booking->total_amount,
+            'booking_status' => (string) $booking->booking_status,
+            'payment_status' => $this->normalizeReportPaymentStatus((string) $booking->payment_status),
+            'booked_at' => $booking->booked_at?->toIso8601String()
+                ?? $booking->created_at?->toIso8601String()
+                ?? '',
+        ];
+    }
+
+    private function normalizeReportPaymentStatus(string $status): string
+    {
+        return match ($status) {
+            'success', 'partially_paid' => 'paid',
+            'refunded' => 'refunded',
+            default => 'pending',
+        };
     }
 
     /**

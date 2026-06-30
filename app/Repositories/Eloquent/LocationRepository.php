@@ -705,16 +705,26 @@ class LocationRepository extends BaseRepository implements LocationRepositoryInt
     /**
      * @return array{total: int, active: int, featured: int, total_views: int}
      */
-    public function getAdminLocationStatsSummary(): array
+    public function getAdminLocationStatsSummary(?string $fromDate = null, ?string $toDate = null): array
     {
-        $featuredQuery = $this->model->newQuery();
+        $query = $this->model->newQuery();
+        [$fromBound, $toBound] = $this->createdAtBounds($fromDate, $toDate);
+
+        if ($fromBound !== null) {
+            $query->where('created_at', '>=', $fromBound);
+        }
+        if ($toBound !== null) {
+            $query->where('created_at', '<=', $toBound);
+        }
+
+        $featuredQuery = (clone $query);
         $this->whereBooleanColumn($featuredQuery, 'is_featured', true);
 
         return [
-            'total' => $this->model->newQuery()->count(),
-            'active' => $this->model->newQuery()->where('status', 'active')->count(),
+            'total' => (clone $query)->count(),
+            'active' => (clone $query)->where('status', 'active')->count(),
             'featured' => $featuredQuery->count(),
-            'total_views' => (int) $this->model->newQuery()->sum('view_count'),
+            'total_views' => (int) (clone $query)->sum('view_count'),
         ];
     }
 

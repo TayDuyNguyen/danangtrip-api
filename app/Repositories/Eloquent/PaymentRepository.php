@@ -273,6 +273,59 @@ final class PaymentRepository extends BaseRepository implements PaymentRepositor
     }
 
     /**
+     * @return array<int, array{gateway: string, revenue: float|string, count: int}>
+     */
+    public function getGatewayBreakdown(?string $from, ?string $to, ?string $gatewayFilter = null): array
+    {
+        [$fromBound, $toBound] = $this->paidAtBounds($from, $to);
+
+        $query = $this->model->newQuery()
+            ->selectRaw('LOWER(payment_gateway) as gateway, SUM(amount) as revenue, COUNT(*) as count')
+            ->where('payment_status', PaymentStatus::SUCCESS->value)
+            ->whereNotNull('paid_at');
+
+        if ($fromBound !== null) {
+            $query->where('paid_at', '>=', $fromBound);
+        }
+
+        if ($toBound !== null) {
+            $query->where('paid_at', '<=', $toBound);
+        }
+
+        if ($gatewayFilter !== null && $gatewayFilter !== '') {
+            $query->whereRaw('LOWER(payment_gateway) = ?', [strtolower($gatewayFilter)]);
+        }
+
+        return $query->groupByRaw('LOWER(payment_gateway)')
+            ->orderByDesc('revenue')
+            ->get()
+            ->map(fn ($row) => [
+                'gateway' => (string) $row->gateway,
+                'revenue' => $row->revenue ?? 0,
+                'count' => (int) $row->count,
+            ])
+            ->all();
+    }
+
+    public function getTotalRefundedAmount(?string $from, ?string $to): float
+    {
+        [$fromBound, $toBound] = $this->paidAtBounds($from, $to);
+
+        $query = $this->model->newQuery()
+            ->where('payment_status', PaymentStatus::REFUNDED->value);
+
+        if ($fromBound !== null) {
+            $query->where('updated_at', '>=', $fromBound);
+        }
+
+        if ($toBound !== null) {
+            $query->where('updated_at', '<=', $toBound);
+        }
+
+        return (float) $query->sum('amount');
+    }
+
+    /**
      * Normalize paid_at filter bounds. Date-only "to" uses end of day (inclusive).
      * (Chuẩn hóa các ngưỡng paid_at)
      */

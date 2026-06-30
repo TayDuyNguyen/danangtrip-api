@@ -37,7 +37,18 @@ class BookingReportsDashboardRequest extends FormRequest
             'payment_status' => [
                 'sometimes',
                 'string',
-                'in:'.implode(',', array_merge(PaymentStatus::values(), ['unpaid', 'partially_paid'])),
+                'in:'.implode(',', array_merge(PaymentStatus::values(), ['unpaid', 'partially_paid', 'paid'])),
+            ],
+            'page' => [
+                'sometimes',
+                'integer',
+                'min:1',
+            ],
+            'per_page' => [
+                'sometimes',
+                'integer',
+                'min:1',
+                'max:100',
             ],
         ];
     }

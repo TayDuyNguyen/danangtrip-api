@@ -11,6 +11,7 @@ use App\Http\Requests\Dashboard\LocationReportsDashboardRequest;
 use App\Http\Requests\Dashboard\RatingReportsDashboardRequest;
 use App\Http\Requests\Dashboard\RevenueDashboardRequest;
 use App\Http\Requests\Dashboard\RevenueDetailDashboardRequest;
+use App\Http\Requests\Dashboard\RevenuePaymentsSummaryDashboardRequest;
 use App\Http\Requests\Dashboard\SearchTrendsDashboardRequest;
 use App\Http\Requests\Dashboard\TopLocationsDashboardRequest;
 use App\Http\Requests\Dashboard\TopToursDashboardRequest;
@@ -208,6 +209,18 @@ final class DashboardController extends Controller
     public function revenueDetail(RevenueDetailDashboardRequest $request): JsonResponse
     {
         $result = $this->dashboardService->getRevenueDetail($request->validated());
+
+        return $result['status'] === HttpStatusCode::SUCCESS->value
+            ? $this->success($result['data'])
+            : $this->error($result['message'], $result['status']);
+    }
+
+    /**
+     * Get payment gateway breakdown and refunded totals for revenue report.
+     */
+    public function revenuePaymentsSummary(RevenuePaymentsSummaryDashboardRequest $request): JsonResponse
+    {
+        $result = $this->dashboardService->getRevenuePaymentsSummary($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

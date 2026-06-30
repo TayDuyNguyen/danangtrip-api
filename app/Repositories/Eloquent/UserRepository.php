@@ -164,7 +164,10 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function chunkAll(int $size, callable $callback): bool
     {
-        return $this->model->newQuery()->select('id', 'email', 'full_name')->chunk($size, $callback);
+        return $this->model->newQuery()
+            ->where('status', 'active')
+            ->select('id', 'email', 'full_name')
+            ->chunk($size, $callback);
     }
 
     /**
@@ -239,5 +242,23 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             'banned' => $this->model->newQuery()->where('status', 'banned')->count(),
             'admin' => $this->model->newQuery()->where('role', 'admin')->count(),
         ];
+    }
+
+    /**
+     * @return array<int, array{role: string, count: int}>
+     */
+    public function getRoleDistribution(): array
+    {
+        return $this->model->newQuery()
+            ->selectRaw('role, COUNT(*) as count')
+            ->groupBy('role')
+            ->orderByDesc('count')
+            ->get()
+            ->map(fn ($row) => [
+                'role' => (string) $row->role,
+                'count' => (int) $row->count,
+            ])
+            ->values()
+            ->all();
     }
 }

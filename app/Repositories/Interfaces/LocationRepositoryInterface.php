@@ -138,7 +138,7 @@ interface LocationRepositoryInterface extends RepositoryInterface
      *
      * @return array{total: int, active: int, featured: int, total_views: int}
      */
-    public function getAdminLocationStatsSummary(): array;
+    public function getAdminLocationStatsSummary(?string $fromDate = null, ?string $toDate = null): array;
 
     /**
      * Get counts of active locations grouped by districts, price levels, and ratings.

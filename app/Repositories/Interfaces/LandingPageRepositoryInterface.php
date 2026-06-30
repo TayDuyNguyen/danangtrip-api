@@ -23,6 +23,12 @@ interface LandingPageRepositoryInterface extends RepositoryInterface
     public function findBySlug(string $slug): ?object;
 
     /**
+     * Find a published landing page by unique slug.
+     * (Tìm landing page đã xuất bản theo slug duy nhất)
+     */
+    public function findPublishedBySlug(string $slug): ?object;
+
+    /**
      * Toggle status of a landing page.
      * (Đổi trạng thái hiển thị của landing page)
      */

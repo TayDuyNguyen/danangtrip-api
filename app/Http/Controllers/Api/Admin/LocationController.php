@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Enums\HttpStatusCode;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\LocationReportsDashboardRequest;
 use App\Http\Requests\Location\AttachAmenitiesLocationRequest;
 use App\Http\Requests\Location\AttachTagsLocationRequest;
 use App\Http\Requests\Location\DestroyLocationRequest;
@@ -42,9 +43,13 @@ final class LocationController extends Controller
     /**
      * Summary stats for admin list header cards.
      */
-    public function stats(): JsonResponse
+    public function stats(LocationReportsDashboardRequest $request): JsonResponse
     {
-        $result = $this->locationService->getAdminLocationStats();
+        $validated = $request->validated();
+        $result = $this->locationService->getAdminLocationStats(
+            $validated['from'] ?? null,
+            $validated['to'] ?? null,
+        );
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
             ? $this->success($result['data'])

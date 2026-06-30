@@ -60,7 +60,7 @@ final class NotificationController extends Controller
         $result = $this->notificationService->sendNotificationToAll($request->validated());
 
         return $result['status'] === HttpStatusCode::SUCCESS->value
-            ? $this->success(null, $result['message'])
+            ? $this->success($result['data'] ?? null, $result['message'])
             : $this->error($result['message'], $result['status']);
     }
 

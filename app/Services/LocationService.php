@@ -400,12 +400,12 @@ final class LocationService
     /**
      * Admin: stats row (totals across all locations).
      */
-    public function getAdminLocationStats(): array
+    public function getAdminLocationStats(?string $from = null, ?string $to = null): array
     {
         try {
             return [
                 'status' => HttpStatusCode::SUCCESS->value,
-                'data' => $this->locationRepository->getAdminLocationStatsSummary(),
+                'data' => $this->locationRepository->getAdminLocationStatsSummary($from, $to),
             ];
         } catch (\Exception $e) {
 
